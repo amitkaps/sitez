@@ -10,6 +10,11 @@ to one line each.
 
 - **Idea and design.** `prose/idea.md` (promises, rules, not in v1, three test sites),
   `prose/design.md` (toolchain, build, islands, bundling), `AGENTS.md`.
+- **1. Skeleton.** The `sitez` package on Vite+ (`vp check`, `vp test`, `vp pack` to
+  `dist/cli.js`), Node 26 and pnpm through `mise.toml`, CI on every PR; the CLI with its five
+  commands, root finding from `site.md` and `SiteError` for the messages; the `blog`, `landing` and
+  `error-reserved-site-md` sites in `test/sites/`. Each stage gets its file in `src/` as its step
+  starts, not before.
 
 ## Open work, in order
 
@@ -35,23 +40,15 @@ in `spike/`, deleted when its answer is folded into `design.md`.
       plugin and a virtual entry per page, from a folder with no `vite.config.ts` or
       `package.json`.
 
-### 1. Skeleton
-
-- [ ] Package: `package.json` with a `sitez` bin, Vite+ toolchain (`vp check`, `vp test`,
-      `vp pack`), `mise.toml`, CI running check, test and build on every PR.
-- [ ] `src/` laid out by stage (discover, render, links, islands, bundle, report, cli), each folder
-      with a `README.md`; the repo carries `@prose` from the first file.
-- [ ] Fixtures in `test/sites/`: `blog/` and `landing/` from idea.md's tests, plus one folder per
-      error case. A test builds each and compares `dist/` with a snapshot.
-- [ ] Root finding: walk up from the working directory to `site.md`; no `site.md` fails with a
-      message saying where to put one.
-- [ ] Markz as a dependency: markz is `0.0.1` and unpublished, so use a release tarball as prose
-      does, until it is on npm.
-
 ### 2. Pages (rules 1, 2, 5; metadata)
 
 The `landing` fixture builds, then `blog` without its components.
 
+- [ ] Markz as a dependency. markz is `0.0.1`, isn't on npm and has no release, so there's
+      nothing to install yet: publish it, or attach a tarball to a markz release as prose does.
+      Until then, Sitez can't parse prose.
+- [ ] The site test: build every site in `test/sites/`, compare `dist/` with a snapshot, and
+      check each `error-…` site fails with its `error.txt`.
 - [ ] Discovery: every `.md` in `prose/`, every lowercase `.svelte` in `pattern/`, to a URL. Fails
       on two files for one URL, on `prose/site.md`, on a page named like a pattern.
 - [ ] Metadata: the Markz block, `title` from the first heading, `summary` from the first

@@ -1,0 +1,38 @@
+{
+	"name": "sitez",
+	"version": "0.0.0",
+	"description": "A zero-config static site generator: Markz in prose/, Svelte in pattern/, files in public/.",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/amitkaps/sitez.git"
+	},
+	"bin": {
+		"sitez": "./dist/cli.js"
+	},
+	"files": [
+		"dist"
+	],
+	"type": "module",
+	"scripts": {
+		"build": "vp pack",
+		"check": "vp check",
+		"dev": "vp pack --watch",
+		"prepack": "vp pack",
+		"sitez": "node src/cli.ts",
+		"test": "vp test --run"
+	},
+	"dependencies": {
+		"svelte": "^5.57.1"
+	},
+	"devDependencies": {
+		"@amitkaps/prose": "https://github.com/amitkaps/prose/releases/download/v0.1.0/amitkaps-prose-0.1.0.tgz",
+		"@types/node": "^26.0.0",
+		"typescript": "^6.0.3",
+		"vite-plus": "1.0.0"
+	},
+	"engines": {
+		"node": ">=26"
+	},
+	"packageManager": "pnpm@12.6.0"
+}

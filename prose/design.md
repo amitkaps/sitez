@@ -59,7 +59,7 @@ The island is the outermost component with browser behavior below a page or layo
 comes from the build, wrapped in a marker:
 
 ```html
-<sitez-island c="TagFilter" p='…devalue…'>…server-rendered HTML…</sitez-island>
+<sitez-island c="TagFilter" p="…devalue…">…server-rendered HTML…</sitez-island>
 ```
 
 The page's script finds each marker and calls `hydrate(Component, { target, props })`. Props are

@@ -64,8 +64,8 @@ site/
 
    ```svelte
    <script>
-     let { page, prose, site } = $props();
-     const posts = prose.filter((p) => p.url.startsWith('/blog/') && p.date);
+   	let { page, prose, site } = $props();
+   	const posts = prose.filter((p) => p.url.startsWith('/blog/') && p.date);
    </script>
    ```
 
@@ -73,12 +73,13 @@ site/
 
    ```svelte
    <script module>
-     export const metadata = { title: 'Blog' };
+   	export const metadata = { title: 'Blog' };
    </script>
    ```
 
    Its `<script>` can import any module and compute with it, including `await` for slow work,
    which is how a page gets data that isn't prose. The build waits for all of it.
+
 6. **A component with browser behavior is an island.** Browser behavior is an event handler, a
    binding, an effect, a transition, or an `on…` prop passed to a child. Such a component also
    ships its JavaScript and hydrates its HTML as the page loads, along with everything inside it;
