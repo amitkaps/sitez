@@ -81,9 +81,9 @@ site/
    which is how a page gets data that isn't prose. The build waits for all of it.
 
 6. **A component with browser behavior is an island.** Browser behavior is an event handler, a
-   binding, an effect, a transition, an action or attachment, or an `on…` prop passed to a child. Such a component also
-   ships its JavaScript and hydrates its HTML as the page loads, along with everything inside it;
-   the patterns around it stay HTML. There is nothing to mark.
+   binding, an effect, a transition, an action or attachment, or an `on…` prop passed to a child.
+   Such a component also ships its JavaScript and hydrates its HTML as the page loads, along with
+   everything inside it; the patterns around it stay HTML. There is nothing to mark.
 
    - **Pages and layouts are never islands.** Browser behavior in one fails the build, naming
      the component to move it into.
