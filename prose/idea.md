@@ -59,8 +59,9 @@ site/
    or file that doesn't exist fails the build. A draft doesn't exist in `build`, so linking to one
    fails too, rather than shipping a broken link.
 5. **Patterns run at build time.** Pages and layouts get `page`, this page's URL and metadata;
-   `prose`, the same for every prose page; and `site`, the metadata in `site.md`. Other components
-   get only the props they're passed.
+   `prose`, the same for every prose page; and `site`, the metadata in `site.md`. So does a
+   component a Markz element renders, since prose can't pass them: `{@essay-list /}` in
+   `prose/essays.md` can list the essays. Other components get only the props they're passed.
 
    ```svelte
    <script>

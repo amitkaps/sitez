@@ -8,6 +8,10 @@ Rendered by `pattern/CallOut.svelte`, holding a [term]{@key-word} of its own.
 
 {@chart-view data=sales.csv /}
 
+Every other page, listed by `pattern/PageList.svelte` from `prose`:
+
+{@page-list /}
+
 A [term]{@key-word} in a paragraph, and `{@call-out}` in code, which stays code.
 
 ```=html

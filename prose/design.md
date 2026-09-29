@@ -53,7 +53,8 @@ A prose page reaches Svelte as a component: Markz's HTML with its braces escaped
 Sitez's own Vite plugin for `.md` files in `prose/`. Svelte does for prose what it does for a
 pattern, with no second renderer, and Markz needs no options. An element with a component of its
 name, found up the tree as a layout is, has its tags renamed (`<call-out>` to `<CallOut>`) and
-the component imported, so its attributes arrive as string props and its content as `children`.
+the component imported, so its attributes arrive as string props and its content as `children`,
+alongside the page's `page`, `prose` and `site` (rule 5); an attribute of one of those names fails.
 A raw `=html` block is written through `{@html}`, never read as Svelte: `html()` renders a view
 of the document in which each raw block is a marker, so the only tags in its output are Markz's
 own, and renaming one is exact. Markz's warnings are printed by `build` and never fail it.

@@ -7,10 +7,12 @@
  * for a pattern: a Markz element with a component of its name (rule 3). Everything else, text,
  * attributes and raw HTML, comes out exactly as Markz writes it.
  */
-import { html, walk, type Document, type NodeData, type NodeId } from 'markz';
+import { html, position, walk, type Document, type NodeData, type NodeId } from 'markz';
+import { SiteError } from './errors.ts';
 
 /** @prose
- * The component source for one prose page. `componentFor` names the pattern file for an element
+ * The component source for one prose page, which takes `page`, `prose` and `site` as a Svelte
+ * page does. `componentFor` names the pattern file for an element
  * name, or nothing when the site has none, and the element stays as Markz writes it.
  *
  * Three steps, in an order that keeps each exact:
@@ -19,7 +21,9 @@ import { html, walk, type Document, type NodeData, type NodeId } from 'markz';
  *    marker element, so the only literal tags in the output are tags Markz wrote.
  * 2. Braces become `&#123;` and `&#125;`, since Markz never evaluates `${…}` and Svelte would.
  * 3. An element with a component has its tags renamed (`<call-out>` to `<CallOut>`), and Svelte
- *    passes its attributes as string props and its content as `children`. Each marker becomes
+ *    passes its attributes as string props and its content as `children`, along with the page's
+ *    own `page`, `prose` and `site`: prose can't pass them, and a list of pages is prose's to
+ *    place. Each marker becomes
  *    `{@html …}` with the block's content, which Svelte writes verbatim: a raw block's
  *    `<script>` is never compiled as the component's script, nor its `<style>` scoped.
  *
@@ -27,35 +31,56 @@ import { html, walk, type Document, type NodeData, type NodeId } from 'markz';
  * outside the islands and not sanitized.
  */
 export function proseComponent(
+	file: string,
 	doc: Document,
 	componentFor: (name: string) => string | undefined
 ): string {
-	const components = new Map<string, string>();
+	const components = new Map<string, string | undefined>();
 	walk(doc, {
 		enter(node) {
 			if (doc.type(node) !== 'element') return;
 			const { name } = doc.data(node, 'element');
-			const file = name.includes('-') && !components.has(name) ? componentFor(name) : undefined;
-			if (file) components.set(name, file);
+			if (!components.has(name))
+				components.set(name, name.includes('-') ? componentFor(name) : undefined);
+			if (components.get(name)) reserved(file, doc, node, name);
 		}
 	});
 
 	const { view, raws } = withMarkers(doc);
 	let out = html(view).replaceAll('{', '&#123;').replaceAll('}', '&#125;');
 	const imports: string[] = [];
-	for (const [name, file] of components) {
+	for (const [name, pattern] of components) {
+		if (!pattern) continue;
 		const component = componentName(name);
-		imports.push(`\timport ${component} from ${JSON.stringify(file)};`);
+		imports.push(`\timport ${component} from ${JSON.stringify(pattern)};`);
 		// Markz escapes `>` in attribute values, so a tag ends at the first `>`.
 		out = out
-			.replace(new RegExp(`<${name}(?=[\\s>])`, 'g'), `<${component}`)
+			.replace(new RegExp(`<${name}(?=[\\s>])`, 'g'), `<${component} {page} {prose} {site}`)
 			.replaceAll(`</${name}>`, `</${component}>`);
 	}
 	out = out.replace(/<sitez-raw-(\d+)><\/sitez-raw-\1>/g, (_, i: string) => {
 		// `<\/` keeps a `</script>` in the content from reading as the end of a tag.
 		return `{@html ${JSON.stringify(raws[Number(i)]).replaceAll('</', '<\\/')}}`;
 	});
-	return imports.length > 0 ? `<script>\n${imports.join('\n')}\n</script>\n\n${out}` : out;
+	if (imports.length === 0) return out;
+	imports.push('\tlet { page, prose, site } = $props();');
+	return `<script>\n${imports.join('\n')}\n</script>\n\n${out}`;
+}
+
+const PAGE_PROPS = ['page', 'prose', 'site'];
+
+/** @prose
+ * An element's component gets `page`, `prose` and `site` as a page does, so an attribute of one
+ * of those names would be silently replaced. It fails instead, naming the line.
+ */
+function reserved(file: string, doc: Document, node: NodeId, name: string): void {
+	const clash = doc.attributes(node)?.items.find((item) => PAGE_PROPS.includes(item.key));
+	if (!clash) return;
+	const { line } = position(doc.source)(clash.start);
+	throw new SiteError(
+		file,
+		`line ${line}: {@${name}} has a ${clash.key} attribute, but every component in prose already gets page, prose and site. Rename the attribute.`
+	);
 }
 
 /** `call-out` is `CallOut`: Markz requires the hyphen, so every element name has a component name. */

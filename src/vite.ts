@@ -114,7 +114,7 @@ function proseModules(root: string): Plugin {
 			if (!file.startsWith(folder) || !file.endsWith('.md')) return null;
 			const doc = parse(readFileSync(file, 'utf8'));
 			const url = urlOf(join(root, 'prose'), file);
-			const source = proseComponent(doc, (name) => nearest(root, url, componentName(name)));
+			const source = proseComponent(file, doc, (name) => nearest(root, url, componentName(name)));
 			const { js } = compile(source, {
 				filename: file,
 				generate: options?.ssr ? 'server' : 'client',

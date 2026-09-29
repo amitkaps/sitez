@@ -69,6 +69,9 @@ The `blog` fixture's `TagFilter` hydrates; the error fixtures fail with their me
       page or layout.
 - [ ] Fails: browser behavior in a page or layout (naming the component to move it into), a
       function prop (naming it), an island inside an island's children.
+- [ ] An element's component gets `page`, `prose` and `site` (rule 5); as an island, only the
+      ones its `$props()` reads are serialized, and reading `prose` fails, since every page's
+      metadata would ship to the browser: compute the list outside the island and pass it in.
 - [ ] Output: the `<sitez-island>` marker with `devalue` props and server-rendered HTML; children
       passed back through `createRawSnippet`.
 - [ ] Client: one small entry that hydrates every marker on the page; `common.js` and the page's
