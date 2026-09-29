@@ -23,6 +23,7 @@
 		"test": "vp test --run"
 	},
 	"dependencies": {
+		"markz": "https://github.com/amitkaps/markz/releases/download/v0.1.0/markz-0.1.0.tgz",
 		"svelte": "^5.57.1"
 	},
 	"devDependencies": {

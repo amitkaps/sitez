@@ -14,7 +14,7 @@ to one line each.
   `dist/cli.js`), Node 26 and pnpm through `mise.toml`, CI on every PR; the CLI with its five
   commands, root finding from `site.md` and `SiteError` for the messages; the `blog`, `landing` and
   `error-reserved-site-md` sites in `test/sites/`. Each stage gets its file in `src/` as its step
-  starts, not before.
+  starts, not before. Markz comes from its v0.1.0 release tarball until it is on npm.
 
 ## Open work, in order
 
@@ -44,9 +44,6 @@ in `spike/`, deleted when its answer is folded into `design.md`.
 
 The `landing` fixture builds, then `blog` without its components.
 
-- [ ] Markz as a dependency. markz is `0.0.1`, isn't on npm and has no release, so there's
-      nothing to install yet: publish it, or attach a tarball to a markz release as prose does.
-      Until then, Sitez can't parse prose.
 - [ ] The site test: build every site in `test/sites/`, compare `dist/` with a snapshot, and
       check each `error-…` site fails with its `error.txt`.
 - [ ] Discovery: every `.md` in `prose/`, every lowercase `.svelte` in `pattern/`, to a URL. Fails
