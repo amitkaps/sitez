@@ -1,6 +1,6 @@
 {
   "name": "sitez",
-  "version": "0.0.0",
+  "version": "0.1.0-rc.0",
   "description": "A zero-config static site generator: Markz in prose/, Svelte in pattern/, files in public/.",
   "license": "MIT",
   "repository": {
