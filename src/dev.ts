@@ -93,7 +93,7 @@ export async function dev(
 		const assets = [
 			HIDDEN,
 			'<script type="module" src="/@vite/client"></script>',
-			`<script type="module" src="${SCRIPTS}styles.js${query}"></script>`,
+			`<script type="module" blocking="render" src="${SCRIPTS}styles.js${query}"></script>`,
 			`<script type="module" src="${SCRIPTS}page.js${query}"></script>`
 		];
 		const { tags, head, body } = out.parts;
@@ -116,6 +116,7 @@ export async function dev(
 			...server
 				.components()
 				.map((file) => `import ${JSON.stringify(`${file}?svelte&type=style&lang.css`)};`),
+			// The reset has the view-transition rule now, so only the hiding goes.
 			`document.getElementById('sitez-hidden')?.remove();`
 		].join('\n');
 	};
@@ -204,10 +205,15 @@ export async function dev(
 // Where a page's scripts are served, by the plugin above.
 const SCRIPTS = '/@sitez/';
 
-// Hides a page until `styles.js` has loaded its styles, or for a second at most, so a script that
-// fails can't leave it blank.
+/** @prose
+ * The page's styles arrive as modules, after the HTML. `styles.js` blocks the first render where
+ * the browser supports `blocking="render"`, as a stylesheet link does in `build`; elsewhere this
+ * hides the page until the script has run, or for a second at most, so a script that fails can't
+ * leave it blank. It also opts into view transitions from the first render, which the reset
+ * does too late here: a page that isn't opted in when it first renders doesn't transition.
+ */
 const HIDDEN =
-	'<style id="sitez-hidden">html{visibility:hidden;animation:sitez-show 0s 1s forwards}@keyframes sitez-show{to{visibility:visible}}</style>';
+	'<style id="sitez-hidden">@view-transition{navigation:auto}html{visibility:hidden;animation:sitez-show 0s 1s forwards}@keyframes sitez-show{to{visibility:visible}}</style>';
 
 /** A page's URL ends in `/` or `.html`, or has no extension: `/about` redirects. */
 function looksLikePage(path: string): boolean {

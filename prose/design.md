@@ -36,8 +36,10 @@ makes a new or deleted file a new or missing URL without a restart.
 
 A page in dev has two scripts. One imports the stylesheet as modules (the reset,
 `pattern/style.css`, and each component's style module, never the component itself, which may
-import what only runs on the server), then shows the page, which a small `<style>` keeps hidden
-until then, or for a second at most, so it never flashes unstyled. The other hydrates the
+import what only runs on the server), then shows the page. It blocks the first render (`blocking="render"`), as a
+stylesheet link does in `build`, and where that isn't supported a small `<style>` keeps the page
+hidden until then, or for a second at most, so it never flashes unstyled. That `<style>` also opts
+into view transitions, which must be on before a page first renders. The other hydrates the
 page's islands, apart, so a broken island can't hold back the styles. So a change to CSS or an
 island is hot-replaced by Vite and Svelte. Anything else can change any page's HTML, even
 whether a link on another page is broken, so the server's modules are all invalidated, and so

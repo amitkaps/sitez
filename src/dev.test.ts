@@ -22,10 +22,10 @@ describe('pages', () => {
 		expect(response.status).toBe(200);
 		const html = await response.text();
 		expect(html).toContain('<sitez-island c="TagFilter"');
-		expect(html).toContain('<style id="sitez-hidden">html{visibility:hidden;');
+		expect(html).toContain('<style id="sitez-hidden">@view-transition{navigation:auto}html{');
 		expect(html).toContain('<script type="module" src="/@vite/client"></script>');
 		expect(html).toContain(
-			'<script type="module" src="/@sitez/styles.js?url=%2Fblog%2F"></script>'
+			'<script type="module" blocking="render" src="/@sitez/styles.js?url=%2Fblog%2F"></script>'
 		);
 		expect(html).toContain('<script type="module" src="/@sitez/page.js?url=%2Fblog%2F"></script>');
 	});
