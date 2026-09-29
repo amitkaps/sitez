@@ -31,10 +31,10 @@
     hanging-punctuation: first last;
   }
 
-  /* The column: about sixty characters wide, centered, with a gutter on a narrow screen. A
-     full-width layout sets `body { width: auto }`. */
+  /* The column: about sixty characters wide, centered, with a 2rem gutter each side on a narrow
+     screen. A full-width layout sets `body { width: auto }`. */
   body {
-    width: min(60ch, 100% - 2rem);
+    width: min(60ch, 100% - 4rem);
     margin: 0 auto;
     padding-block: clamp(2rem, 6vw, 4rem);
     font-family: system-ui, sans-serif;
@@ -80,6 +80,13 @@
     font-size: clamp(1.875em, 1.5em + 1.5vw, 2.5em);
     font-weight: 700;
     letter-spacing: -0.02em;
+  }
+
+  /* The standfirst: the paragraph under the title, larger and softer, as a newsroom opens. */
+  h1 + p {
+    font-size: 1.1875em;
+    line-height: 1.45;
+    color: color-mix(in oklab, currentColor 75%, transparent);
   }
 
   h2 {
@@ -133,8 +140,9 @@
   a {
     color: inherit;
     text-decoration-line: underline;
-    text-decoration-thickness: 1px;
-    text-underline-offset: 0.2em;
+    text-decoration-thickness: 0.08em;
+    text-underline-offset: 0.25em;
+    text-decoration-skip-ink: auto;
     text-decoration-color: color-mix(in oklab, currentColor 60%, transparent);
   }
 
@@ -150,6 +158,10 @@
   ul,
   ol {
     padding-inline-start: 1.5em;
+  }
+
+  li::marker {
+    font-variant-numeric: tabular-nums;
   }
 
   li + li {
