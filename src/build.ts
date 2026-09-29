@@ -46,7 +46,7 @@ export async function build(
 	const proseData = new Map<Page, PageData>();
 	for (const page of pages) {
 		if (page.kind !== 'prose') continue;
-		proseData.set(page, proseMetadata(page.url, parse(readFileSync(page.file, 'utf8'))));
+		proseData.set(page, proseMetadata(page.file, page.url, parse(readFileSync(page.file, 'utf8'))));
 	}
 	const prose = [...proseData.values()].filter((page) => !isDraft(page));
 
@@ -62,7 +62,7 @@ export async function build(
 		const renderPage = async (page: Page) => {
 			const t = performance.now();
 			const module = await server.load(page.file);
-			let data = proseData.get(page) ?? patternMetadata(page.url, module.metadata);
+			let data = proseData.get(page) ?? patternMetadata(page.file, page.url, module.metadata);
 			if (isDraft(data)) return undefined;
 			const body = await renderBody(svelte, page.file, module.default as never, {
 				page: data,
@@ -70,7 +70,7 @@ export async function build(
 				site
 			});
 			if (page.kind === 'pattern' && data.title === undefined) {
-				data = patternMetadata(page.url, module.metadata, body.body);
+				data = patternMetadata(page.file, page.url, module.metadata, body.body);
 			}
 			const layoutFile = layoutFor(root, page.url);
 			const layout = layoutFile

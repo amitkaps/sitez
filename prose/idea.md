@@ -114,6 +114,10 @@ draft: true
 - `date` puts a page in the RSS feed.
 - `draft` keeps it out of `build`, not out of `dev`.
 
+Sitez checks the keys it reads: a `draft: yes` or a `date: Sept 1` fails the build, naming the
+file and the key, rather than publishing a draft or misdating a post. Any other key is the site's
+own and passes through to its patterns unchecked.
+
 Site-wide metadata lives in `site.md` at the root, in the same Markz metadata block:
 
 ```md

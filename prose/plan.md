@@ -23,6 +23,9 @@ to one line each.
   through Vite's module runner with the nearest layout (`vite.ts`, `render.ts`), and `build.ts`
   writing `dist/`. `test/sites.test.ts` builds every example site against `test/snapshots/`.
   Dropped: failing on "a page named like a pattern", since capitalization already decides.
+- **Metadata checks.** `title`, `summary`, `date`, `draft` and a page's `url`, and `name`, `url`,
+  `repo` in `site.md`, fail the build when wrong; no schema library, since site-specific keys are
+  the site's to check.
 
 ## Open work, in order
 
