@@ -10,6 +10,7 @@
 import { relative } from 'node:path';
 import { parseArgs } from 'node:util';
 import pkg from '../package.json' with { type: 'json' };
+import { build } from './build.ts';
 import { SiteError } from './errors.ts';
 import { findRoot } from './root.ts';
 
@@ -32,10 +33,10 @@ const usage = [
 ].join('\n');
 
 /** @prose
- * Runs one command line and returns the exit code, so tests can call it without a process. No
- * command is built yet; each one lands with its step in `prose/plan.md`.
+ * Runs one command line and returns the exit code, so tests can call it without a process. Each
+ * command lands with its step in `prose/plan.md`; until then it says it isn't built.
  */
-export function run(argv: string[], cwd: string, out = console): number {
+export async function run(argv: string[], cwd: string, out = console): Promise<number> {
 	const { values, positionals } = parseArgs({
 		args: argv,
 		options: { help: { type: 'boolean', short: 'h' }, version: { type: 'boolean', short: 'v' } },
@@ -56,7 +57,16 @@ export function run(argv: string[], cwd: string, out = console): number {
 		return 1;
 	}
 	try {
-		findRoot(cwd);
+		const root = findRoot(cwd);
+		if (name === 'build') {
+			const result = await build(root);
+			const ms = Math.round(result.ms);
+			const n = result.pages.length;
+			out.log(
+				`${n} ${n === 1 ? 'page' : 'pages'} in ${ms} ms → ${relative(cwd, result.outDir) || '.'}`
+			);
+			return 0;
+		}
 		out.error(`sitez: '${name}' isn't built yet`);
 		return 1;
 	} catch (error) {
@@ -71,4 +81,4 @@ function isCommand(name: string): name is Command {
 	return Object.hasOwn(commands, name);
 }
 
-if (import.meta.main) process.exitCode = run(process.argv.slice(2), process.cwd());
+if (import.meta.main) process.exitCode = await run(process.argv.slice(2), process.cwd());

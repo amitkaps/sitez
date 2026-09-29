@@ -18,33 +18,17 @@ to one line each.
 - **0. Spikes.** Async server rendering, island detection, hydrating islands with children, and
   Vite without a config all hold; their answers are in design.md, and the code is in `4343fcb`.
   Islands are read from the compiler's AST, not its output.
+- **2. Pages.** `discover.ts` (URLs, two files for one URL, `prose/site.md`), `metadata.ts`
+  (defaults, drafts, a Svelte page's `<h1>`), prose compiled as Svelte (`prose.ts`), rendering
+  through Vite's module runner with the nearest layout (`vite.ts`, `render.ts`), and `build.ts`
+  writing `dist/`. `test/sites.test.ts` builds every example site against `test/snapshots/`.
+  Dropped: failing on "a page named like a pattern", since capitalization already decides.
 
 ## Open work, in order
 
 Each step ends in something a fixture site shows, so the step is done when its fixture builds and
 its tests pass, not when the code is written. Error cases are fixtures too: a site that must fail,
 with the message it must fail with.
-
-### 2. Pages (rules 1, 2, 5; metadata)
-
-The `landing` fixture builds, then `blog` without its components.
-
-- [ ] The site test: build every site in `test/sites/`, compare `dist/` with a snapshot, and
-      check each `error-…` site fails with its `error.txt`.
-- [ ] Discovery: every `.md` in `prose/`, every lowercase `.svelte` in `pattern/`, to a URL. Fails
-      on two files for one URL, on `prose/site.md`, on a page named like a pattern.
-- [ ] Metadata: the Markz block, `title` from the first heading, `summary` from the first
-      paragraph; `export const metadata` from a Svelte page's module script, else its first
-      `<h1>`. `draft` drops a page from `build`.
-- [ ] Rendering: a prose page becomes a Svelte component, then every page renders with the
-      nearest `Layout.svelte` up the tree, given `page`, `prose` and `site`. No layout means the
-      page's HTML alone.
-- [ ] Output: `dist/{url}/index.html`, `public/` copied as is.
-
-Decide here: how a prose page reaches Svelte. The likely route is generating a `.svelte`
-component from the Markz AST, so rule 3's components, islands inside prose and HMR all come from
-Svelte rather than a second renderer. Markz's `html()` takes no options, so either Sitez renders
-the AST itself or markz grows a hook; the second is a markz decision.
 
 ### 3. Components in prose (rule 3)
 
@@ -64,7 +48,7 @@ the AST itself or markz grows a hook; the second is a markz decision.
 ### 5. The site's own files (metadata)
 
 - [ ] In `<head>`: `<title>`, meta description, canonical URL, Open Graph tags, from `page` and
-      `site`.
+      `site`. The title is the page's alone today, and `<html>` has no `lang`: decide both here.
 - [ ] `sitemap.xml`, and `feed.xml` from pages with a `date`, newest first. Both need `url` in
       `site.md`; without it the build says so rather than writing relative URLs.
 

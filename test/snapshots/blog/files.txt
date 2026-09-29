@@ -1,0 +1,7 @@
+about/index.html
+blog/again/index.html
+blog/hello/index.html
+blog/index.html
+favicon.svg
+index.html
+style.css

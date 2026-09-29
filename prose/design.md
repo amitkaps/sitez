@@ -42,12 +42,25 @@ running independent ones in parallel, and reading the HTML without awaiting thro
 returning half a page. Pages render concurrently. If the build gets slow, the fix is a faster
 build, not less HTML.
 
-Each page is a virtual server entry that re-exports `render` from `svelte/server`, so the page
-and the renderer share one copy of Svelte in the server bundle. A failed `await` rejects with the
-original error, whose stack names the data module rather than the page, so the build wraps each
-render and names the page file.
+Pages render through Vite's module runner, in `build` as in `dev`, not from a bundle. A pattern's
+modules run from where they are, so `import.meta.url` still points at them (the Markz site's
+Quality page reads its test cases relative to its own file), and `dev` and `build` can't render a
+page differently. Svelte comes through the same runner, so the page, its layout and the renderer
+share one copy of it. A failed `await` rejects with the original error, whose stack names the data
+module rather than the page, so the build wraps each render and names the page file.
 
-Links are rewritten from the AST, not the HTML, so examples in code blocks are left alone. A
+A prose page reaches Svelte as a component: Markz's HTML with its braces escaped, compiled by
+Sitez's own Vite plugin for `.md` files in `prose/`. Svelte does for prose what it does for a
+pattern, with no second renderer, and Markz needs no options.
+
+A page renders before its layout, because a Svelte page's title can come from its own `<h1>` and
+the layout needs the title. The layout then renders with a placeholder element as its children,
+and the page's HTML replaces it; a layout that doesn't render its children, or renders them
+twice, fails the build. Only the nearest layout wraps a page: `pattern/blog/Layout.svelte` that
+wants the site's header imports `../Layout.svelte` and puts itself inside it.
+
+Links are rewritten from the AST, not the HTML, so examples in code blocks are left alone: each
+link's destination is replaced in the Markz source at its AST position before `html()` runs. A
 relative link to a `.md` file becomes that page's URL; one to any other file in the repo becomes
 `{repo}/blob/main/{path}`, when `site.md` has a `repo`. A link to a page Sitez didn't build, or to
 a file that isn't there, fails with its source position.

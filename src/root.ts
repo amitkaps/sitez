@@ -14,17 +14,14 @@ export const SITE_FILE = 'site.md';
 /** @prose
  * Walks up from `from` to the first folder with a `site.md`. `prose/site.md` is reserved: found
  * from inside `prose/`, with a `site.md` one level up, it would otherwise make `prose/` a site of
- * its own. Found from the root, it is page discovery's to reject.
+ * its own. Found from the root, page discovery rejects it with the same message.
  */
 export function findRoot(from: string): string {
 	const start = resolve(from);
 	for (let dir = start; ; dir = dirname(dir)) {
 		if (isFile(join(dir, SITE_FILE))) {
 			if (basename(dir) === 'prose' && isFile(join(dirname(dir), SITE_FILE))) {
-				throw new SiteError(
-					join(dir, SITE_FILE),
-					`${SITE_FILE} is reserved for the site's metadata, next to prose/, so it can't be a page. Rename it, or move its metadata into ../${SITE_FILE}.`
-				);
+				throw reserved(join(dir, SITE_FILE));
 			}
 			return dir;
 		}
@@ -35,6 +32,14 @@ export function findRoot(from: string): string {
 			);
 		}
 	}
+}
+
+/** `prose/site.md`, found here from inside `prose/` or by page discovery from the root. */
+export function reserved(file: string): SiteError {
+	return new SiteError(
+		file,
+		`${SITE_FILE} is reserved for the site's metadata, next to prose/, so it can't be a page. Rename it, or move its metadata into ../${SITE_FILE}.`
+	);
 }
 
 function isFile(path: string): boolean {

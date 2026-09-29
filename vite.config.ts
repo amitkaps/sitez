@@ -9,8 +9,9 @@
 import { defineConfig } from 'vite-plus';
 import { prose } from '@amitkaps/prose';
 
-// The example sites are inputs to the tests, formatted the way a site's author would leave them.
-const ignored = ['dist/**', 'test/sites/**', 'pnpm-lock.yaml'];
+// The example sites are inputs to the tests, formatted the way a site's author would leave them;
+// the snapshots are Sitez's output, exactly as written.
+const ignored = ['dist/**', 'test/sites/**', 'test/snapshots/**', 'pnpm-lock.yaml'];
 
 export default defineConfig({
 	plugins: process.env.VITEST ? [] : [prose()],

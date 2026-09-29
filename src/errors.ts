@@ -10,8 +10,8 @@ export class SiteError extends Error {
 	/** The file or folder at fault, as an absolute path. */
 	readonly file: string;
 
-	constructor(file: string, message: string) {
-		super(message);
+	constructor(file: string, message: string, options?: ErrorOptions) {
+		super(message, options);
 		this.name = 'SiteError';
 		this.file = file;
 	}
