@@ -51,20 +51,22 @@ export function discover(root: string): Page[] {
 }
 
 /** @prose
- * The nearest `Layout.svelte` up the tree from a page's URL: `pattern/blog/Layout.svelte` for
- * `/blog/hello/`, else `pattern/Layout.svelte`. Only the nearest wraps a page; a layout that wants
- * the one above it imports it, as any component would.
+ * The nearest pattern of a name up the tree from a page's URL (rule 2): for `/blog/hello/`,
+ * `pattern/blog/hello/`, then `pattern/blog/`, then `pattern/`. Layouts and the components prose
+ * elements render are both found this way, so where a pattern sits says what it belongs to. Only
+ * the nearest is used; a layout that wants the one above it imports it, as any component would.
  */
-export function layoutFor(root: string, url: string): string | undefined {
+export function nearest(root: string, url: string, name: string): string | undefined {
 	const segments = url.split('/').filter(Boolean);
 	for (let n = segments.length; n >= 0; n--) {
-		const file = join(root, 'pattern', ...segments.slice(0, n), 'Layout.svelte');
+		const file = join(root, 'pattern', ...segments.slice(0, n), `${name}.svelte`);
 		if (statSync(file, { throwIfNoEntry: false })?.isFile()) return file;
 	}
 	return undefined;
 }
 
-function urlOf(folder: string, file: string): string {
+/** A file's URL from its path below `folder` (`prose/` or `pattern/`). */
+export function urlOf(folder: string, file: string): string {
 	const segments = relative(folder, file).slice(0, -extname(file).length).split(sep);
 	if (segments.at(-1) === 'index') segments.pop();
 	return segments.length === 0 ? '/' : `/${segments.join('/')}/`;

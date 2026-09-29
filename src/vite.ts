@@ -6,14 +6,15 @@
  * and `import.meta.url` still points at them: the Markz site's Quality page reads its test cases
  * relative to its own file. A site has no `node_modules`, so its imports resolve from Sitez.
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, realpathSync } from 'node:fs';
 import { join, sep } from 'node:path';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { parse } from 'markz';
 import { compile } from 'svelte/compiler';
 import { createServer, type Plugin, type ViteDevServer } from 'vite';
 import { SiteError } from './errors.ts';
-import { proseComponent } from './prose.ts';
+import { nearest, urlOf } from './discover.ts';
+import { componentName, proseComponent } from './prose.ts';
 
 export interface SiteServer {
 	vite: ViteDevServer;
@@ -25,17 +26,22 @@ export interface SiteServer {
 /** @prose
  * A server with no HTTP listener and no watcher, for rendering. `dev` (step 9) will add both.
  * Svelte's dev checks are off, as they cost time and don't change the HTML.
+ *
+ * Vite names modules by their real path, so a site reached through a symlink (macOS's `/var` is
+ * `/private/var`) is served from its real path, and an error names the file by the path the
+ * site was given, as every other message does.
  */
 export async function siteServer(root: string): Promise<SiteServer> {
+	const real = realpathSync(root);
 	const vite = await createServer({
 		configFile: false,
-		root,
+		root: real,
 		logLevel: 'silent',
 		appType: 'custom',
 		server: { middlewareMode: true, hmr: false, watch: null },
 		plugins: [
 			fromSitez(),
-			proseModules(root),
+			proseModules(real),
 			svelte({ configFile: false, compilerOptions: { dev: false, experimental: { async: true } } }),
 			noOptimizer()
 		]
@@ -51,7 +57,11 @@ export async function siteServer(root: string): Promise<SiteServer> {
 						.join('/')}`
 				);
 			} catch (error) {
-				throw siteError(error, file);
+				const named = siteError(error, file);
+				if (!named.file.startsWith(real + sep)) throw named;
+				throw new SiteError(root + named.file.slice(real.length), named.message, {
+					cause: named.cause
+				});
 			}
 		},
 		close: () => vite.close()
@@ -90,7 +100,10 @@ function fromSitez(): Plugin {
 	};
 }
 
-/** Each `.md` in `prose/` loads as the Svelte component `prose.ts` writes for it. */
+/** @prose
+ * Each `.md` in `prose/` loads as the Svelte component `prose.ts` writes for it, with the
+ * components its elements render found up the tree from the page's URL, as its layout is.
+ */
 function proseModules(root: string): Plugin {
 	const folder = join(root, 'prose') + sep;
 	return {
@@ -100,7 +113,9 @@ function proseModules(root: string): Plugin {
 			const file = id.split('?')[0]!;
 			if (!file.startsWith(folder) || !file.endsWith('.md')) return null;
 			const doc = parse(readFileSync(file, 'utf8'));
-			const { js } = compile(proseComponent(doc), {
+			const url = urlOf(join(root, 'prose'), file);
+			const source = proseComponent(doc, (name) => nearest(root, url, componentName(name)));
+			const { js } = compile(source, {
 				filename: file,
 				generate: options?.ssr ? 'server' : 'client',
 				dev: false,

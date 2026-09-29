@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative } from 'node:path';
 import { describe, expect, test } from 'vite-plus/test';
-import { discover, layoutFor } from './discover.ts';
+import { discover, nearest } from './discover.ts';
 import { SiteError } from './errors.ts';
 
 /** A site from a list of paths; every file gets the same few bytes. */
@@ -77,9 +77,9 @@ describe('discover', () => {
 	});
 });
 
-describe('layoutFor', () => {
+describe('nearest', () => {
 	const root = site('pattern/Layout.svelte', 'pattern/blog/Layout.svelte');
-	const layout = (url: string) => relative(root, layoutFor(root, url) ?? root);
+	const layout = (url: string) => relative(root, nearest(root, url, 'Layout') ?? root);
 
 	test('is the nearest Layout.svelte up the tree from the URL', () => {
 		expect(layout('/')).toBe('pattern/Layout.svelte');
@@ -90,7 +90,7 @@ describe('layoutFor', () => {
 	});
 
 	test('is none when the site has no layout', () => {
-		expect(layoutFor(site('prose/index.md'), '/')).toBeUndefined();
+		expect(nearest(site('prose/index.md'), '/', 'Layout')).toBeUndefined();
 	});
 });
 

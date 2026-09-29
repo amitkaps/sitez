@@ -7,9 +7,11 @@ stage gets a file here, or a folder once it needs more than one, as its step in
 - `cli.ts` is the command: it finds the site and runs one of `dev`, `build`, `preview`, `check`
   and `deploy`.
 - `root.ts` finds the site from wherever `sitez` runs.
-- `discover.ts` decides which files are pages, at which URLs, and which layout wraps each.
+- `discover.ts` decides which files are pages, at which URLs, and which pattern of a name, such
+  as a layout, is nearest to each.
 - `metadata.ts` is what a page knows about itself, the site and all the prose.
-- `prose.ts` turns a Markz page into a Svelte component.
+- `prose.ts` turns a Markz page into a Svelte component, its elements into the site's components.
+- `warnings.ts` is how Markz's warnings reach the author: file, line, and what to write instead.
 - `vite.ts` is the Vite server Sitez runs for a site, with the config nobody writes.
 - `render.ts` turns one page into a complete HTML document.
 - `build.ts` renders every page and writes `dist/`.

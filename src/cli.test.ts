@@ -1,4 +1,4 @@
-import { mkdtempSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, test } from 'vite-plus/test';
@@ -38,6 +38,17 @@ describe('sitez', () => {
 		const { code, error } = await sitez(['serve']);
 		expect(code).toBe(1);
 		expect(error).toMatch(/^sitez: unknown command 'serve'/);
+	});
+
+	test('builds, printing Markz warnings named from where it runs', async () => {
+		const root = mkdtempSync(join(tmpdir(), 'sitez-'));
+		mkdirSync(join(root, 'prose'));
+		writeFileSync(join(root, 'site.md'), '---\nname: Test\n---\n');
+		writeFileSync(join(root, 'prose/index.md'), '# Home\n\nSome *stars*.\n');
+		const { code, log, error } = await sitez(['build'], join(root, 'prose'));
+		expect(code).toBe(0);
+		expect(error).toBe('index.md:3:6: `*emphasis*`, write `_emphasis_` instead (star-emphasis)');
+		expect(log).toMatch(/^1 page in \d+ ms → \.\.\/dist$/);
 	});
 
 	test('fails outside a site', async () => {

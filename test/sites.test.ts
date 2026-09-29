@@ -1,16 +1,18 @@
 /** @prose
  * # The example sites
  *
- * Every site in `test/sites/` is built. A site builds to the files in `test/snapshots/<site>/`,
- * (`files.txt` lists them, `built/` holds the text ones), which are reviewed as they change; an `error-…` site fails with exactly its `error.txt`, the
- * file named relative to the site as the CLI prints it from there.
+ * Every site in `test/sites/` is built. A site builds to the files in `test/snapshots/<site>/`
+ * (`files.txt` lists them, `built/` holds the text ones, and `warnings.txt` has Markz's warnings,
+ * when it has any), which are reviewed as they change. An `error-…` site fails with exactly its
+ * `error.txt`. Files are named relative to the site, as the CLI prints them from there.
  */
-import { mkdtempSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
 import { describe, expect, test } from 'vite-plus/test';
 import { build } from '../src/build.ts';
 import { SiteError } from '../src/errors.ts';
+import { formatWarning } from '../src/warnings.ts';
 
 const sites = join(import.meta.dirname, 'sites');
 const names = readdirSync(sites, { withFileTypes: true })
@@ -23,7 +25,8 @@ const text = /\.(html|css|js|xml|svg|txt|json)$/;
 describe.each(names.filter((name) => !name.startsWith('error-')))('%s', (name) => {
 	test('builds to its snapshot', async () => {
 		const outDir = join(mkdtempSync(join(tmpdir(), 'sitez-')), 'dist');
-		await build(join(sites, name), { outDir });
+		const root = join(sites, name);
+		const { warnings } = await build(root, { outDir });
 		const files = readdirSync(outDir, { recursive: true, withFileTypes: true })
 			.filter((entry) => entry.isFile())
 			.map((entry) => relative(outDir, join(entry.parentPath, entry.name)))
@@ -33,6 +36,13 @@ describe.each(names.filter((name) => !name.startsWith('error-')))('%s', (name) =
 			await expect(readFileSync(join(outDir, file), 'utf8')).toMatchFileSnapshot(
 				`snapshots/${name}/built/${file}`
 			);
+		}
+		const snapshot = `snapshots/${name}/warnings.txt`;
+		if (warnings.length > 0 || existsSync(join(import.meta.dirname, snapshot))) {
+			const lines = warnings.map((warning) =>
+				formatWarning(warning, (file) => relative(root, file))
+			);
+			await expect(lines.map((line) => `${line}\n`).join('')).toMatchFileSnapshot(snapshot);
 		}
 	});
 });

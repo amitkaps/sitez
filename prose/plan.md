@@ -26,18 +26,16 @@ to one line each.
 - **Metadata checks.** `title`, `summary`, `date`, `draft` and a page's `url`, and `name`, `url`,
   `repo` in `site.md`, fail the build when wrong; no schema library, since site-specific keys are
   the site's to check.
+- **3. Components in prose.** A Markz element renders the nearest component of its name
+  (`discover.ts`'s `nearest`, shared with layouts), attributes as props and body as children;
+  raw `=html` blocks are written verbatim rather than compiled (`prose.ts`). `build` prints Markz's
+  warnings (`warnings.ts`). The `elements` site shows both, and `warnings.txt` snapshots them.
 
 ## Open work, in order
 
 Each step ends in something a fixture site shows, so the step is done when its fixture builds and
 its tests pass, not when the code is written. Error cases are fixtures too: a site that must fail,
 with the message it must fail with.
-
-### 3. Components in prose (rule 3)
-
-- [ ] `{@call-out}` renders `CallOut.svelte`, found up the tree from the page's URL; attributes
-      are props, the body is children. No component: Markz's own HTML for the element.
-- [ ] Markz's warnings are printed during `build` with file and line, and don't fail it.
 
 ### 4. Links (rule 4)
 

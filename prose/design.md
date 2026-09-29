@@ -51,7 +51,12 @@ module rather than the page, so the build wraps each render and names the page f
 
 A prose page reaches Svelte as a component: Markz's HTML with its braces escaped, compiled by
 Sitez's own Vite plugin for `.md` files in `prose/`. Svelte does for prose what it does for a
-pattern, with no second renderer, and Markz needs no options.
+pattern, with no second renderer, and Markz needs no options. An element with a component of its
+name, found up the tree as a layout is, has its tags renamed (`<call-out>` to `<CallOut>`) and
+the component imported, so its attributes arrive as string props and its content as `children`.
+A raw `=html` block is written through `{@html}`, never read as Svelte: `html()` renders a view
+of the document in which each raw block is a marker, so the only tags in its output are Markz's
+own, and renaming one is exact. Markz's warnings are printed by `build` and never fail it.
 
 A page renders before its layout, because a Svelte page's title can come from its own `<h1>` and
 the layout needs the title. The layout then renders with a placeholder element as its children,

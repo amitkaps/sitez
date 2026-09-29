@@ -13,6 +13,7 @@ import pkg from '../package.json' with { type: 'json' };
 import { build } from './build.ts';
 import { SiteError } from './errors.ts';
 import { findRoot } from './root.ts';
+import { formatWarning } from './warnings.ts';
 
 const commands = {
 	dev: 'serve with live reload',
@@ -60,6 +61,9 @@ export async function run(argv: string[], cwd: string, out = console): Promise<n
 		const root = findRoot(cwd);
 		if (name === 'build') {
 			const result = await build(root);
+			for (const warning of result.warnings) {
+				out.error(formatWarning(warning, (file) => relative(cwd, file)));
+			}
 			const ms = Math.round(result.ms);
 			const n = result.pages.length;
 			out.log(

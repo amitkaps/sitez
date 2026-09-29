@@ -4,13 +4,16 @@
  * `sitez build`: every page rendered to complete HTML in `dist/`, and `public/` copied beside
  * them. Prose metadata is read before anything renders, because every page and layout gets the
  * whole list (`prose`); then pages render concurrently, each awaiting its own data. Drafts are
- * left out, and so are they from `prose`, so no page lists what isn't built.
+ * left out, and so are they from `prose`, so no page lists what isn't built. Markz's warnings are
+ * collected as the prose is read, from `site.md` and every page built, and returned for the
+ * command to print.
  */
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { parse } from 'markz';
-import { discover, layoutFor, type Page } from './discover.ts';
+import { discover, nearest, type Page } from './discover.ts';
 import { SiteError } from './errors.ts';
+import { SITE_FILE } from './root.ts';
 import {
 	isDraft,
 	patternMetadata,
@@ -20,6 +23,7 @@ import {
 } from './metadata.ts';
 import { document, renderBody, renderLayout, svelteOf } from './render.ts';
 import { siteServer } from './vite.ts';
+import { markzWarnings, type MarkzWarning } from './warnings.ts';
 
 export interface Built {
 	url: string;
@@ -31,6 +35,8 @@ export interface Built {
 export interface BuildResult {
 	outDir: string;
 	pages: Built[];
+	/** Markz's, from `site.md` and every page built, in URL order. */
+	warnings: MarkzWarning[];
 	ms: number;
 }
 
@@ -43,10 +49,15 @@ export async function build(
 	const site = siteMetadata(root);
 	const pages = discover(root);
 
+	const siteFile = join(root, SITE_FILE);
+	const warnings = markzWarnings(siteFile, parse(readFileSync(siteFile, 'utf8')));
 	const proseData = new Map<Page, PageData>();
 	for (const page of pages) {
 		if (page.kind !== 'prose') continue;
-		proseData.set(page, proseMetadata(page.file, page.url, parse(readFileSync(page.file, 'utf8'))));
+		const doc = parse(readFileSync(page.file, 'utf8'));
+		const data = proseMetadata(page.file, page.url, doc);
+		proseData.set(page, data);
+		if (!isDraft(data)) warnings.push(...markzWarnings(page.file, doc));
 	}
 	const prose = [...proseData.values()].filter((page) => !isDraft(page));
 
@@ -72,7 +83,7 @@ export async function build(
 			if (page.kind === 'pattern' && data.title === undefined) {
 				data = patternMetadata(page.file, page.url, module.metadata, body.body);
 			}
-			const layoutFile = layoutFor(root, page.url);
+			const layoutFile = nearest(root, page.url, 'Layout');
 			const layout = layoutFile
 				? { file: layoutFile, component: (await server.load(layoutFile)).default as never }
 				: undefined;
@@ -91,6 +102,7 @@ export async function build(
 	return {
 		outDir,
 		pages: rendered.map(({ url, file, ms }) => ({ url, file, ms })),
+		warnings,
 		ms: performance.now() - start
 	};
 }
