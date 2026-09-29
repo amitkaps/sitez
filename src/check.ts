@@ -9,7 +9,9 @@
  * `--fix` formats the files and applies oxlint's safe fixes first, then reports what's left.
  *
  * The style is Sitez's, not configured: tabs, single quotes, 100 columns
- * (`runtime/oxfmtrc.json`).
+ * (`runtime/oxfmtrc.json`). oxfmt and oxlint are Sitez's own dependencies, pinned to the versions
+ * Vite+ vendors, rather than reached through Vite+: that would put its toolchain, vitest and a
+ * type-aware linter among them, in every site's install.
  */
 import { execFile } from 'node:child_process';
 import {
