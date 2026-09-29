@@ -1,7 +1,10 @@
+404.html
 about/index.html
 blog/again/index.html
 blog/hello/index.html
 blog/index.html
 favicon.svg
+feed.xml
 index.html
+sitemap.xml
 style.css

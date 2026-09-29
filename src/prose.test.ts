@@ -3,8 +3,15 @@ import { describe, expect, test } from 'vite-plus/test';
 import { componentName, proseComponent } from './prose.ts';
 
 const components: Record<string, string> = { 'call-out': '/site/pattern/CallOut.svelte' };
+const hrefs: Record<string, string> = { 'about.md': '/about/', 'about.md#team': '/about/#team' };
 const svelte = (source: string) =>
-	proseComponent('/site/prose/index.md', parse(source), (name) => components[name]);
+	proseComponent('/site/prose/index.md', parse(source), {
+		component: (name) => components[name],
+		link: (destination) =>
+			destination === 'gone.md'
+				? { problem: "gone.md isn't there." }
+				: { href: hrefs[destination] ?? destination }
+	});
 
 describe('proseComponent', () => {
 	test('is Markz HTML with its braces escaped', () => {
@@ -53,5 +60,15 @@ describe('componentName', () => {
 	test('capitalizes each part of the element name', () => {
 		expect(componentName('call-out')).toBe('CallOut');
 		expect(componentName('chart-view-2d')).toBe('ChartView2d');
+	});
+
+	test('writes each link and image as the URL it resolves to, leaving code alone', () => {
+		expect(svelte('[About](about.md#team) and `[x](about.md)`.')).toBe(
+			'<p><a href="/about/#team">About</a> and <code>[x](about.md)</code>.</p>\n'
+		);
+	});
+
+	test('fails on a link that goes nowhere, naming its line', () => {
+		expect(() => svelte('# Home\n\nSee [it](gone.md).')).toThrow("line 3: gone.md isn't there.");
 	});
 });

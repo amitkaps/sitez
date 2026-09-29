@@ -115,10 +115,14 @@ function isDate(value: string): boolean {
 	return new Date(`${value}T00:00:00Z`).toISOString().startsWith(value);
 }
 
-/** The text of the first top-level node of `type`, which is what a reader sees first. */
+/** @prose
+ * The text of the first top-level node of `type`, which is what a reader sees first, on one line:
+ * a paragraph's line breaks are the source's, not the reader's, and a description has none.
+ */
 function first(doc: Document, type: 'heading' | 'paragraph'): string | undefined {
 	for (const node of doc.children(doc.root)) {
-		if (doc.type(node) === type) return textContent(doc, node).trim() || undefined;
+		if (doc.type(node) === type)
+			return textContent(doc, node).replace(/\s+/g, ' ').trim() || undefined;
 	}
 	return undefined;
 }

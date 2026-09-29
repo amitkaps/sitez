@@ -1,3 +1,4 @@
 favicon.svg
 index.html
 lantern.txt
+sitemap.xml

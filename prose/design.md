@@ -65,11 +65,21 @@ and the page's HTML replaces it; a layout that doesn't render its children, or r
 twice, fails the build. Only the nearest layout wraps a page: `pattern/blog/Layout.svelte` that
 wants the site's header imports `../Layout.svelte` and puts itself inside it.
 
-Links are rewritten from the AST, not the HTML, so examples in code blocks are left alone: each
-link's destination is replaced in the Markz source at its AST position before `html()` runs. A
-relative link to a `.md` file becomes that page's URL; one to any other file in the repo becomes
-`{repo}/blob/main/{path}`, when `site.md` has a `repo`. A link to a page Sitez didn't build, or to
-a file that isn't there, fails with its source position.
+Links are rewritten from the AST, not the HTML, so examples in code blocks are left alone: the
+view `html()` renders has each link's destination swapped for its URL, as it has raw blocks
+swapped for markers. A relative link to a `.md` in `prose/` becomes that page's URL, one to a file
+in `public/` its path, and one to any other file in the repo `{repo}/blob/main/{path}` (`tree`
+for a folder), with the path from the git root, which may be above the site's. A site link
+(`/about`) is looked up among the pages, then in `public/`. A link to a draft, to the 404 page,
+or to anything that isn't there fails with its line. The check needs every page's draft status
+before any prose loads, so `build` loads the Svelte pages' modules for their `metadata` first.
+
+The head is written from metadata (`head.ts`): `<title>`, the description, the canonical URL and
+Open Graph tags, and a feed link when the site has one. A `<svelte:head>` that writes one of those
+fails, so there is one source for what a page says about itself. `sitemap.xml` lists every page
+but the 404; `feed.xml` is RSS 2.0 with the pages that have a `date`, newest first, each with its
+title, summary and date. The 404 page is written as `404.html` and left out of `prose`, since
+nothing lists or links to it.
 
 ## Bundling
 

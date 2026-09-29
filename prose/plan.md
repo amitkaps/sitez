@@ -30,38 +30,20 @@ to one line each.
   (`discover.ts`'s `nearest`, shared with layouts), attributes as props and body as children;
   raw `=html` blocks are written verbatim rather than compiled (`prose.ts`). `build` prints Markz's
   warnings (`warnings.ts`). The `elements` site shows both, and `warnings.txt` snapshots them.
+- **4. Links.** `links.ts`: page files to URLs, site links checked, `public/` files by path, other
+  repo files to GitHub, images only from `public/`; a missing target, a draft or the 404 fails at
+  its line. Rewritten in the view `html()` renders, so code is untouched. Links in Svelte
+  patterns are unchecked, with a `@note` asking whether promise 4 should cover them.
+- **5. The site's own files.** `head.ts` writes the head from metadata and fails a
+  `<svelte:head>` that writes those tags; `sitemap.ts` writes `sitemap.xml` and an RSS
+  `feed.xml` of summaries; the 404 page is `404.html`; `url` in `site.md` is required. `lang`,
+  an Open Graph image and Twitter tags wait on a `@note` in `head.ts`.
 
 ## Open work, in order
 
 Each step ends in something a fixture site shows, so the step is done when its fixture builds and
 its tests pass, not when the code is written. Error cases are fixtures too: a site that must fail,
 with the message it must fail with.
-
-### 4. Links (rule 4)
-
-- [ ] Rewrite from the AST: `.md` targets to URLs (with `#fragment` kept), other repo files to
-      `{repo}/blob/main/{path}`, code blocks untouched.
-- [ ] Fail on a link to a missing page, a missing file, a draft, or a repo file with no `repo` in
-      `site.md`, with the source position.
-- [ ] Links in Svelte pages: decide whether `href`s in patterns are checked too (against the built
-      URL set, after rendering). Promise 4 says prose; leave a `@note` if it should say more.
-- [ ] Site links (`[workshops](/workshops)`), Markz's form for a link within the site: checked
-      against the built URLs and `public/`, and written with the page's trailing slash
-      (`/workshops/`). A path this site doesn't build, such as a separate site on the same
-      domain, fails like any missing page; the author writes it in full, and full URLs are never
-      checked.
-
-### 5. The site's own files (metadata)
-
-- [ ] In `<head>`: `<title>`, meta description, canonical URL, Open Graph tags, from `page` and
-      `site`. The title is the page's alone today, and `<html>` has no `lang`: decide both here.
-- [ ] `<head>` comes from metadata: the page's `title` is its `<title>`, as written, and
-      `summary` its description. A pattern that writes a `<title>` or description meta in
-      `<svelte:head>` fails, pointing to the metadata key. `lang` is still open.
-- [ ] `prose/404.md` is written as `404.html` (rule 1), left out of the sitemap, and a link to it
-      fails.
-- [ ] `sitemap.xml`, and `feed.xml` from pages with a `date`, newest first. Both need `url` in
-      `site.md`; without it the build says so rather than writing relative URLs.
 
 ### 6. Styling and CSS bundling
 
@@ -139,6 +121,6 @@ and old `.html` URLs, where the Markz site is docs. Its notes stay in that repo.
 ## Open questions
 
 - **Rendered bodies in `prose`.** Whether each entry carries its page's HTML (for a feed with
-  full posts, or an index with excerpts) as well as its metadata. Decide at step 5, when the feed
-  needs it.
+  full posts, or an index with excerpts) as well as its metadata. The feed carries summaries
+  until a site needs more.
 - The rest are in [design.md](design.md#open-questions).

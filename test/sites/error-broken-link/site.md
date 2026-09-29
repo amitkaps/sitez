@@ -1,4 +1,4 @@
 ---
-name: Await fails
+name: Broken link
 url: https://example.com
 ---

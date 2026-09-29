@@ -43,7 +43,7 @@ describe('sitez', () => {
 	test('builds, printing Markz warnings named from where it runs', async () => {
 		const root = mkdtempSync(join(tmpdir(), 'sitez-'));
 		mkdirSync(join(root, 'prose'));
-		writeFileSync(join(root, 'site.md'), '---\nname: Test\n---\n');
+		writeFileSync(join(root, 'site.md'), '---\nname: Test\nurl: https://example.com\n---\n');
 		writeFileSync(join(root, 'prose/index.md'), '# Home\n\nSome *stars*.\n');
 		const { code, log, error } = await sitez(['build'], join(root, 'prose'));
 		expect(code).toBe(0);

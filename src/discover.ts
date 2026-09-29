@@ -65,6 +65,17 @@ export function nearest(root: string, url: string, name: string): string | undef
 	return undefined;
 }
 
+/** @prose
+ * The page at `/404/`, `prose/404.md` or `pattern/404.svelte`, is what a host serves for a URL
+ * that doesn't exist, and hosts look for it at `404.html` (rule 1). Every other page is its
+ * folder's `index.html`, so its URL needs no extension.
+ */
+export const NOT_FOUND = '/404/';
+
+export function outputFile(url: string): string {
+	return url === NOT_FOUND ? '404.html' : join(...url.split('/').filter(Boolean), 'index.html');
+}
+
 /** A file's URL from its path below `folder` (`prose/` or `pattern/`). */
 export function urlOf(folder: string, file: string): string {
 	const segments = relative(folder, file).slice(0, -extname(file).length).split(sep);

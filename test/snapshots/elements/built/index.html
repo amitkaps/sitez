@@ -4,10 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Elements</title>
+<meta name="description" content="A Markz element with a component of its name renders it; the rest stay as Markz writes them.">
+<link rel="canonical" href="https://example.com/">
+<meta property="og:url" content="https://example.com/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Elements">
+<meta property="og:description" content="A Markz element with a component of its name renders it; the rest stay as Markz writes them.">
+<meta property="og:site_name" content="Elements">
 
 </head>
 <body>
 <!--[--><h1 id="elements">Elements</h1> <p>A Markz element with a component of its name renders it; the rest stay as Markz writes them.</p> <aside class="call-out note"><!--[0--><strong>{not Svelte}</strong><!--]--> <p>Rendered by <code>pattern/CallOut.svelte</code>, holding a <dfn><!---->term<!----></dfn><!----> of its own.</p><!----></aside><!----> <chart-view data="sales.csv"></chart-view> <p>Every other page, listed by <code>pattern/PageList.svelte</code> from <code>prose</code>:</p> <ul><!--[--><li><a href="/docs/">Docs</a></li><!--]--></ul><!----> <p>A <dfn><!---->term<!----></dfn><!----> in a paragraph, and <code>{@call-out}</code> in code, which stays code.</p> <!--61lgom--><script>console.log('raw HTML, written as it is');</script>
-<!----><p>The <a href="docs/index.md">docs</a> have their own call-out. This line has *star emphasis*, so it warns.</p><!--]-->
+<!----><p>The <a href="/docs/">docs</a> have their own call-out. This line has *star emphasis*, so it warns.</p><!--]-->
 </body>
 </html>

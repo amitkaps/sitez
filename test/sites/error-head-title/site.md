@@ -1,4 +1,4 @@
 ---
-name: Await fails
+name: Head title
 url: https://example.com
 ---

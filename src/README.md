@@ -12,7 +12,10 @@ stage gets a file here, or a folder once it needs more than one, as its step in
 - `metadata.ts` is what a page knows about itself, the site and all the prose.
 - `prose.ts` turns a Markz page into a Svelte component, its elements into the site's components.
 - `warnings.ts` is how Markz's warnings reach the author: file, line, and what to write instead.
+- `links.ts` is where a link in prose goes, and whether it's there.
 - `vite.ts` is the Vite server Sitez runs for a site, with the config nobody writes.
 - `render.ts` turns one page into a complete HTML document.
+- `head.ts` is what a page's `<head>` says about it, from its metadata.
+- `sitemap.ts` writes `sitemap.xml` and `feed.xml`.
 - `build.ts` renders every page and writes `dist/`.
 - `errors.ts` is how a mistake in a site becomes a message naming the file and what to change.

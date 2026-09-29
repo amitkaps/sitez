@@ -5,9 +5,11 @@
  * rendered around it (rule 2) and the whole wrapped in the document every page shares. The page
  * renders first, on its own, because a Svelte page's title can come from its own `<h1>` and the
  * layout needs that title. Everything awaits (rule 5), so the HTML is finished when it's written.
+ * The head's title, description and links come from metadata, never from a pattern.
  */
 import type { Component, Snippet } from 'svelte';
 import { SiteError } from './errors.ts';
+import { checkHead } from './head.ts';
 import type { Metadata, PageData } from './metadata.ts';
 import type { SiteServer } from './vite.ts';
 
@@ -46,7 +48,9 @@ export async function renderBody(
 	component: Component<any>,
 	props: Props
 ): Promise<{ head: string; body: string }> {
-	return guard(file, () => svelte.render(component, { props }));
+	const out = await guard(file, () => svelte.render(component, { props }));
+	checkHead(file, out.head);
+	return out;
 }
 
 /** @prose
@@ -65,6 +69,7 @@ export async function renderLayout(
 	const out = await guard(layout.file, () =>
 		svelte.render(layout.component, { props: { ...props, children } })
 	);
+	checkHead(layout.file, out.head);
 	const count = out.body.split(slot).length - 1;
 	if (count !== 1) {
 		throw new SiteError(
@@ -77,13 +82,17 @@ export async function renderLayout(
 	return { head: out.head + page.head, body: out.body.replace(slot, () => page.body) };
 }
 
-export function document(title: string, head: string, body: string): string {
+/** @prose
+ * The document every page shares: Sitez's head tags from the page's metadata (`head.ts`), then
+ * whatever the page and its layout put in `<svelte:head>`.
+ */
+export function document(tags: string, head: string, body: string): string {
 	return `<!doctype html>
 <html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${escape(title)}</title>
+${tags}
 ${head}
 </head>
 <body>
@@ -106,8 +115,4 @@ async function guard<T>(file: string, fn: () => PromiseLike<T>): Promise<T> {
 		const message = error instanceof Error ? error.message : String(error);
 		throw new SiteError(file, `failed to render: ${message}`, { cause: error });
 	}
-}
-
-function escape(text: string): string {
-	return text.replaceAll('&', '&amp;').replaceAll('<', '&lt;');
 }

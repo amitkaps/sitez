@@ -14,6 +14,7 @@ import { compile } from 'svelte/compiler';
 import { createServer, type Plugin, type ViteDevServer } from 'vite';
 import { SiteError } from './errors.ts';
 import { nearest, urlOf } from './discover.ts';
+import { linkTarget, type LinkTargets } from './links.ts';
 import { componentName, proseComponent } from './prose.ts';
 
 export interface SiteServer {
@@ -31,7 +32,7 @@ export interface SiteServer {
  * `/private/var`) is served from its real path, and an error names the file by the path the
  * site was given, as every other message does.
  */
-export async function siteServer(root: string): Promise<SiteServer> {
+export async function siteServer(root: string, links: LinkTargets): Promise<SiteServer> {
 	const real = realpathSync(root);
 	const vite = await createServer({
 		configFile: false,
@@ -41,7 +42,7 @@ export async function siteServer(root: string): Promise<SiteServer> {
 		server: { middlewareMode: true, hmr: false, watch: null },
 		plugins: [
 			fromSitez(),
-			proseModules(real),
+			proseModules(root, real, links),
 			svelte({ configFile: false, compilerOptions: { dev: false, experimental: { async: true } } }),
 			noOptimizer()
 		]
@@ -102,10 +103,12 @@ function fromSitez(): Plugin {
 
 /** @prose
  * Each `.md` in `prose/` loads as the Svelte component `prose.ts` writes for it, with the
- * components its elements render found up the tree from the page's URL, as its layout is.
+ * components its elements render found up the tree from the page's URL, as its layout is, and
+ * its links checked against `links`. Vite hands over the real path; links and components are
+ * looked up from the root the site was given, as every message names it.
  */
-function proseModules(root: string): Plugin {
-	const folder = join(root, 'prose') + sep;
+function proseModules(root: string, real: string, links: LinkTargets): Plugin {
+	const folder = join(real, 'prose') + sep;
 	return {
 		name: 'sitez:prose',
 		enforce: 'pre',
@@ -113,8 +116,12 @@ function proseModules(root: string): Plugin {
 			const file = id.split('?')[0]!;
 			if (!file.startsWith(folder) || !file.endsWith('.md')) return null;
 			const doc = parse(readFileSync(file, 'utf8'));
-			const url = urlOf(join(root, 'prose'), file);
-			const source = proseComponent(file, doc, (name) => nearest(root, url, componentName(name)));
+			const page = root + file.slice(real.length);
+			const url = urlOf(join(root, 'prose'), page);
+			const source = proseComponent(page, doc, {
+				component: (name) => nearest(root, url, componentName(name)),
+				link: (destination, kind) => linkTarget(links, page, destination, kind)
+			});
 			const { js } = compile(source, {
 				filename: file,
 				generate: options?.ssr ? 'server' : 'client',

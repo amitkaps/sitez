@@ -42,8 +42,8 @@ site/
 
 1. **A file is a page.** Every `.md` in `prose/` and every lowercase `.svelte` in `pattern/` is one
    URL, from its path. `index` is the folder's own URL. Two files for one URL is an error.
-   `prose/404.md` is the page a host serves for a URL that doesn't exist, so it is written as
-   `404.html`.
+   `prose/404.md` (or `pattern/404.svelte`) is the page a host serves for a URL that doesn't
+   exist, so it is written as `404.html`, and nothing links to it.
    `.js` and `.ts` files in `pattern/` are modules for patterns to import: never pages, never
    copied to the output.
 2. **Capitalized `.svelte` files are patterns a page uses, not pages.** Sitez finds them up the
@@ -59,9 +59,9 @@ site/
    same on GitHub and on the site. A link to a URL on the site, `[About](/about)`, is checked the
    same way; a path on the same domain that this site doesn't build is written in full, as any
    other site's would be. A link to another file in the repo, such as source code, goes
-   to that file on GitHub, from `repo` in `site.md`. Sitez knows every URL, so a link to a page
-   or file that doesn't exist fails the build. A draft doesn't exist in `build`, so linking to one
-   fails too, rather than shipping a broken link.
+   to that file on GitHub, from `repo` in `site.md`; an image has to be in `public/`. Sitez knows
+   every URL, so a link to a page or file that doesn't exist fails the build. A draft doesn't
+   exist in `build`, so linking to one fails too, rather than shipping a broken link.
 5. **Patterns run at build time.** Pages and layouts get `page`, this page's URL and metadata;
    `prose`, the same for every prose page; and `site`, the metadata in `site.md`. So does a
    component a Markz element renders, since prose can't pass them: `{@essay-list /}` in
@@ -137,12 +137,16 @@ repo: https://github.com/amitkaps/site
 Notes for whoever maintains the site. Sitez reads only the block above.
 ```
 
+`url` is required: the sitemap, the feed and every page's canonical link are full addresses, so
+`build` fails without it rather than writing relative ones.
+
 It is also how Sitez finds the site: the folder holding `site.md` is the root, from wherever
 `sitez` runs inside it. So `site.md` is reserved: `prose/site.md` is an error, not a page. It
 works for a site with no `prose/` at all.
 
 From that, Sitez writes `<title>`, the meta description, canonical URLs, Open Graph tags,
-`sitemap.xml` and `feed.xml`.
+`sitemap.xml` and `feed.xml`. A pattern's `<svelte:head>` can add anything else, but writing one
+of those tags itself fails, naming the metadata key that sets it.
 
 ## Styling
 

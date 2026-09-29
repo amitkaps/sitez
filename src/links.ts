@@ -1,0 +1,159 @@
+/** @prose
+ * # Links
+ *
+ * Where a link in prose goes, and whether it's there (rule 4). Prose links to files, as it does
+ * on GitHub, and Sitez turns each into the URL the site serves it at: a page's `.md` into the
+ * page's URL, a file in `public/` into its path, and any other file in the repo into its page on
+ * GitHub. A site link (`/about`) is Markz's form for a URL on this site, and is checked the same
+ * way. A full URL is another site's, and is never checked.
+ *
+ * Sitez knows every page and file, so a link to one that isn't there fails the build, as does a
+ * link to a page `build` leaves out: a draft, or the 404 page. Nothing is guessed.
+ */
+/** @note Links in Svelte patterns (a layout's `<a href="/blog/">`) aren't checked: promise 4
+ * says prose. They could be, against the same pages and `public/`, by reading every `href` in
+ * the rendered HTML, which would catch a broken nav link too. Should promise 4 say "every link"?
+ */
+import { statSync } from 'node:fs';
+import { dirname, extname, join, relative, resolve, sep } from 'node:path';
+import { NOT_FOUND, urlOf } from './discover.ts';
+
+/** @prose
+ * What a link can point at. `pages` holds every page by URL, with whether this run leaves it out:
+ * `build` fills it before any prose loads, since a Svelte page is a draft only once its module has
+ * said so.
+ */
+export interface LinkTargets {
+	root: string;
+	repo: string | undefined;
+	pages: Map<string, { draft: boolean }>;
+}
+
+export type LinkKind = 'link' | 'image';
+
+/** @prose
+ * The URL a destination in `file` is written as, or the problem with it, which `prose.ts` turns
+ * into a build error at the link's line. The query and fragment are kept as written; a fragment
+ * alone (`#usage`) is a place on this page and passes as it is.
+ */
+export function linkTarget(
+	targets: LinkTargets,
+	file: string,
+	destination: string,
+	kind: LinkKind
+): { href: string } | { problem: string } {
+	if (destination === '' || destination.startsWith('#') || isFullUrl(destination)) {
+		return { href: destination };
+	}
+	const cut = destination.search(/[?#]/);
+	const path = cut === -1 ? destination : destination.slice(0, cut);
+	const suffix = cut === -1 ? '' : destination.slice(cut);
+	const target = path.startsWith('/')
+		? siteLink(targets, path)
+		: fileLink(targets, file, destination, path, kind);
+	return 'href' in target ? { href: target.href + suffix } : target;
+}
+
+/** `https:`, `mailto:` and `//host` are another site's, and so are never checked. */
+function isFullUrl(destination: string): boolean {
+	return /^[a-z][a-z\d+.-]*:/i.test(destination) || destination.startsWith('//');
+}
+
+/** @prose
+ * A site link names a page by its URL, with or without its trailing slash, or a file in
+ * `public/` by its path, and is written as the URL the site serves. A path this site doesn't
+ * build may still be on the same domain, as a separate site can be, but Sitez can't tell that
+ * from a typo: the author writes it in full, as any other site's link.
+ */
+function siteLink(targets: LinkTargets, path: string): { href: string } | { problem: string } {
+	const url = path.endsWith('/') ? path : `${path}/`;
+	if (targets.pages.has(url)) return pageLink(targets, url);
+	if (isFile(join(targets.root, 'public', path))) return { href: path };
+	return {
+		problem: `${path} isn't a page or a file in public/. Link to one that is, or write a page elsewhere on this domain in full, starting https://`
+	};
+}
+
+/** @prose
+ * A relative link names a file from the page's own folder. A `.md` in `prose/` is that page; a
+ * file in `public/` is served at its path; any other file in the repo, source code included, goes
+ * to GitHub from `repo` in `site.md`, as a folder does. An image has to be served by the site
+ * itself, so one outside `public/` fails rather than pointing at a GitHub page.
+ */
+function fileLink(
+	targets: LinkTargets,
+	file: string,
+	destination: string,
+	path: string,
+	kind: LinkKind
+): { href: string } | { problem: string } {
+	const { root, repo, pages } = targets;
+	const target = resolve(dirname(file), path);
+	const stat = statSync(target, { throwIfNoEntry: false });
+	if (!stat)
+		return { problem: `${destination} isn't there: no file at ${relative(root, target)}.` };
+
+	const prose = join(root, 'prose');
+	if (stat.isFile() && extname(target) === '.md' && inside(prose, target)) {
+		const url = urlOf(prose, target);
+		if (pages.has(url)) return pageLink(targets, url);
+	}
+	const publicDir = join(root, 'public');
+	if (stat.isFile() && inside(publicDir, target)) return { href: `/${posix(publicDir, target)}` };
+
+	if (kind === 'image') {
+		return {
+			problem: `${destination} is an image outside public/, so the site doesn't serve it. Move it into public/ and link to it there.`
+		};
+	}
+	if (!repo) {
+		return {
+			problem: `${destination} is a file in the repo, which the site links to on GitHub, but site.md has no repo. Add repo: https://github.com/…`
+		};
+	}
+	const top = gitRoot(root);
+	if (!inside(top, target) && target !== top) {
+		return { problem: `${destination} is outside the repo, so it has no page on GitHub.` };
+	}
+	return {
+		href: `${repo.replace(/\/$/, '')}/${stat.isFile() ? 'blob' : 'tree'}/main/${posix(top, target)}`
+	};
+}
+
+/** @prose
+ * A page this run writes, or the problem with linking to one it leaves out: a draft would ship
+ * as a broken link, and the 404 page is served for URLs that don't exist, never linked to.
+ */
+function pageLink(targets: LinkTargets, url: string): { href: string } | { problem: string } {
+	if (targets.pages.get(url)?.draft) {
+		return {
+			problem: `${url} is a draft, which build leaves out. Publish it (remove draft: true), or remove the link.`
+		};
+	}
+	if (url === NOT_FOUND) {
+		return {
+			problem: `404 is the page a host serves for a URL that doesn't exist, not one to link to. Link to a page that exists.`
+		};
+	}
+	return { href: url };
+}
+
+/** GitHub paths are from the repo's root, which is the site's or a folder above it. */
+function gitRoot(root: string): string {
+	for (let dir = resolve(root); ; dir = dirname(dir)) {
+		if (statSync(join(dir, '.git'), { throwIfNoEntry: false })) return dir;
+		if (dirname(dir) === dir) return resolve(root);
+	}
+}
+
+function inside(folder: string, file: string): boolean {
+	return file.startsWith(folder + sep);
+}
+
+function posix(folder: string, file: string): string {
+	return relative(folder, file).split(sep).join('/');
+}
+
+function isFile(path: string): boolean {
+	return statSync(path, { throwIfNoEntry: false })?.isFile() ?? false;
+}
