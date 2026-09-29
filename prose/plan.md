@@ -45,11 +45,24 @@ with the message it must fail with.
       `site.md`, with the source position.
 - [ ] Links in Svelte pages: decide whether `href`s in patterns are checked too (against the built
       URL set, after rendering). Promise 4 says prose; leave a `@note` if it should say more.
+- [ ] Site-absolute links (`[workshops](/workshops)`), which amitkaps.github.io writes
+      throughout. Proposed: accepted beside `.md` links, checked against the built URLs and
+      `public/`, and written with the page's trailing slash (`/workshops/`). A path on the same
+      domain that this repo doesn't build (`/stories`, a separate site) fails like any missing
+      page; the author writes it in full (`https://amitkaps.com/stories/`), and full URLs are
+      never checked.
 
 ### 5. The site's own files (metadata)
 
 - [ ] In `<head>`: `<title>`, meta description, canonical URL, Open Graph tags, from `page` and
       `site`. The title is the page's alone today, and `<html>` has no `lang`: decide both here.
+- [ ] Who owns `<head>`. Proposed: Sitez writes the defaults, and any `<title>`, `<meta>` with the
+      same `name` or `property`, or canonical link that a page or layout writes in
+      `<svelte:head>` replaces Sitez's, so a site can title pages `Essay | Amit Kapoor` with no
+      option. `lang` comes from `site.md`, `en` when it has none.
+- [ ] The 404 page. Static hosts serve `/404.html` for a missing URL; `prose/404.md` builds to
+      `/404/index.html`. Proposed: rule 1 gains one exception, `404` is written as `404.html`,
+      and it is left out of the sitemap and can't be linked to.
 - [ ] `sitemap.xml`, and `feed.xml` from pages with a `date`, newest first. Both need `url` in
       `site.md`; without it the build says so rather than writing relative URLs.
 
@@ -57,6 +70,9 @@ with the message it must fail with.
 
 - [ ] The baseline stylesheet: reset, text, links, code, images, tables, `<details>`, `popover`,
       `<dialog>`, and `@view-transition { navigation: auto }`.
+- [ ] Its order against a site's own CSS, which may have its own reset and layers
+      (amitkaps.github.io's `app.css` declares `@layer reset, base, site`). Proposed: the baseline
+      is one `@layer sitez`, declared first, so any CSS a site writes wins over it.
 - [ ] `public/style.css` after it; scoped component styles collected per page.
 - [ ] Split into `common.css` and the page's `index.css`, content-hashed. A page links only what
       it uses.
@@ -108,6 +124,23 @@ idea.md's third test, run for real, on a branch of markz.
 - [ ] The Quality page awaits the harness at build time; `QualityReport.svelte` is an island.
 - [ ] Compare with today's site page by page: same content, less JavaScript. Whatever Sitez
       couldn't do goes back into idea.md or "Not in v1".
+
+### 11b. amitkaps.github.io
+
+A second real site, on a branch of amitkaps.github.io: flat, content-heavy, with data grids, a
+404 page and old `.html` URLs, where the Markz site is docs. Today it is SvelteKit with its own
+`marked` + `js-yaml` + zod pipeline, live at next.amitkaps.com.
+
+- [ ] Flatten `content/` into `prose/`, since the URL is the path; the 10 files whose `permalink`
+      differs from their name are renamed, and the essays list picks essays by `date`.
+- [ ] Rewrite the 667 raw HTML tags Markz reads as text (34 files, mostly `dvbootcamp.md` and
+      `djembe.md`): iframes, SVGs and forms into ` ```=html ` blocks, the rest into Markz
+      syntax. Then the 107 trailing-space breaks and the other warnings.
+- [ ] The `<!--@data-->` pages become elements (`{@workshop-grid /}`); the three with filters
+      are islands. `content/data/*.yml` becomes JSON beside the patterns that import it.
+- [ ] The old `.html` URLs redirect from `public/_redirects`; `/stories` and the other sub-sites
+      stay the Worker's business, outside Sitez.
+- [ ] Compare with next.amitkaps.com page by page, as for the Markz site.
 
 ### 12. Release
 
