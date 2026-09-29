@@ -86,6 +86,8 @@ and old `.html` URLs, where the Markz site is docs. Its notes stay in that repo.
 
 ### 12. Release
 
+- [x] Release candidates as GitHub prereleases with the packed tarball attached (`v0.1.0-rc.0`),
+      which the Markz site installs from its URL until 0.1.0 is on npm.
 - [ ] Publish `sitez` 0.1.0 to npm; check `npx sitez build` and `mise use -g npm:sitez` on a
       clean machine.
 - [ ] Cloudflare: build the Markz site with `npx sitez build` from its git integration.
