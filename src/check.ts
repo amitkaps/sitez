@@ -23,11 +23,12 @@ import {
 	writeFileSync
 } from 'node:fs';
 import { createRequire } from 'node:module';
-import { join, relative, resolve } from 'node:path';
+import { join } from 'node:path';
 import { parse } from '@amitkaps/markz';
 import { discover } from './discover.ts';
+import { shownFrom } from './errors.ts';
 import { SITE_FILE } from './root.ts';
-import { cacheDir, runtime } from './vite.ts';
+import { cacheDir, runtime, svelteOptions } from './vite.ts';
 import { formatWarning, markzWarnings } from './warnings.ts';
 
 export interface CheckResult {
@@ -36,96 +37,101 @@ export interface CheckResult {
 }
 
 export async function check(root: string, { cwd = root, fix = false } = {}): Promise<CheckResult> {
-	const shown = (file: string) => relative(cwd, resolve(root, file)) || file;
-	const folders = ['prose', 'pattern'].filter((folder) => existsSync(join(root, folder)));
-	const problems: string[] = [];
+	const shown = shownFrom(cwd);
+	const has = (folder: string) => existsSync(join(root, folder));
+	const folders = ['prose', 'pattern'].filter(has);
+	const config = ['-c', join(runtime, 'oxfmtrc.json')];
 
-	if (folders.length > 0) {
-		const config = ['-c', join(runtime, 'oxfmtrc.json')];
+	const format = async () => {
+		if (folders.length === 0) return [];
 		if (fix) await tool('oxfmt', [...config, '--write', ...folders], root);
 		const unformatted = await tool('oxfmt', [...config, '--list-different', ...folders], root);
-		for (const file of lines(unformatted.stdout)) {
-			problems.push(`${shown(file)}: isn't formatted. sitez check --fix formats it.`);
-		}
-	}
-
-	if (existsSync(join(root, 'pattern'))) {
-		const args = ['-f', 'unix', ...(fix ? ['--fix'] : []), 'pattern'];
-		const lint = await tool('oxlint', args, root);
-		for (const line of lines(lint.stdout)) {
+		return lines(unformatted).map(
+			(file) => `${shown(join(root, file))}: isn't formatted. sitez check --fix formats it.`
+		);
+	};
+	const lint = async () => {
+		if (!has('pattern')) return [];
+		const out = await tool('oxlint', ['-f', 'unix', ...(fix ? ['--fix'] : []), 'pattern'], root);
+		return lines(out).flatMap((line) => {
 			const found = /^(.+?):(\d+):(\d+): (.*)$/.exec(line);
-			if (found) problems.push(`${shown(found[1]!)}:${found[2]}:${found[3]}: ${found[4]}`);
-		}
+			return found ? [`${shown(join(root, found[1]!))}:${found[2]}:${found[3]}: ${found[4]}`] : [];
+		});
+	};
+	const types = async () => (has('pattern') ? svelteCheck(root, shown) : []);
+	const markz = async () =>
+		[
+			join(root, SITE_FILE),
+			...discover(root)
+				.filter((page) => page.kind === 'prose')
+				.map((page) => page.file)
+		]
+			.flatMap((file) => markzWarnings(file, parse(readFileSync(file, 'utf8'))))
+			.map((warning) => formatWarning(warning, shown));
 
-		/** @prose
-		 * svelte-check needs no `tsconfig` or `node_modules` in the site: it resolves Svelte's
-		 * types itself. It runs in a folder of Sitez's, in the cache folder, holding a link to
-		 * `pattern/`, a `tsconfig` and a Svelte config that compiles as Sitez does: svelte-check
-		 * looks for a config up the tree from each file, so a site inside a larger repo would
-		 * otherwise be checked by that repo's.
-		 * Svelte's `state_referenced_locally` is ignored, since a page renders once and an
-		 * island's props are set once, from the server, so reading one at the top of a script is
-		 * always what's meant.
-		 */
-		const workspace = join(cacheDir(realpathSync(root)), 'check');
-		rmSync(workspace, { recursive: true, force: true });
-		mkdirSync(workspace, { recursive: true });
-		symlinkSync(join(realpathSync(root), 'pattern'), join(workspace, 'pattern'), 'dir');
-		writeFileSync(
-			join(workspace, 'tsconfig.json'),
-			JSON.stringify({
-				compilerOptions: {
-					target: 'esnext',
-					module: 'esnext',
-					moduleResolution: 'bundler',
-					strict: true,
-					allowJs: true,
-					skipLibCheck: true,
-					noEmit: true,
-					allowImportingTsExtensions: true,
-					preserveSymlinks: true,
-					types: []
-				},
-				include: ['pattern/**/*']
-			})
-		);
-		writeFileSync(
-			join(workspace, 'svelte.config.js'),
-			'export default { compilerOptions: { experimental: { async: true } } };\n'
-		);
-		const types = await tool(
-			'svelte-check',
-			[
-				'--workspace',
-				workspace,
-				'--output',
-				'machine',
-				'--compiler-warnings',
-				'state_referenced_locally:ignore'
-			],
-			workspace
-		);
-		for (const line of lines(types.stdout)) {
-			const found = /^\d+ (ERROR|WARNING) "(.+?)" (\d+):(\d+) (".*")$/.exec(line);
-			if (!found) continue;
-			const message = (JSON.parse(found[5]!) as string).split('\n')[0];
-			problems.push(`${shown(found[2]!)}:${found[3]}:${found[4]}: ${message}`);
-		}
-	}
+	// --fix changes files, so each tool sees the last one's fixes; otherwise they run at once.
+	const steps = [format, lint, types, markz];
+	const found: string[][] = [];
+	if (fix) for (const step of steps) found.push(await step());
+	else found.push(...(await Promise.all(steps.map((step) => step()))));
+	return { problems: found.flat() };
+}
 
-	const siteFile = join(root, SITE_FILE);
-	const files = [
-		siteFile,
-		...discover(root)
-			.filter((page) => page.kind === 'prose')
-			.map((page) => page.file)
-	];
-	for (const file of files) {
-		for (const warning of markzWarnings(file, parse(readFileSync(file, 'utf8')))) {
-			problems.push(formatWarning(warning, (name) => relative(cwd, name) || name));
-		}
-	}
-	return { problems };
+/** @prose
+ * svelte-check needs no `tsconfig` or `node_modules` in the site: it resolves Svelte's types
+ * itself. It runs in a folder of Sitez's, in the cache folder, holding a link to `pattern/`, a
+ * `tsconfig` and a Svelte config that compiles as Sitez does: svelte-check looks for a config up
+ * the tree from each file, so a site inside a larger repo would otherwise be checked by that
+ * repo's. Svelte's `state_referenced_locally` is ignored, since a page renders once and an
+ * island's props are set once, from the server, so reading one at the top of a script is always
+ * what's meant.
+ */
+async function svelteCheck(root: string, shown: (file: string) => string): Promise<string[]> {
+	const real = realpathSync(root);
+	const workspace = join(cacheDir(real), 'check');
+	rmSync(workspace, { recursive: true, force: true });
+	mkdirSync(workspace, { recursive: true });
+	symlinkSync(join(real, 'pattern'), join(workspace, 'pattern'), 'dir');
+	writeFileSync(
+		join(workspace, 'tsconfig.json'),
+		JSON.stringify({
+			compilerOptions: {
+				target: 'esnext',
+				module: 'esnext',
+				moduleResolution: 'bundler',
+				strict: true,
+				allowJs: true,
+				skipLibCheck: true,
+				noEmit: true,
+				allowImportingTsExtensions: true,
+				preserveSymlinks: true,
+				types: []
+			},
+			include: ['pattern/**/*']
+		})
+	);
+	writeFileSync(
+		join(workspace, 'svelte.config.js'),
+		`export default { compilerOptions: ${JSON.stringify(svelteOptions)} };\n`
+	);
+	const out = await tool(
+		'svelte-check',
+		[
+			'--workspace',
+			workspace,
+			'--output',
+			'machine',
+			'--compiler-warnings',
+			'state_referenced_locally:ignore'
+		],
+		workspace
+	);
+	return lines(out).flatMap((line) => {
+		const found = /^\d+ (ERROR|WARNING) "(.+?)" (\d+):(\d+) (".*")$/.exec(line);
+		if (!found) return [];
+		const message = (JSON.parse(found[5]!) as string).split('\n')[0];
+		return [`${shown(join(root, found[2]!))}:${found[3]}:${found[4]}: ${message}`];
+	});
 }
 
 function lines(text: string): string[] {
@@ -139,7 +145,7 @@ function lines(text: string): string[] {
  * The tools are Sitez's own dependencies, run with the Node running Sitez, from the site's root.
  * A tool exits non-zero when it finds problems, which is its answer, not a failure.
  */
-function tool(name: string, args: string[], cwd: string): Promise<{ stdout: string }> {
+function tool(name: string, args: string[], cwd: string): Promise<string> {
 	const bin = binOf(name);
 	return new Promise((done, fail) => {
 		execFile(
@@ -150,7 +156,7 @@ function tool(name: string, args: string[], cwd: string): Promise<{ stdout: stri
 				if (error && typeof error.code !== 'number') {
 					fail(new Error(`${name} didn't run: ${error.message}\n${stderr}`));
 				} else {
-					done({ stdout });
+					done(stdout);
 				}
 			}
 		);

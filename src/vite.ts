@@ -113,6 +113,9 @@ export function cacheDir(real: string): string {
 	return join(tmpdir(), 'sitez', createHash('sha256').update(real).digest('hex').slice(0, 12));
 }
 
+/** How Svelte compiles a site's files everywhere: without dev checks, with `await` in markup. */
+export const svelteOptions = { dev: false, experimental: { async: true } };
+
 /** @prose
  * Svelte as every build of a site compiles it. A component's scoping class is hashed from its
  * path in the site, not on the disk, so the server render and the client build agree on it, and
@@ -124,10 +127,9 @@ export function sveltePlugin(real: string, { hmr = false, css = true } = {}): Pl
 		// Without CSS, a component's styles are neither emitted nor injected: they are dropped.
 		emitCss: css,
 		compilerOptions: {
+			...svelteOptions,
 			css: 'external',
-			dev: false,
 			hmr,
-			experimental: { async: true },
 			cssHash: ({ hash, filename }) => `svelte-${hash(posix(real, filename ?? ''))}`
 		}
 	});
@@ -194,8 +196,7 @@ function proseModules(root: string, real: string, links: () => LinkTargets): Plu
 			const { js } = compile(source, {
 				filename: file,
 				generate: options?.ssr ? 'server' : 'client',
-				dev: false,
-				experimental: { async: true }
+				...svelteOptions
 			});
 			return { code: js.code, map: js.map };
 		}

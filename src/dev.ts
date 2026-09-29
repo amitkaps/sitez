@@ -9,11 +9,11 @@
  * page reloads when it's fixed.
  */
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { join, relative } from 'node:path';
+import { join } from 'node:path';
 import type { Plugin, ViteDevServer } from 'vite';
 import { hydrateEntry, styleImports } from './bundle.ts';
 import { NOT_FOUND } from './discover.ts';
-import { SiteError } from './errors.ts';
+import { SiteError, shownFrom, siteErrorText } from './errors.ts';
 import { escape } from './head.ts';
 import { document } from './render.ts';
 import { pathOf } from './preview.ts';
@@ -49,7 +49,7 @@ export async function dev(
 	const runs = new WeakMap<IncomingMessage, Run>();
 	let server: SiteServer;
 
-	const shown = (file: string) => relative(cwd, file) || file;
+	const shown = shownFrom(cwd);
 	const newWarnings = (warnings: MarkzWarning[]) => {
 		for (const warning of warnings) {
 			const line = formatWarning(warning, shown);
@@ -74,7 +74,7 @@ export async function dev(
 			newWarnings(run.warnings);
 			await answer(run);
 		} catch (error) {
-			const text = errorText(error, shown);
+			const text = errorText(error, cwd);
 			report(text);
 			send(response, 500, 'text/html', errorPage(text));
 		}
@@ -216,8 +216,8 @@ function send(response: ServerResponse, status: number, type: string, body: stri
  * A mistake in the site is shown as `build` prints it, `file: message`; anything else is a bug in
  * Sitez, shown with its stack. Vite's client is on the page, so it reloads once the file is fixed.
  */
-function errorText(error: unknown, shown: (file: string) => string): string {
-	if (error instanceof SiteError) return `${shown(error.file)}: ${error.message}`;
+function errorText(error: unknown, cwd: string): string {
+	if (error instanceof SiteError) return siteErrorText(error, cwd);
 	return error instanceof Error ? (error.stack ?? error.message) : String(error);
 }
 

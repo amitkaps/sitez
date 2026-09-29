@@ -22,7 +22,7 @@ export interface Behavior {
 	line: number;
 }
 
-export interface Analysis {
+interface Analysis {
 	behavior: Behavior | undefined;
 	/** The props its `$props()` names, or `null` when it takes them all. */
 	reads: string[] | null;
@@ -48,16 +48,10 @@ export function analyze(file: string): Analysis {
 	for (const node of nodes(ast.fragment)) {
 		const element = isElement(node) ? `<${String(node.name)}>` : undefined;
 		const child = isComponent(node) ? `<${String(node.name)}>` : undefined;
+		const on = element ?? child ?? 'an element';
 		for (const attribute of (node.attributes as Node[] | undefined) ?? []) {
-			const on = element ?? child ?? 'an element';
-			if (attribute.type === 'BindDirective')
-				add(`bind:${String(attribute.name)} on ${on}`, attribute);
-			if (attribute.type === 'TransitionDirective') add(`a transition on ${on}`, attribute);
-			if (attribute.type === 'AnimateDirective') add(`an animation on ${on}`, attribute);
-			if (attribute.type === 'UseDirective')
-				add(`use:${String(attribute.name)} on ${on}`, attribute);
-			if (attribute.type === 'AttachTag') add(`an {@attach} on ${on}`, attribute);
-			if (attribute.type === 'OnDirective') add(`on:${String(attribute.name)} on ${on}`, attribute);
+			const directive = DIRECTIVES[attribute.type ?? '']?.(String(attribute.name));
+			if (directive) add(`${directive} on ${on}`, attribute);
 			if (attribute.type === 'Attribute' && isHandler(attribute)) {
 				const name = String(attribute.name);
 				if (element) add(`an ${name} handler on ${element}`, attribute);
@@ -86,14 +80,27 @@ export function analyze(file: string): Analysis {
 		for (const node of nodes(script?.content)) {
 			if (node.type !== 'CallExpression') continue;
 			const name = calleeName(node.callee as Node);
-			if (name === '$effect' || name === '$effect.pre') add(`${name}`, node);
+			if (name === '$effect' || name === '$effect.pre') add(name, node);
 			if (name && svelteImports.get(name) === 'onMount') add('onMount', node);
 		}
 	}
 
-	found.sort((a, b) => a.line - b.line);
-	return { behavior: found[0], reads: propsRead(ast.instance ?? null) };
+	const first = found.reduce<Behavior | undefined>(
+		(a, b) => (a && a.line <= b.line ? a : b),
+		undefined
+	);
+	return { behavior: first, reads: propsRead(ast.instance ?? null) };
 }
+
+// What each directive is called in a message, from its name: `bind:value`, `a transition`.
+const DIRECTIVES: Record<string, (name: string) => string> = {
+	BindDirective: (name) => `bind:${name}`,
+	TransitionDirective: () => 'a transition',
+	AnimateDirective: () => 'an animation',
+	UseDirective: (name) => `use:${name}`,
+	AttachTag: () => 'an {@attach}',
+	OnDirective: (name) => `on:${name}`
+};
 
 /** `let { a, b } = $props()` reads `a` and `b`; `...rest` or `let props = $props()` reads all. */
 function propsRead(instance: Node | null): string[] | null {
@@ -123,7 +130,7 @@ function callsIn(module: string): string | undefined {
 		return undefined;
 	}
 	return (
-		/\$effect(\.pre)?\s*\(/.exec(text)?.[0].replace(/\s*\($/, '') ??
+		/\$effect(?:\.pre)?(?=\s*\()/.exec(text)?.[0] ??
 		(/\bonMount\s*\(/.test(text) ? 'onMount' : undefined)
 	);
 }
@@ -203,12 +210,13 @@ const WRAPPED = '.sitez.js';
 export function islandModules(root: string, real: string, islands: Islands): Plugin {
 	const server = join(runtime, 'server.ts');
 	const pattern = join(real, 'pattern') + sep;
+	const entryImporter = join(real, 'index.html');
 	return {
 		name: 'sitez:islands',
 		enforce: 'pre',
 		async resolveId(id, importer, options) {
-			// A page or layout the build loads itself has Vite's `index.html` as its importer.
-			if (!options?.ssr || !importer || importer.endsWith('.html')) return null;
+			// A page or layout the build loads itself has no importer, which Vite writes as this.
+			if (!options?.ssr || !importer || importer === entryImporter) return null;
 			if (importer.startsWith(WRAP) || importer.startsWith(runtime)) return null;
 			if (!id.endsWith('.svelte')) return null;
 			const resolved = await this.resolve(id, importer, { ...options, skipSelf: true });
