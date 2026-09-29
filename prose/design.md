@@ -10,13 +10,22 @@ is a Vite plugin plus the config nobody writes. Users never see a `vite.config.t
 
 ```text
 sitez (npm)
-├── vite-plus    dev server, bundling, oxfmt, oxlint
-├── svelte       compiler and server renderer
+├── vite         Vite+'s core (@voidzero-dev/vite-plus-core): dev server, Rolldown
+├── vite-plus    oxfmt, oxlint
+├── svelte       compiler, server renderer, hydrate
 ├── svelte-check types
+├── devalue      island props
 └── markz        parser
 ```
 
-A site needs no `package.json`. It gets one only when a pattern imports an npm library.
+Sitez calls `createServer` and `build` itself, with `configFile: false`. Svelte compiles with
+`experimental.async` on.
+
+A site needs no `package.json`. It gets one only when a pattern imports an npm library. A
+resolver plugin resolves a bare import from the site first, then as if imported from inside
+Sitez, so `svelte/transition` works from a folder with no `node_modules`. Vite's dependency
+optimizer is off, because it resolves from the site root, where there are no packages. Svelte and
+Sitez's other dependencies are ESM and need no pre-bundling.
 
 ## Dev server
 
@@ -28,7 +37,15 @@ them.
 
 Every page is rendered with Svelte's server renderer, after Markz parses its prose. The build
 awaits everything a pattern computes before writing its HTML, using Svelte's async server
-rendering. If the build gets slow, the fix is a faster build, not less HTML.
+rendering: `await render(...)` resolves every `await` in the page and the components below it,
+running independent ones in parallel, and reading the HTML without awaiting throws instead of
+returning half a page. Pages render concurrently. If the build gets slow, the fix is a faster
+build, not less HTML.
+
+Each page is a virtual server entry that re-exports `render` from `svelte/server`, so the page
+and the renderer share one copy of Svelte in the server bundle. A failed `await` rejects with the
+original error, whose stack names the data module rather than the page, so the build wraps each
+render and names the page file.
 
 Links are rewritten from the AST, not the HTML, so examples in code blocks are left alone. A
 relative link to a `.md` file becomes that page's URL; one to any other file in the repo becomes
@@ -45,31 +62,44 @@ the layout are common; `TagFilter` on `/blog/` is the page's.
 File names carry a content hash (`common.3f9a1c.js`), so a new deploy is never served from a
 stale cache. A page with no islands loads no JavaScript, common or its own. An island used on a
 few pages still lands in `common.js`; the `common` row in the build report shows if that grows.
+Svelte's runtime with `hydrate` is about 15 KB gzipped, the floor of `common.js` on a site with
+any island.
 
 ## Islands
 
-Sitez reads browser behavior from the compiled component, where the Svelte compiler has already
-resolved it. A component has it if its template has an event attribute, a `bind:`, a transition
-or animation, or `{@attach}`; if its script has `$effect` or `onMount`; or if it passes an `on…`
-prop to a child. That last one catches handlers that arrive through a spread (`{...rest}`) by
-following Svelte 5's naming for event props, and it puts the island where the function lives,
-so no function has to cross into the browser.
+Sitez reads browser behavior from the compiler's AST (`parse(source, { modern: true })`). The
+compiled output shows what a component does to its own elements, but not a handler passed to a
+child, which rule 6 counts. A component has browser behavior if its template has an event
+attribute with an expression value, a `bind:`, a transition or animation, a `use:` action or
+`{@attach}`; if its script calls `$effect` or `onMount` (resolved through the imports from
+`svelte`, so a renamed import counts); if it imports a `.svelte.js` or `.svelte.ts` module that
+does; or if it passes an `on…` prop with an expression value to a child component. A string
+value is data (`onboarding="yes"`), and Svelte already rejects string event handlers.
 
-The island is the outermost component with browser behavior below a page or layout. Its HTML
-comes from the build, wrapped in a marker:
+So the island is where the function lives, and no function has to cross into the browser. A
+`Button` that spreads its props onto a `<button>` has no behavior of its own: used with data it
+stays HTML, and the component that passes it `onclick` is the island. A handler inside a spread
+to a component (`<Button {...props}>`) can't be seen statically, so the server build checks it:
+a component that isn't an island and receives an `on…` function fails the build, naming the
+component and the prop.
+
+The island is the outermost component with browser behavior below a page or layout. In the
+server build, Sitez renders it through a wrapper that writes the marker, the component, and its
+children inside one `<sitez-children>` element:
 
 ```html
 <sitez-island c="TagFilter" p="…devalue…">…server-rendered HTML…</sitez-island>
 ```
 
-The page's script finds each marker and calls `hydrate(Component, { target, props })`. Props are
-serialized with `devalue`, which Svelte already depends on. Children are rendered once at build
-time and passed back in with `createRawSnippet`, which takes the HTML of one element, so Sitez
-wraps them in one.
+Props are serialized with `devalue`, which keeps dates, maps, sets and URLs typed and already
+ships with Svelte. It throws on a function with the path to it (`.nested.fmt`), and Sitez turns
+that into the build error that names the island and the prop.
 
-A component that forwards `onclick` to a `<button>` counts as interactive wherever it's used,
-even without a handler. Static navigation should be `<a>`, so that's accepted rather than worked
-around.
+The page's script finds each marker and calls `hydrate(Component, { target, props })`. Children
+aren't in the JavaScript: they're already in the page, so the script passes back the
+`<sitez-children>` element's own HTML through `createRawSnippet`, and hydration reuses the
+existing nodes. Children from prose and from a pattern's markup hydrate the same way. Both
+elements are `display: contents` in the baseline stylesheet, so neither affects layout.
 
 ## Check
 
@@ -112,6 +142,6 @@ carries no Wrangler.
 
 ## Open questions
 
-- **Waiting at build time.** Rule 5 lets a pattern `await`, as the Quality page's `quality()`
-  does. Svelte's async server rendering, still experimental, is how a component waits during the
-  build. The rule is settled; a spike proves the mechanism holds.
+- **Hydration comments.** Svelte's server output carries `<!--[-->` and `<!--]-->` markers on
+  every page, not only in islands, where hydration needs them. Stripping them outside islands
+  saves bytes; the build report will show whether it's worth doing.

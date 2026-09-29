@@ -15,30 +15,15 @@ to one line each.
   commands, root finding from `site.md` and `SiteError` for the messages; the `blog`, `landing` and
   `error-reserved-site-md` sites in `test/sites/`. Each stage gets its file in `src/` as its step
   starts, not before. Markz comes from its v0.1.0 release tarball until it is on npm.
+- **0. Spikes.** Async server rendering, island detection, hydrating islands with children, and
+  Vite without a config all hold; their answers are in design.md, and the code is in `4343fcb`.
+  Islands are read from the compiler's AST, not its output.
 
 ## Open work, in order
 
 Each step ends in something a fixture site shows, so the step is done when its fixture builds and
 its tests pass, not when the code is written. Error cases are fixtures too: a site that must fail,
 with the message it must fail with.
-
-### 0. Spikes
-
-The design rests on four things nobody has shown work together. Each spike is a throwaway script
-in `spike/`, deleted when its answer is folded into `design.md`.
-
-- [ ] **Async server rendering.** A page whose `<script>` awaits a slow import renders complete
-      HTML with Svelte's experimental async `render`. Closes design.md's open question, or reopens
-      rule 5.
-- [ ] **Islands from compiled output.** Compile a set of components (handler, `bind:`,
-      transition, `{@attach}`, `$effect`, `onMount`, an `on…` prop, a spread) and find a signal in
-      the compiled output (or the compiler's AST) that tells each apart from a static one. List
-      what it misses.
-- [ ] **Hydrating an island with children.** `hydrate` a server-rendered component whose children
-      came from `createRawSnippet` and props from `devalue`, with no hydration mismatch.
-- [ ] **Vite+ without a config.** Start the dev server and run a build from code, with the Svelte
-      plugin and a virtual entry per page, from a folder with no `vite.config.ts` or
-      `package.json`.
 
 ### 2. Pages (rules 1, 2, 5; metadata)
 
