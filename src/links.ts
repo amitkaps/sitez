@@ -126,14 +126,19 @@ function fileLink(
  * component's `href`, a raw block's `<img src>`. Patterns write URLs, not files, so a site link
  * must be the URL as the site serves it, `/about/` rather than `/about`, which a host would
  * redirect; a relative one is read from the page's URL, as a browser reads it. Prose links arrive
- * already rewritten, so they pass.
+ * already rewritten, so they pass. Only real start tags are read: text that shows HTML has its
+ * `<` escaped, and a script's or a stylesheet's body is code, so neither is taken for a link.
  */
 export function renderedLinkProblem(
 	targets: LinkTargets,
 	url: string,
 	html: string
 ): string | undefined {
-	for (const [, attribute, value = ''] of html.matchAll(/\s(href|src)="([^"]*)"/g)) {
+	const tags = html
+		.replace(/(<(script|style)\b[^>]*>)[\s\S]*?<\/\2>/gi, '$1')
+		.matchAll(/<[a-zA-Z][^\s/>]*(?:\s+[^\s=>]+(?:="[^"]*")?)*\s*\/?>/g);
+	const attributes = [...tags].flatMap(([tag]) => [...tag.matchAll(/\s(href|src)="([^"]*)"/g)]);
+	for (const [, attribute, value = ''] of attributes) {
 		const destination = value.replaceAll('&amp;', '&');
 		if (destination === '' || destination.startsWith('#') || isFullUrl(destination)) continue;
 		let path: string;

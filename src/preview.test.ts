@@ -1,4 +1,4 @@
-import { mkdtempSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, expect, test } from 'vite-plus/test';
@@ -12,6 +12,8 @@ let server: Preview;
 
 beforeAll(async () => {
 	await build(blog, { outDir });
+	mkdirSync(join(outDir, '博客'));
+	writeFileSync(join(outDir, '博客', 'index.html'), '<title>博客</title>');
 	server = await preview(blog, { port: 0, outDir });
 });
 afterAll(() => server.close());
@@ -29,6 +31,13 @@ test('a folder without its slash redirects, as a host would', async () => {
 	const response = await get('/blog');
 	expect(response.status).toBe(301);
 	expect(response.headers.get('location')).toBe('/blog/');
+});
+
+test('a folder with a non-Latin name redirects with its URL encoded', async () => {
+	const response = await get('/博客');
+	expect(response.status).toBe(301);
+	expect(response.headers.get('location')).toBe('/%E5%8D%9A%E5%AE%A2/');
+	expect((await get('/博客/')).status).toBe(200);
 });
 
 test('a file is served with its type', async () => {

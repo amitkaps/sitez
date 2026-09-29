@@ -25,19 +25,14 @@ export async function preview(
 	}
 	const server = createServer((request, response) => {
 		const url = new URL(request.url ?? '/', 'http://localhost');
-		let path: string;
-		try {
-			path = decodeURIComponent(url.pathname);
-		} catch {
-			path = url.pathname;
-		}
+		const path = pathOf(url);
 		const file = join(outDir, path);
 		// A path that climbs out of dist/ is nothing a host would serve.
 		if (file !== outDir && !file.startsWith(outDir + sep)) return notFound();
 		const stat = statSync(file, { throwIfNoEntry: false });
 		if (stat?.isDirectory()) {
 			if (!path.endsWith('/')) {
-				response.writeHead(301, { location: `${path}/${url.search}` });
+				response.writeHead(301, { location: `${url.pathname}/${url.search}` });
 				return response.end();
 			}
 			if (existsSync(join(file, 'index.html'))) return serve(join(file, 'index.html'), 200);
@@ -93,4 +88,13 @@ const types: Record<string, string> = {
 
 function typeOf(file: string): string {
 	return types[extname(file).toLowerCase()] ?? 'application/octet-stream';
+}
+
+/** A request's path as the files are named, or as sent when it isn't valid percent-encoding. */
+export function pathOf(url: URL): string {
+	try {
+		return decodeURIComponent(url.pathname);
+	} catch {
+		return url.pathname;
+	}
 }

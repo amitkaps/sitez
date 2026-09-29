@@ -38,8 +38,8 @@ A page's script in dev is a module that imports the stylesheet as modules (the r
 `pattern/style.css`, and each component's style module, never the component itself, which may
 import what only runs on the server) and then hydrates the page's islands. So a change to CSS or
 an island is hot-replaced by Vite and Svelte. Anything else can change any page's HTML, even
-whether a link on another page is broken, so the server's modules are all invalidated and the
-page reloads: server-rendered pages have no client state to keep, so a reload is the whole of
+whether a link on another page is broken, so the server's modules are all invalidated, and so
+are the pages' scripts, since a page may now use a different island, and the page reloads: server-rendered pages have no client state to keep, so a reload is the whole of
 HMR for them. A failure renders as a page holding `build`'s message, with Vite's client on it,
 so fixing the file reloads it.
 
@@ -88,7 +88,9 @@ or to anything that isn't there fails with its line. The check needs every page'
 before any prose loads, so `build` loads the Svelte pages' modules for their `metadata` first.
 Then each rendered page's `href` and `src` attributes are checked against the same pages,
 `public/` and Sitez's own files, which catches what patterns and raw blocks write. A site link
-there has to be exact (`/blog/`), since the HTML is finished and nothing rewrites it.
+there has to be exact (`/blog/`), since the HTML is finished and nothing rewrites it. Only start
+tags are read, so HTML shown as text, whose `<` is escaped, and code inside `<script>` aren't
+taken for links.
 
 The head is written from metadata (`head.ts`): `<title>`, the description, the canonical URL and
 Open Graph tags, Twitter's card (it reads the rest from Open Graph), and a feed link when the site

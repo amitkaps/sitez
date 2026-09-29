@@ -42,6 +42,11 @@ describe('pages', () => {
 		expect(response.headers.get('location')).toBe('/blog/');
 	});
 
+	test("a URL that isn't valid percent-encoding is answered, not fatal", async () => {
+		expect((await get('/%E0')).status).toBe(404);
+		expect((await get('/blog/')).status).toBe(200);
+	});
+
 	test('a URL with no page gets the 404 page', async () => {
 		const response = await get('/nothing/');
 		expect(response.status).toBe(404);
@@ -107,6 +112,23 @@ describe('changes', () => {
 	test('a new file is a page at once', async () => {
 		await afterChange(() => writeFileSync(join(site, 'prose/new.md'), '# New\n\nJust added.\n'));
 		expect((await get('/new/')).status).toBe(200);
+	});
+
+	test('a folder with a non-Latin name redirects with its URL encoded', async () => {
+		await afterChange(() => writeFileSync(join(site, 'prose/博客.md'), '# 博客\n\nIn Chinese.\n'));
+		const response = await get('/博客');
+		expect(response.status).toBe(301);
+		expect(response.headers.get('location')).toBe('/%E5%8D%9A%E5%AE%A2/');
+	});
+
+	test("a page's script follows the islands it uses", async () => {
+		const message = await afterChange(
+			edit('pattern/blog/index.svelte', '<TagFilter {posts} />', '')
+		);
+		expect(message.type).toBe('full-reload');
+		await (await get('/blog/')).text();
+		const script = await (await get('/@sitez/page.js?url=%2Fblog%2F')).text();
+		expect(script).not.toContain('"TagFilter": I0');
 	});
 
 	test("a mistake shows as build's message, in the page", async () => {

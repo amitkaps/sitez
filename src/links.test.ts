@@ -115,6 +115,14 @@ describe('renderedLinkProblem', () => {
 		expect(check('<a href="/blog/draft/">Soon</a>')).toMatch(/is a draft/);
 	});
 
+	test('reads links from tags only, not from text or code that shows one', () => {
+		// As Svelte renders <code>{'<a href="guide">'}</code>: text escapes only `<` and `&`.
+		expect(check('<p>Write <code>&lt;a href="guide"></code>.</p>')).toBeUndefined();
+		expect(check('<script>const a = \'<a href="guide">\';</script>')).toBeUndefined();
+		expect(check('<p title="a > b"><a href="/posts/">Posts</a></p>')).toMatch(/^href="\/posts\/"/);
+		expect(check('<script src="/app.js"></script>')).toMatch(/^src="\/app\.js"/);
+	});
+
 	test('asks for the URL as served, not one a host redirects', () => {
 		expect(check('<a href="/blog/hello">Me</a>')).toBe(
 			'href="/blog/hello": /blog/hello is served at /blog/hello/. Write that, so no host has to redirect it.'
