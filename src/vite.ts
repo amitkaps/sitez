@@ -36,7 +36,12 @@ export interface SiteServer {
 	links: LinkTargets;
 	/** The site's islands, found as the server loads components. */
 	islands: Islands;
-	/** Imports a site file (absolute path) through the module runner. */
+	/** @prose
+	 * Imports a site file (absolute path) through the module runner. It's `ssrLoadModule`, not the
+	 * SSR environment's own runner: that one keeps what it has run until a hot update reaches it,
+	 * so a page asked for right after a change can render the old code, where `ssrLoadModule`
+	 * checks Vite's module graph on every import.
+	 */
 	load(file: string): Promise<Record<string, unknown>>;
 	/** @prose
 	 * Every Svelte component a render has loaded, in a fixed order: pages, layouts and what they
@@ -183,7 +188,7 @@ function proseModules(root: string, real: string, links: () => LinkTargets): Plu
 	return {
 		name: 'sitez:prose',
 		enforce: 'pre',
-		load(id, options) {
+		load(id) {
 			const file = id.split('?')[0]!;
 			if (!file.startsWith(folder) || !file.endsWith('.md')) return null;
 			const doc = parse(readFileSync(file, 'utf8'));
@@ -195,7 +200,7 @@ function proseModules(root: string, real: string, links: () => LinkTargets): Plu
 			});
 			const { js } = compile(source, {
 				filename: file,
-				generate: options?.ssr ? 'server' : 'client',
+				generate: this.environment.config.consumer,
 				...svelteOptions
 			});
 			return { code: js.code, map: js.map };

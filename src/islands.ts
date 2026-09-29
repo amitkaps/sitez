@@ -214,9 +214,10 @@ export function islandModules(root: string, real: string, islands: Islands): Plu
 	return {
 		name: 'sitez:islands',
 		enforce: 'pre',
+		applyToEnvironment: (environment) => environment.name === 'ssr',
 		async resolveId(id, importer, options) {
 			// A page or layout the build loads itself has no importer, which Vite writes as this.
-			if (!options?.ssr || !importer || importer === entryImporter) return null;
+			if (!importer || importer === entryImporter) return null;
 			if (importer.startsWith(WRAP) || importer.startsWith(runtime)) return null;
 			if (!id.endsWith('.svelte')) return null;
 			const resolved = await this.resolve(id, importer, { ...options, skipSelf: true });
