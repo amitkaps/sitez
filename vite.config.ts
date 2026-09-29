@@ -28,14 +28,9 @@ export default defineConfig({
 	},
 
 	// Oxfmt — `vp fmt` / `vp check`.
+	// oxfmt's defaults, with Svelte turned on, as for every site.
 	fmt: {
-		useTabs: true,
-		singleQuote: true,
-		semi: true,
-		printWidth: 100,
-		trailingComma: 'none',
-		sortPackageJson: true,
-		svelte: { indentScriptAndStyle: true },
+		svelte: {},
 		ignorePatterns: ignored
 	},
 

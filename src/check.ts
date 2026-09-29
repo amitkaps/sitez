@@ -1,16 +1,16 @@
 /** @prose
  * # Check
  *
- * `sitez check`: whether the site's files are as they should be, before anything builds. oxfmt
- * formats `prose/` and `pattern/` in one style, and its Markdown output is Markz's canonical form,
- * so one formatter covers both folders; oxlint lints the patterns; svelte-check type-checks them;
- * and Markz's warnings, which `build` prints but never fails on, are problems here. Every problem
- * is one line, `file:line:col: message`, named from where `sitez` runs, and any problem fails.
- * `--fix` formats the files and applies oxlint's safe fixes first, then reports what's left.
+ * `sitez check`: the site's files put right where that's safe, then whatever is left that needs
+ * the author. oxlint applies its safe fixes to the patterns and oxfmt formats `prose/` and
+ * `pattern/` in one style, its Markdown output being Markz's canonical form; then svelte-check
+ * type-checks the patterns, and Markz's warnings, which `build` prints but never fails on, are
+ * problems here. The files it formatted are named; every problem is one line,
+ * `file:line:col: message`, named from where `sitez` runs, and any problem fails.
  *
- * The style is Sitez's, not configured: tabs, single quotes, 100 columns
- * (`runtime/oxfmtrc.json`). oxfmt and oxlint are the ones Vite+ vendors, so they stay the
- * versions the rest of Sitez's toolchain was released with.
+ * The style is oxfmt's defaults with Svelte formatting turned on (`runtime/oxfmtrc.json`), so an
+ * editor running oxfmt with no config of its own agrees with it. oxfmt and oxlint are the ones
+ * Vite+ vendors, so they stay the versions the rest of Sitez's toolchain was released with.
  */
 import { execFile } from 'node:child_process';
 import {
@@ -32,34 +32,27 @@ import { cacheDir, runtime, svelteOptions } from './vite.ts';
 import { formatWarning, markzWarnings } from './warnings.ts';
 
 export interface CheckResult {
-	/** One line per problem, in the order the tools ran. */
+	/** The files it formatted, named from where `sitez` runs. */
+	formatted: string[];
+	/** One line per problem left, in the order the tools ran. */
 	problems: string[];
 }
 
-export async function check(root: string, { cwd = root, fix = false } = {}): Promise<CheckResult> {
+export async function check(root: string, { cwd = root } = {}): Promise<CheckResult> {
 	const shown = shownFrom(cwd);
 	const has = (folder: string) => existsSync(join(root, folder));
 	const folders = ['prose', 'pattern'].filter(has);
 	const config = ['-c', join(runtime, 'oxfmtrc.json')];
 
-	const format = async () => {
-		if (folders.length === 0) return [];
-		if (fix) await tool('oxfmt', [...config, '--write', ...folders], root);
-		const unformatted = await tool('oxfmt', [...config, '--list-different', ...folders], root);
-		return lines(unformatted).map(
-			(file) => `${shown(join(root, file))}: isn't formatted. sitez check --fix formats it.`
-		);
-	};
-	const lint = async () => {
-		if (!has('pattern')) return [];
-		const out = await tool('oxlint', ['-f', 'unix', ...(fix ? ['--fix'] : []), 'pattern'], root);
-		return lines(out).flatMap((line) => {
-			const found = /^(.+?):(\d+):(\d+): (.*)$/.exec(line);
-			return found ? [`${shown(join(root, found[1]!))}:${found[2]}:${found[3]}: ${found[4]}`] : [];
-		});
-	};
-	const types = async () => (has('pattern') ? svelteCheck(root, shown) : []);
-	const markz = async () =>
+	// Fixes first, one after the other, since each changes files: lint's, then formatting its result.
+	const lint = has('pattern') ? await tool('oxlint', ['-f', 'unix', '--fix', 'pattern'], root) : '';
+	let formatted: string[] = [];
+	if (folders.length > 0) {
+		formatted = lines(await tool('oxfmt', [...config, '--list-different', ...folders], root));
+		if (formatted.length > 0) await tool('oxfmt', [...config, '--write', ...folders], root);
+	}
+
+	const markz = () =>
 		[
 			join(root, SITE_FILE),
 			...discover(root)
@@ -68,13 +61,16 @@ export async function check(root: string, { cwd = root, fix = false } = {}): Pro
 		]
 			.flatMap((file) => markzWarnings(file, parse(readFileSync(file, 'utf8'))))
 			.map((warning) => formatWarning(warning, shown));
-
-	// --fix changes files, so each tool sees the last one's fixes; otherwise they run at once.
-	const steps = [format, lint, types, markz];
-	const found: string[][] = [];
-	if (fix) for (const step of steps) found.push(await step());
-	else found.push(...(await Promise.all(steps.map((step) => step()))));
-	return { problems: found.flat() };
+	const types = has('pattern') ? await svelteCheck(root, shown) : [];
+	const warnings = markz();
+	const linted = lines(lint).flatMap((line) => {
+		const found = /^(.+?):(\d+):(\d+): (.*)$/.exec(line);
+		return found ? [`${shown(join(root, found[1]!))}:${found[2]}:${found[3]}: ${found[4]}`] : [];
+	});
+	return {
+		formatted: formatted.map((file) => shown(join(root, file))),
+		problems: [...linted, ...types, ...warnings]
+	};
 }
 
 /** @prose

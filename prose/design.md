@@ -192,9 +192,10 @@ elements are `display: contents` in the reset, so neither affects layout.
 `sitez check` runs oxfmt over `prose/` and `pattern/`, oxlint over `pattern/`, `svelte-check`
 for types, and reports Markz's warnings, which `build` prints but never fails on (`check.ts`).
 oxfmt formats `.svelte` files, and it is the formatter whose output is Markz's canonical form, so
-one tool formats both folders. Every problem is one `file:line:col: message` line and any problem
-fails; `--fix` formats and applies oxlint's safe fixes first. The style is Sitez's, not
-configured (`runtime/oxfmtrc.json`).
+one tool formats both folders. What is safe to fix, it fixes first, without asking: oxlint's
+safe fixes, then formatting, naming the files it formatted. Every problem left is one
+`file:line:col: message` line and any problem fails. The style is oxfmt's defaults with Svelte
+turned on (`runtime/oxfmtrc.json`), so an editor running oxfmt without a config agrees with it.
 
 The tools are Sitez's own dependencies, run with the Node running Sitez. svelte-check looks for a
 Svelte config up the tree from each file, so a site inside a larger repo, as the Markz site is,

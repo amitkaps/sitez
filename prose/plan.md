@@ -56,7 +56,7 @@ to one line each.
   CSS and islands hot-replace, anything else reloads, and a failure shows `build`'s message in
   the page. `src/dev.test.ts` reads Vite's hot-update socket; no real browser runs in CI.
 - **10. The rest of the CLI.** `preview.ts` serves `dist/` as a host does; `check.ts` runs oxfmt,
-  oxlint, svelte-check and Markz's warnings, one line a problem, with `--fix`; `deploy.ts` builds
+  oxlint, svelte-check and Markz's warnings, fixing what's safe first, one line a problem; `deploy.ts` builds
   and pushes to `gh-pages` with the author's git, keeping the branch's history.
 
 ## Open work, in order

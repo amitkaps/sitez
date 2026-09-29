@@ -8,4 +8,5 @@ copied into the package as they are (`dist/runtime/`), not bundled into the CLI.
   an island there; `Island.svelte`, `IslandWithChildren.svelte` and `Children.svelte` write the
   marker around one.
 - `client.ts` hydrates a page's islands in the browser.
-- `oxfmtrc.json` is the one style `sitez check` formats a site's files in.
+- `oxfmtrc.json` is the style `sitez check` formats a site's files in: oxfmt's defaults, with
+  Svelte formatting turned on.

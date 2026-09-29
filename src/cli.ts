@@ -24,7 +24,7 @@ const commands = {
 	dev: 'serve with live reload',
 	build: 'write dist/',
 	preview: 'serve dist/ as it will be deployed',
-	check: 'format, lint and type-check',
+	check: 'fix what is safe, then lint and type-check',
 	deploy: 'publish dist/'
 } as const;
 
@@ -36,7 +36,7 @@ const usage = [
 	...Object.entries(commands).map(([name, what]) => `  ${name.padEnd(8)} ${what}`),
 	'',
 	'Run it anywhere inside a site: the folder holding site.md.',
-	'`--port 4000` serves dev or preview on another port; `check --fix` formats and fixes first.'
+	'`--port 4000` serves dev or preview on another port.'
 ].join('\n');
 
 /** @prose
@@ -49,8 +49,7 @@ export async function run(argv: string[], cwd: string, out = console): Promise<n
 		options: {
 			help: { type: 'boolean', short: 'h' },
 			version: { type: 'boolean', short: 'v' },
-			port: { type: 'string', short: 'p' },
-			fix: { type: 'boolean' }
+			port: { type: 'string', short: 'p' }
 		},
 		allowPositionals: true,
 		strict: false
@@ -91,7 +90,8 @@ export async function run(argv: string[], cwd: string, out = console): Promise<n
 			const server = await preview(root, { port });
 			await serveUntilStopped(server, `Serving dist/ at ${server.url}, as a host would.`);
 		} else if (name === 'check') {
-			const { problems } = await check(root, { cwd, fix: values.fix === true });
+			const { formatted, problems } = await check(root, { cwd });
+			if (formatted.length > 0) out.log(`Formatted ${formatted.join(', ')}.`);
 			for (const problem of problems) out.error(problem);
 			const n = problems.length;
 			out.log(n === 0 ? 'No problems.' : `${n} ${n === 1 ? 'problem' : 'problems'}.`);

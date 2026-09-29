@@ -180,7 +180,7 @@ and one that isn't there fails the build.
 sitez dev      # serve with live reload
 sitez build    # write dist/
 sitez preview  # serve dist/ as it will be deployed
-sitez check    # format, lint and type-check; --fix formats
+sitez check    # fix what's safe (format, lint fixes), then report the rest
 sitez deploy   # publish dist/
 ```
 
