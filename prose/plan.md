@@ -78,6 +78,8 @@ The `blog` fixture's `TagFilter` hydrates; the error fixtures fail with their me
 
 - [ ] Per page: html, css, js gzipped, and build time; the `common` row; page count, total time
       and the list of islands. Sorted by URL.
+- [ ] A notes column for what the numbers can't show, such as a raw `<script>` that may load
+      more JavaScript than the build can count. Design it here.
 
 ### 9. Dev server
 
