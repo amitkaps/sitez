@@ -1,0 +1,10 @@
+@font-face {
+	font-family: 'Blog Serif';
+	src: url('./fonts/Serif.woff2') format('woff2');
+}
+
+body {
+	max-width: 40rem;
+	margin-inline: auto;
+	font-family: 'Blog Serif', serif;
+}

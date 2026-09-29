@@ -4,7 +4,8 @@
  * `sitez build`: every page rendered to complete HTML in `dist/`, with the sitemap and feed, and
  * `public/` copied beside them. Every page's metadata is read before anything renders, because
  * every page and layout gets the whole list (`prose`) and every link is checked against it; then
- * pages render concurrently, each awaiting its own data. Drafts are left out, and so are they
+ * pages render concurrently, each awaiting its own data, and the stylesheet is built from the
+ * components they rendered. Drafts are left out, and so are they
  * from `prose` and from what links can reach, so no page lists or links to what isn't built.
  * Markz's warnings are collected as the prose is read, from `site.md` and every page built, and
  * returned for the command to print.
@@ -12,6 +13,7 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, sep } from 'node:path';
 import { parse } from '@amitkaps/markz';
+import { stylesheet, type Files } from './bundle.ts';
 import { discover, nearest, NOT_FOUND, outputFile, type Page } from './discover.ts';
 import { SiteError } from './errors.ts';
 import { headTags } from './head.ts';
@@ -78,6 +80,7 @@ export async function build(
 	};
 	const server = await siteServer(root, links);
 	let rendered: Rendered[];
+	let components: string[];
 	try {
 		/** @prose
 		 * A Svelte page is a draft only once its module says so, and a prose page's links are
@@ -120,23 +123,40 @@ export async function build(
 				? { file: layoutFile, component: (await server.load(layoutFile)).default as never }
 				: undefined;
 			const out = await renderLayout(svelte, layout, { page: pageData, prose, site }, body);
-			const html = document(site, headTags(pageData, site, hasFeed), out.head, out.body);
-			const problem = renderedLinkProblem(links, page.url, html);
+			const tags = headTags(pageData, site, hasFeed);
+			const problem = renderedLinkProblem(
+				links,
+				page.url,
+				document(site, tags, out.head, out.body)
+			);
 			if (problem) {
 				throw new SiteError(
 					page.file,
 					`${problem} The link is in this page, its layout or a component they render.`
 				);
 			}
-			return { url: page.url, file: page.file, data: pageData, html, ms: performance.now() - t };
+			return {
+				url: page.url,
+				file: page.file,
+				data: pageData,
+				parts: { tags, ...out },
+				ms: performance.now() - t
+			};
 		};
 
 		rendered = await Promise.all(built.map(renderPage));
+		components = server.components();
 	} finally {
 		await server.close();
 	}
 
-	const files = new Map(rendered.map((page) => [outputFile(page.url), page.html]));
+	const css = await stylesheet(root, server.real, components);
+	const files: Files = new Map(css.files);
+	for (const page of rendered) {
+		const { tags, head, body } = page.parts;
+		const assets = `<link rel="stylesheet" href="${css.href}">`;
+		files.set(outputFile(page.url), document(site, `${tags}\n${assets}`, head, body));
+	}
 	const all = rendered.map((page) => page.data);
 	files.set('sitemap.xml', sitemap(site.url, all));
 	const rss = feed(site, site.url, all);
@@ -150,21 +170,21 @@ export async function build(
 	};
 }
 
-type Rendered = Built & { data: PageData; html: string };
+type Rendered = Built & { data: PageData; parts: { tags: string; head: string; body: string } };
 
 /** @prose
  * `dist/` is Sitez's own, so it is emptied first. A file in `public/` where Sitez writes one of
  * its own (a page's HTML, the sitemap, the feed) would be overwritten without anyone noticing, so
  * it fails instead.
  */
-function write(root: string, outDir: string, files: Map<string, string>): void {
+function write(root: string, outDir: string, files: Files): void {
 	const publicDir = join(root, 'public');
 	for (const path of files.keys()) {
 		const file = join(publicDir, path);
 		if (existsSync(file)) {
 			throw new SiteError(
 				file,
-				`Sitez writes ${path.split(sep).join('/')} itself, from ${path.endsWith('.html') ? 'a page' : 'the metadata'}. Rename or remove this file.`
+				`Sitez writes ${path.split(sep).join('/')} itself, from ${source(path)}. Rename or remove this file.`
 			);
 		}
 	}
@@ -176,6 +196,12 @@ function write(root: string, outDir: string, files: Map<string, string>): void {
 		mkdirSync(dirname(file), { recursive: true });
 		writeFileSync(file, content);
 	}
+}
+
+function source(path: string): string {
+	if (path.endsWith('.html')) return 'a page';
+	if (path.endsWith('.xml')) return 'the metadata';
+	return 'pattern/';
 }
 
 function stringOf(value: unknown): string | undefined {

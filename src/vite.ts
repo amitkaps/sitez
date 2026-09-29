@@ -7,7 +7,7 @@
  * relative to its own file. A site has no `node_modules`, so its imports resolve from Sitez.
  */
 import { readFileSync, realpathSync } from 'node:fs';
-import { join, sep } from 'node:path';
+import { join, relative, sep } from 'node:path';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { parse } from '@amitkaps/markz';
 import { compile } from 'svelte/compiler';
@@ -17,10 +17,20 @@ import { nearest, urlOf } from './discover.ts';
 import { linkTarget, type LinkTargets } from './links.ts';
 import { componentName, proseComponent } from './prose.ts';
 
+/** Sitez's own files a site's pages and bundles load: the reset, and the islands' runtime. */
+export const runtime = join(import.meta.dirname, 'runtime');
+
 export interface SiteServer {
 	vite: ViteDevServer;
+	/** The site's root as Vite names its modules: its real path. */
+	real: string;
 	/** Imports a site file (absolute path) through the module runner. */
 	load(file: string): Promise<Record<string, unknown>>;
+	/** @prose
+	 * Every Svelte component a render has loaded, in a fixed order: pages, layouts and what they
+	 * import, from the site or a library. They are the components whose styles the site uses.
+	 */
+	components(): string[];
 	close(): Promise<void>;
 }
 
@@ -40,15 +50,15 @@ export async function siteServer(root: string, links: LinkTargets): Promise<Site
 		logLevel: 'silent',
 		appType: 'custom',
 		server: { middlewareMode: true, hmr: false, watch: null },
-		plugins: [
-			fromSitez(),
-			proseModules(root, real, links),
-			svelte({ configFile: false, compilerOptions: { dev: false, experimental: { async: true } } }),
-			noOptimizer()
-		]
+		plugins: [fromSitez(), proseModules(root, real, links), sveltePlugin(real), noOptimizer()]
 	});
 	return {
 		vite,
+		real,
+		components: () =>
+			[...vite.environments.ssr.moduleGraph.idToModuleMap.keys()]
+				.filter((id) => id.endsWith('.svelte') && !id.startsWith('\0') && !id.startsWith(runtime))
+				.sort(),
 		load: async (file) => {
 			try {
 				return await vite.ssrLoadModule(
@@ -70,11 +80,32 @@ export async function siteServer(root: string, links: LinkTargets): Promise<Site
 }
 
 /** @prose
+ * Svelte as every build of a site compiles it. A component's scoping class is hashed from its
+ * path in the site, not on the disk, so the server render and the client build agree on it, and
+ * a site builds to the same files wherever it is checked out.
+ */
+export function sveltePlugin(real: string): Plugin[] {
+	return svelte({
+		configFile: false,
+		compilerOptions: {
+			dev: false,
+			experimental: { async: true },
+			cssHash: ({ hash, filename }) =>
+				`svelte-${hash(
+					relative(real, filename ?? '')
+						.split(sep)
+						.join('/')
+				)}`
+		}
+	});
+}
+
+/** @prose
  * A file that doesn't compile, or a module that throws as it loads, is a mistake in the site.
  * Vite's error says which file (`id`) and shows the lines around it (`frame`); without an `id`,
  * it's the file being loaded.
  */
-function siteError(error: unknown, file: string): SiteError {
+export function siteError(error: unknown, file: string): SiteError {
 	const { message, id, frame } = error as { message?: string; id?: string; frame?: string };
 	return new SiteError(
 		id?.split('?')[0] ?? file,
@@ -88,7 +119,7 @@ function siteError(error: unknown, file: string): SiteError {
  * `package.json` gets its own libraries, then as if imported from inside Sitez, which is where
  * `svelte` is for a site without one.
  */
-function fromSitez(): Plugin {
+export function fromSitez(): Plugin {
 	const inside = import.meta.filename;
 	return {
 		name: 'sitez:resolve',
@@ -138,7 +169,7 @@ function proseModules(root: string, real: string, links: LinkTargets): Plugin {
  * vite-plugin-svelte adds `svelte/*` to its list in a config hook. Svelte and Sitez's other
  * dependencies are ESM and need no pre-bundling, so the lists are cleared once resolved.
  */
-function noOptimizer(): Plugin {
+export function noOptimizer(): Plugin {
 	return {
 		name: 'sitez:no-optimizer',
 		configResolved(config) {

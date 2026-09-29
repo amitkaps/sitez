@@ -6,7 +6,7 @@
 ## Promises
 
 1. **Three folders and a file.** `prose/` is content, `pattern/` is presentation, `public/` is
-   files, and `site.md` is the site's metadata. There is no configuration.
+   files copied as they are, and `site.md` is the site's metadata. There is no configuration.
 2. **A file is a page.** Its path is its URL. There is no route file.
 3. **Every page is complete HTML.** The build does the work so the browser doesn't.
 4. **Links are checked.** Prose links to files, Sitez turns them into URLs, and a broken link
@@ -28,6 +28,7 @@ site/
 │       ├── hello.md      → /blog/hello/
 │       └── again.md      → /blog/again/
 ├── pattern/
+│   ├── style.css         the site's stylesheet
 │   ├── Layout.svelte     wraps every page
 │   ├── CallOut.svelte    renders {@call-out} in prose
 │   ├── TagFilter.svelte  interactive, so an island
@@ -100,9 +101,9 @@ site/
      finished, so an interactive wrapper can hold prose: `{@tab-set}` … `{/tab-set}`. An island
      inside another island's children fails the build.
 
-7. **HTML before JavaScript.** Pages link with `<a>`, and the baseline stylesheet turns on
-   cross-document View Transitions. It also styles `<details>`, `popover` and `<dialog>`, which
-   open, close and toggle without JavaScript, so many interactive pieces don't need an island.
+7. **HTML before JavaScript.** Pages link with `<a>`, and Sitez's reset turns on cross-document
+   View Transitions. `<details>`, `popover` and `<dialog>` open, close and toggle without
+   JavaScript, so many interactive pieces don't need an island.
 
 ## Metadata
 
@@ -153,9 +154,23 @@ of those tags itself fails, naming the metadata key that sets it.
 
 ## Styling
 
-A small baseline stylesheet is always included: a reset, then readable defaults for text, links,
-code, images, tables and the elements in rule 7. `public/style.css`, if it exists, loads after
-it. Components use Svelte's scoped `<style>`. There is no other styling mechanism.
+A site has one stylesheet, and every page links it. It starts with Sitez's reset, a typographic
+starting point for plain HTML: `system-ui` text, readable line heights, `box-sizing`, images that
+fit their column, form controls in the page's font, and code in a monospace one. It has no
+colors, no theme and no design of its own. It is `@layer reset`, so any rule a site writes
+overrides it.
+
+`pattern/style.css`, if there is one, is the site's own design and follows the reset, then each
+component's scoped `<style>`. There is no other styling mechanism. Like everything in `pattern/`,
+it is processed, not copied: a font or image it names with `url()` is bundled with a hashed name,
+and one that isn't there fails the build.
+
+```css
+@font-face {
+	font-family: 'Inter';
+	src: url('./fonts/Inter.woff2') format('woff2');
+}
+```
 
 ## The CLI
 

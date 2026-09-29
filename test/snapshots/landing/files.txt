@@ -2,3 +2,4 @@ favicon.svg
 index.html
 lantern.txt
 sitemap.xml
+style.B9gZsB62.css

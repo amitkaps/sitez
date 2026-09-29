@@ -87,10 +87,25 @@ nothing lists or links to it.
 
 ## Bundling
 
-Rolldown splits each page's CSS and JavaScript by one rule: what more than one page uses goes in
-`common.css` and `common.js`; what only this page uses goes in the page's own `index.css` and
-`index.js`, next to its `index.html`. The baseline stylesheet, the Svelte runtime and an island in
-the layout are common; `TagFilter` on `/blog/` is the page's.
+Once every page has rendered, Rolldown builds what the browser downloads besides the HTML
+(`bundle.ts`), since only then is it known which components the site uses. Nothing it builds
+reaches `dist/` until every page has.
+
+A site has one stylesheet, `style.[hash].css`: the reset (`src/runtime/reset.css`), then
+`pattern/style.css`, then the scoped styles of every component a page rendered, in path order.
+CSS is small and needed before anything paints, so one file, cached by the first page and reused
+by every other, costs less than a split that saves a few bytes a page. The reset is `@layer
+reset`, declared first, so its order against the site's CSS doesn't matter; the site's own CSS
+stays unlayered, so `@layer` and `!important` in it mean what they always mean. A component's
+selector carries its scoping class, and components come after `pattern/style.css`, so a
+component's rule wins over the site's. Svelte names that class from the component's path, so the
+client build and the server render agree on it. A `url()` in any of it is bundled as
+`assets/[name].[hash][ext]`; one Vite can't resolve is a warning Vite would ship as written, so
+Sitez fails the build instead.
+
+JavaScript splits by one rule: what more than one page uses goes in `common.js`; what only this
+page uses goes in the page's own `index.js`, next to its `index.html`. The Svelte runtime and an
+island in the layout are common; `TagFilter` on `/blog/` is the page's.
 
 File names carry a content hash (`common.3f9a1c.js`), so a new deploy is never served from a
 stale cache. A page with no islands loads no JavaScript, common or its own. An island used on a
@@ -134,7 +149,7 @@ The page's script finds each marker and calls `hydrate(Component, { target, prop
 aren't in the JavaScript: they're already in the page, so the script passes back the
 `<sitez-children>` element's own HTML through `createRawSnippet`, and hydration reuses the
 existing nodes. Children from prose and from a pattern's markup hydrate the same way. Both
-elements are `display: contents` in the baseline stylesheet, so neither affects layout.
+elements are `display: contents` in the reset, so neither affects layout.
 
 ## Check
 

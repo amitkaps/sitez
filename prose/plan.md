@@ -38,22 +38,16 @@ to one line each.
   `lang` (from `site.md`, `en` by default), and fails a `<svelte:head>` that writes those tags;
   `sitemap.ts` writes `sitemap.xml` and an RSS `feed.xml` of summaries; the 404 page is
   `404.html`; `url` in `site.md` is required. The social image is an open question in design.md.
+- **6. Styling.** One stylesheet per site (`bundle.ts`): the reset as `@layer reset`
+  (`src/runtime/reset.css`), `pattern/style.css`, then every rendered component's styles,
+  content-hashed with the fonts and images it names; a `url()` that isn't there fails. The
+  per-page CSS split was dropped: CSS is small, and one file is cached once.
 
 ## Open work, in order
 
 Each step ends in something a fixture site shows, so the step is done when its fixture builds and
 its tests pass, not when the code is written. Error cases are fixtures too: a site that must fail,
 with the message it must fail with.
-
-### 6. Styling and CSS bundling
-
-- [ ] The baseline stylesheet: reset, text, links, code, images, tables, `<details>`, `popover`,
-      `<dialog>`, and `@view-transition { navigation: auto }`.
-- [ ] Its order against a site's own CSS. Parked; the direction: the baseline is
-      `@layer reset` and `@layer base`, declared first, so whatever the site writes overrides it.
-- [ ] `public/style.css` after it; scoped component styles collected per page.
-- [ ] Split into `common.css` and the page's `index.css`, content-hashed. A page links only what
-      it uses.
 
 ### 7. Islands (rule 6)
 

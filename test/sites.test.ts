@@ -32,6 +32,14 @@ describe.each(names.filter((name) => !name.startsWith('error-')))('%s', (name) =
 			.map((entry) => relative(outDir, join(entry.parentPath, entry.name)))
 			.sort();
 		await expect(files.join('\n') + '\n').toMatchFileSnapshot(`snapshots/${name}/files.txt`);
+		// A snapshot of a file the site no longer builds, such as an old hash, is stale.
+		const built = join(import.meta.dirname, 'snapshots', name, 'built');
+		const kept = existsSync(built)
+			? readdirSync(built, { recursive: true, withFileTypes: true })
+					.filter((entry) => entry.isFile())
+					.map((entry) => relative(built, join(entry.parentPath, entry.name)))
+			: [];
+		expect(kept.filter((file) => !files.includes(file))).toEqual([]);
 		for (const file of files.filter((file) => text.test(file))) {
 			await expect(readFileSync(join(outDir, file), 'utf8')).toMatchFileSnapshot(
 				`snapshots/${name}/built/${file}`

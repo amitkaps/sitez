@@ -16,9 +16,11 @@ const ignored = ['dist/**', 'test/sites/**', 'test/snapshots/**', 'pnpm-lock.yam
 export default defineConfig({
 	plugins: process.env.VITEST ? [] : [prose()],
 
-	// tsdown — `vp pack`. The CLI is the package: one ESM entry, run by Node.
+	// tsdown — `vp pack`. The CLI is the package: one ESM entry, run by Node, and the runtime
+	// files a site's own build loads through Vite, copied as they are.
 	pack: {
 		entry: ['src/cli.ts'],
+		copy: [{ from: 'src/runtime/*', to: 'dist/runtime' }],
 		format: ['esm'],
 		platform: 'node',
 		clean: true,
