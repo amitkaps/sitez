@@ -62,8 +62,10 @@ the layout are common; `TagFilter` on `/blog/` is the page's.
 File names carry a content hash (`common.3f9a1c.js`), so a new deploy is never served from a
 stale cache. A page with no islands loads no JavaScript, common or its own. An island used on a
 few pages still lands in `common.js`; the `common` row in the build report shows if that grows.
-Svelte's runtime with `hydrate` is about 15 KB gzipped, the floor of `common.js` on a site with
-any island.
+Svelte's runtime with `hydrate` is about 11 KB gzipped, the floor of `common.js` on a site with
+any island; the component itself is a few hundred bytes. The build sets production mode itself:
+`NODE_ENV` left at `development` by a dev server in the same process ships Svelte's dev code, 30%
+larger.
 
 ## Islands
 
