@@ -5,7 +5,7 @@
 	let { page, prose, site, children } = $props();
 </script>
 
-<Layout {page} {prose} {site}>
+<Layout {site}>
 	<article>
 		{#if page.date}<p><time>{page.date}</time></p>{/if}
 		{@render children()}

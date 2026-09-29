@@ -12,6 +12,10 @@ describe("sitez check", { timeout: 60_000 }, () => {
     expect(await check(site)).toEqual({ formatted: [], problems: [] });
   });
 
+  test.each(["blog", "elements"])("the %s example has nothing wrong", async (name) => {
+    expect((await check(copy(name))).problems).toEqual([]);
+  });
+
   test("fixes what is safe, names it, and reports the rest, named from where it runs", async () => {
     const site = copy("landing");
     mkdirSync(join(site, "prose"));
