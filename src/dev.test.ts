@@ -139,8 +139,22 @@ describe('changes', () => {
 		expect(script).not.toContain('"TagFilter": I0');
 	});
 
+	test("a url() in the CSS that isn't there shows, and fixing it reloads", async () => {
+		edit('pattern/style.css', './fonts/Serif.woff2', './fonts/Serify.woff2')();
+		const broken = await get('/about/');
+		expect(broken.status).toBe(500);
+		expect(await broken.text()).toContain(
+			"pattern/style.css: url(./fonts/Serify.woff2) isn't there. Fix the path: relative to this file, or /… for a file in public/."
+		);
+		const message = await afterChange(
+			edit('pattern/style.css', './fonts/Serify.woff2', './fonts/Serif.woff2')
+		);
+		expect(message.type).toBe('full-reload');
+		expect((await get('/about/')).status).toBe(200);
+	});
+
 	test("a mistake shows as build's message, in the page", async () => {
-		edit('prose/about.md', 'the blog', 'the [gone](gone.md) blog')();
+		await afterChange(edit('prose/about.md', 'the blog', 'the [gone](gone.md) blog'));
 		const response = await get('/about/');
 		expect(response.status).toBe(500);
 		const html = await response.text();

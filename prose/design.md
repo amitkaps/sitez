@@ -45,7 +45,9 @@ island is hot-replaced by Vite and Svelte. Anything else can change any page's H
 whether a link on another page is broken, so the server's modules are all invalidated, and so
 are the pages' scripts, since a page may now use a different island, and the page reloads: server-rendered pages have no client state to keep, so a reload is the whole of
 HMR for them. A failure renders as a page holding `build`'s message, with Vite's client on it,
-so fixing the file reloads it.
+so fixing the file reloads it, CSS included. A `url()` in the site's CSS that points at nothing
+is one: Vite hands it to the browser unchecked in dev, so `dev` checks the stylesheet and the
+components' styles itself as a page is served, as `build` would fail on them.
 
 Vite's dependency optimizer doesn't run, and its cache lives in the system's temp folder, so
 `dev` writes nothing into the site.

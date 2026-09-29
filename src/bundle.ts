@@ -10,7 +10,7 @@
  * Every file's name carries a content hash, so a new deploy is never served from a stale cache.
  */
 import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { build, type InlineConfig, type Logger, type Plugin, type Rolldown } from 'vite';
 import { SiteError } from './errors.ts';
 import type { Islands } from './islands.ts';
@@ -62,10 +62,7 @@ export async function stylesheet(
 		const file = [join(real, 'pattern', 'style.css'), ...components].find(
 			(file) => existsSync(file) && readFileSync(file, 'utf8').includes(url)
 		);
-		throw new SiteError(
-			asGiven(root, real, file ?? join(real, 'pattern', 'style.css')),
-			`url(${url}) isn't there. Fix the path: relative to this file, or /… for a file in public/.`
-		);
+		throw urlError(asGiven(root, real, file ?? join(real, 'pattern', 'style.css')), url);
 	}
 	const files: Files = new Map();
 	let href = '';
@@ -75,6 +72,39 @@ export async function stylesheet(
 		if (item.fileName.endsWith('.css')) href = `/${item.fileName}`;
 	}
 	return { href, files };
+}
+
+/** @prose
+ * The first `url()` in the site's CSS that points at nothing, resolved as `build` resolves it:
+ * relative to its file, or from `public/` and then the site's root when it starts with `/`.
+ * `dev` checks with this, since there Vite hands a `url()` to the browser unchecked and a missing
+ * font falls back without a word; `build` has Vite's own check. `files` are stylesheets and
+ * components, whose `<style>` is what's read.
+ */
+export function missingUrl(root: string, files: string[]): SiteError | undefined {
+	for (const file of files) {
+		if (!existsSync(file)) continue;
+		let css = readFileSync(file, 'utf8');
+		if (file.endsWith('.svelte'))
+			css = [...css.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/g)].map((m) => m[1]).join('\n');
+		css = css.replace(/\/\*[\s\S]*?\*\//g, '');
+		for (const [, , url = ''] of css.matchAll(/url\(\s*(['"]?)([^'")]*)\1\s*\)/g)) {
+			if (url === '' || /^(?:[a-z]+:|\/\/|#)/i.test(url)) continue;
+			const path = decodeURI(url.split(/[?#]/)[0]!);
+			const found = path.startsWith('/')
+				? existsSync(join(root, 'public', path)) || existsSync(join(root, path))
+				: existsSync(join(dirname(file), path));
+			if (!found) return urlError(file, url);
+		}
+	}
+	return undefined;
+}
+
+function urlError(file: string, url: string): SiteError {
+	return new SiteError(
+		file,
+		`url(${url}) isn't there. Fix the path: relative to this file, or /… for a file in public/.`
+	);
 }
 
 /** @prose

@@ -11,7 +11,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { join } from 'node:path';
 import type { Plugin, ViteDevServer } from 'vite';
-import { hydrateEntry, styleImports } from './bundle.ts';
+import { hydrateEntry, missingUrl, styleImports } from './bundle.ts';
 import { NOT_FOUND } from './discover.ts';
 import { SiteError, shownFrom, siteErrorText } from './errors.ts';
 import { escape } from './head.ts';
@@ -19,7 +19,7 @@ import { document } from './render.ts';
 import { pathOf } from './preview.ts';
 import { readRun, renderPage, type Run } from './site.ts';
 import { feed, sitemap } from './sitemap.ts';
-import { siteServer, type SiteServer } from './vite.ts';
+import { asGiven, siteServer, type SiteServer } from './vite.ts';
 import { formatWarning, type MarkzWarning } from './warnings.ts';
 
 export interface Dev {
@@ -48,6 +48,8 @@ export async function dev(
 	// A request that isn't a page after all reaches `notFound` with the site already read.
 	const runs = new WeakMap<IncomingMessage, Run>();
 	let server: SiteServer;
+	// Whether the last page asked for failed: then any change reloads, CSS too, to show the fix.
+	let failing = false;
 
 	const shown = shownFrom(cwd);
 	const newWarnings = (warnings: MarkzWarning[]) => {
@@ -73,7 +75,9 @@ export async function dev(
 			runs.set(request, run);
 			newWarnings(run.warnings);
 			await answer(run);
+			failing = false;
 		} catch (error) {
+			failing = true;
 			const text = errorText(error, cwd);
 			report(text);
 			send(response, 500, 'text/html', errorPage(text));
@@ -88,6 +92,12 @@ export async function dev(
 		const found = run.pages.find((page) => page.url === url);
 		if (!found) return undefined;
 		const out = await renderPage(run, found);
+		const styles = [join(root, 'pattern', 'style.css'), ...server.components()];
+		const missing = missingUrl(
+			root,
+			styles.map((file) => asGiven(root, server.real, file))
+		);
+		if (missing) throw missing;
 		rendered.set(url, out.islands);
 		const query = `?url=${encodeURIComponent(url)}`;
 		const assets = [
@@ -187,10 +197,11 @@ export async function dev(
 				vite.middlewares.use((request, response) => void notFound(request, response));
 			};
 		},
-		// CSS is Vite's to replace, and an island's component Svelte's.
+		// CSS is Vite's to replace, and an island's component Svelte's, unless a page is failing.
 		hotUpdate({ file, server: vite }) {
 			if (this.environment.name !== 'client') return;
-			if (file.endsWith('.css') || [...server.islands.values()].includes(file)) return;
+			const hot = file.endsWith('.css') || [...server.islands.values()].includes(file);
+			if (hot && !failing) return;
 			reload(vite);
 			return [];
 		}
