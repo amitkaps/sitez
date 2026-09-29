@@ -14,7 +14,7 @@ to one line each.
   `dist/cli.js`), Node 26 and pnpm through `mise.toml`, CI on every PR; the CLI with its five
   commands, root finding from `site.md` and `SiteError` for the messages; the `blog`, `landing` and
   `error-reserved-site-md` sites in `test/sites/`. Each stage gets its file in `src/` as its step
-  starts, not before. Markz comes from its v0.1.0 release tarball until it is on npm.
+  starts, not before. Markz comes from npm as `@amitkaps/markz`.
 - **0. Spikes.** Async server rendering, island detection, hydrating islands with children, and
   Vite without a config all hold; their answers are in design.md, and the code is in `4343fcb`.
   Islands are read from the compiler's AST, not its output.

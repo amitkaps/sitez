@@ -23,9 +23,9 @@
 		"test": "vp test --run"
 	},
 	"dependencies": {
+		"@amitkaps/markz": "^0.1.1-rc.0",
 		"@sveltejs/vite-plugin-svelte": "^7.3.1",
 		"devalue": "^6.0.2",
-		"markz": "https://github.com/amitkaps/markz/releases/download/v0.1.0/markz-0.1.0.tgz",
 		"svelte": "^5.57.1",
 		"vite": "npm:@voidzero-dev/vite-plus-core@1.0.0"
 	},

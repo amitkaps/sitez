@@ -8,7 +8,7 @@
  * URLs the site serves (rule 4). Everything else, text, attributes and raw HTML, comes out exactly
  * as Markz writes it.
  */
-import { html, position, walk, type Document, type NodeData, type NodeId } from 'markz';
+import { html, position, walk, type Document, type NodeData, type NodeId } from '@amitkaps/markz';
 import { SiteError } from './errors.ts';
 import type { LinkKind } from './links.ts';
 

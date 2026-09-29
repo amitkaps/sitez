@@ -13,7 +13,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { parse, textContent, type Document, type MetadataValue } from 'markz';
+import { parse, textContent, type Document, type MetadataValue } from '@amitkaps/markz';
 import { SiteError } from './errors.ts';
 import { SITE_FILE } from './root.ts';
 

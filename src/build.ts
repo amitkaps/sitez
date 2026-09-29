@@ -11,7 +11,7 @@
  */
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, sep } from 'node:path';
-import { parse } from 'markz';
+import { parse } from '@amitkaps/markz';
 import { discover, nearest, NOT_FOUND, outputFile, type Page } from './discover.ts';
 import { SiteError } from './errors.ts';
 import { headTags } from './head.ts';

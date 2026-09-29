@@ -10,12 +10,12 @@ is a Vite plugin plus the config nobody writes. Users never see a `vite.config.t
 
 ```text
 sitez (npm)
-├── vite         Vite+'s core (@voidzero-dev/vite-plus-core): dev server, Rolldown
-├── vite-plus    oxfmt, oxlint
-├── svelte       compiler, server renderer, hydrate
-├── svelte-check types
-├── devalue      island props
-└── markz        parser
+├── vite             Vite+'s core (@voidzero-dev/vite-plus-core): dev server, Rolldown
+├── vite-plus        oxfmt, oxlint
+├── svelte           compiler, server renderer, hydrate
+├── svelte-check     types
+├── devalue          island props
+└── @amitkaps/markz  parser
 ```
 
 Sitez calls `createServer` and `build` itself, with `configFile: false`. Svelte compiles with

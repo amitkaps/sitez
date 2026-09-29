@@ -5,7 +5,7 @@
  * closing line. The page still builds, so a warning never fails `build`; it is printed with the
  * file and line, so the author can write the supported form instead.
  */
-import { position, type Document } from 'markz';
+import { position, type Document } from '@amitkaps/markz';
 
 export interface MarkzWarning {
 	file: string;

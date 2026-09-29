@@ -1,7 +1,7 @@
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { parse } from 'markz';
+import { parse } from '@amitkaps/markz';
 import { describe, expect, test } from 'vite-plus/test';
 import { SiteError } from './errors.ts';
 import { patternMetadata, proseMetadata, siteMetadata } from './metadata.ts';

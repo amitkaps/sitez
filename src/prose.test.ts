@@ -1,4 +1,4 @@
-import { parse } from 'markz';
+import { parse } from '@amitkaps/markz';
 import { describe, expect, test } from 'vite-plus/test';
 import { componentName, proseComponent } from './prose.ts';
 

@@ -9,7 +9,7 @@
 import { readFileSync, realpathSync } from 'node:fs';
 import { join, sep } from 'node:path';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
-import { parse } from 'markz';
+import { parse } from '@amitkaps/markz';
 import { compile } from 'svelte/compiler';
 import { createServer, type Plugin, type ViteDevServer } from 'vite';
 import { SiteError } from './errors.ts';
