@@ -165,3 +165,6 @@ carries no Wrangler.
 - **Hydration comments.** Svelte's server output carries `<!--[-->` and `<!--]-->` markers on
   every page, not only in islands, where hydration needs them. Stripping them outside islands
   saves bytes; the build report will show whether it's worth doing.
+- **Raw HTML.** A ` ```=html ` block ships as written, `<script>` included: it is the author's
+  escape hatch, outside the islands and the JavaScript they account for. Whether to sanitize it,
+  or count it in the build report, waits until sites use it enough to say.

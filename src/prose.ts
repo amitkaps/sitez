@@ -22,12 +22,9 @@ import { html, walk, type Document, type NodeData, type NodeId } from 'markz';
  *    passes its attributes as string props and its content as `children`. Each marker becomes
  *    `{@html …}` with the block's content, which Svelte writes verbatim: a raw block's
  *    `<script>` is never compiled as the component's script, nor its `<style>` scoped.
- */
-/** @note
- * A raw `=html` block's `<script>` ships JavaScript that no island accounts for, and the build
- * report (step 8) won't count it: promise 5 says a page has JavaScript only where it is
- * interactive, and that you see what it costs. Should a `<script>` in raw HTML fail the build,
- * pointing to an island instead, or be allowed and counted? Today it is written as it is.
+ *
+ * Raw HTML is the author's escape hatch, so its JavaScript is their choice: it ships as written,
+ * outside the islands and not sanitized.
  */
 export function proseComponent(
 	doc: Document,
