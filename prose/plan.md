@@ -45,24 +45,21 @@ with the message it must fail with.
       `site.md`, with the source position.
 - [ ] Links in Svelte pages: decide whether `href`s in patterns are checked too (against the built
       URL set, after rendering). Promise 4 says prose; leave a `@note` if it should say more.
-- [ ] Site-absolute links (`[workshops](/workshops)`), which amitkaps.github.io writes
-      throughout. Proposed: accepted beside `.md` links, checked against the built URLs and
-      `public/`, and written with the page's trailing slash (`/workshops/`). A path on the same
-      domain that this repo doesn't build (`/stories`, a separate site) fails like any missing
-      page; the author writes it in full (`https://amitkaps.com/stories/`), and full URLs are
-      never checked.
+- [ ] Site links (`[workshops](/workshops)`), Markz's form for a link within the site: checked
+      against the built URLs and `public/`, and written with the page's trailing slash
+      (`/workshops/`). A path this site doesn't build (`/stories`, a separate site on the same
+      domain) fails like any missing page; the author writes it in full, and full URLs are never
+      checked.
 
 ### 5. The site's own files (metadata)
 
 - [ ] In `<head>`: `<title>`, meta description, canonical URL, Open Graph tags, from `page` and
       `site`. The title is the page's alone today, and `<html>` has no `lang`: decide both here.
-- [ ] Who owns `<head>`. Proposed: Sitez writes the defaults, and any `<title>`, `<meta>` with the
-      same `name` or `property`, or canonical link that a page or layout writes in
-      `<svelte:head>` replaces Sitez's, so a site can title pages `Essay | Amit Kapoor` with no
-      option. `lang` comes from `site.md`, `en` when it has none.
-- [ ] The 404 page. Static hosts serve `/404.html` for a missing URL; `prose/404.md` builds to
-      `/404/index.html`. Proposed: rule 1 gains one exception, `404` is written as `404.html`,
-      and it is left out of the sitemap and can't be linked to.
+- [ ] `<head>` comes from metadata: the page's `title` is its `<title>`, as written, and
+      `summary` its description. A pattern that writes a `<title>` or description meta in
+      `<svelte:head>` fails, pointing to the metadata key. `lang` is still open.
+- [ ] `prose/404.md` is written as `404.html` (rule 1), left out of the sitemap, and a link to it
+      fails.
 - [ ] `sitemap.xml`, and `feed.xml` from pages with a `date`, newest first. Both need `url` in
       `site.md`; without it the build says so rather than writing relative URLs.
 
@@ -70,9 +67,8 @@ with the message it must fail with.
 
 - [ ] The baseline stylesheet: reset, text, links, code, images, tables, `<details>`, `popover`,
       `<dialog>`, and `@view-transition { navigation: auto }`.
-- [ ] Its order against a site's own CSS, which may have its own reset and layers
-      (amitkaps.github.io's `app.css` declares `@layer reset, base, site`). Proposed: the baseline
-      is one `@layer sitez`, declared first, so any CSS a site writes wins over it.
+- [ ] Its order against a site's own CSS. Parked; the direction: the baseline is
+      `@layer reset` and `@layer base`, declared first, so whatever the site writes overrides it.
 - [ ] `public/style.css` after it; scoped component styles collected per page.
 - [ ] Split into `common.css` and the page's `index.css`, content-hashed. A page links only what
       it uses.

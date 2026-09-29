@@ -42,6 +42,8 @@ site/
 
 1. **A file is a page.** Every `.md` in `prose/` and every lowercase `.svelte` in `pattern/` is one
    URL, from its path. `index` is the folder's own URL. Two files for one URL is an error.
+   `prose/404.md` is the page a host serves for a URL that doesn't exist, so it is written as
+   `404.html`.
    `.js` and `.ts` files in `pattern/` are modules for patterns to import: never pages, never
    copied to the output.
 2. **Capitalized `.svelte` files are patterns a page uses, not pages.** Sitez finds them up the
@@ -54,7 +56,9 @@ site/
    hyphen, so an element name always maps to a component name. An element with no component is
    written as Markz writes it.
 4. **Links follow files.** `[hello](blog/hello.md)` becomes `/blog/hello/`, so prose reads the
-   same on GitHub and on the site. A link to another file in the repo, such as source code, goes
+   same on GitHub and on the site. A link to a URL on the site, `[About](/about)`, is checked the
+   same way; a path on the same domain that this site doesn't build is written in full, as any
+   other site's would be. A link to another file in the repo, such as source code, goes
    to that file on GitHub, from `repo` in `site.md`. Sitez knows every URL, so a link to a page
    or file that doesn't exist fails the build. A draft doesn't exist in `build`, so linking to one
    fails too, rather than shipping a broken link.
@@ -114,6 +118,8 @@ draft: true
 
 - `date` puts a page in the RSS feed.
 - `draft` keeps it out of `build`, not out of `dev`.
+- `title` is the page's `<title>` and `summary` its description: Sitez writes both into the
+  page's `<head>`, so a page's head changes with its metadata, not its patterns.
 
 Sitez checks the keys it reads: a `draft: yes` or a `date: Sept 1` fails the build, naming the
 file and the key, rather than publishing a draft or misdating a post. Any other key is the site's
