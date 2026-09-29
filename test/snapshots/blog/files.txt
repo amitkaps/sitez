@@ -9,4 +9,4 @@ favicon.svg
 feed.xml
 index.html
 sitemap.xml
-style.C29RgVq9.css
+style.mc_UySgA.css
