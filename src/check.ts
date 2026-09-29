@@ -9,9 +9,8 @@
  * `--fix` formats the files and applies oxlint's safe fixes first, then reports what's left.
  *
  * The style is Sitez's, not configured: tabs, single quotes, 100 columns
- * (`runtime/oxfmtrc.json`). oxfmt and oxlint are Sitez's own dependencies, pinned to the versions
- * Vite+ vendors, rather than reached through Vite+: that would put its toolchain, vitest and a
- * type-aware linter among them, in every site's install.
+ * (`runtime/oxfmtrc.json`). oxfmt and oxlint are the ones Vite+ vendors, so they stay the
+ * versions the rest of Sitez's toolchain was released with.
  */
 import { execFile } from 'node:child_process';
 import {
@@ -158,11 +157,15 @@ function tool(name: string, args: string[], cwd: string): Promise<{ stdout: stri
 	});
 }
 
+/** svelte-check is Sitez's own dependency; oxfmt and oxlint come with Vite+, at its versions. */
 function binOf(name: string): string {
-	const require = createRequire(import.meta.url);
-	for (const folder of require.resolve.paths(name) ?? []) {
-		const bin = join(folder, name, 'bin', name);
-		if (existsSync(bin)) return bin;
+	const sitez = createRequire(import.meta.url);
+	const vitePlus = createRequire(sitez.resolve('vite-plus/package.json'));
+	for (const require of [sitez, vitePlus]) {
+		for (const folder of require.resolve.paths(name) ?? []) {
+			const bin = join(folder, name, 'bin', name);
+			if (existsSync(bin)) return bin;
+		}
 	}
 	throw new Error(`Sitez can't find ${name}, which it depends on. Reinstall Sitez.`);
 }

@@ -2,8 +2,6 @@ import { cpSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, test } from 'vite-plus/test';
-import { versions } from 'vite-plus/versions';
-import pkg from '../package.json' with { type: 'json' };
 import { check } from './check.ts';
 
 // svelte-check starts TypeScript, which takes seconds.
@@ -39,12 +37,6 @@ describe('sitez check', { timeout: 60_000 }, () => {
 		writeFileSync(join(site, 'pattern', 'Messy.svelte'), '<p   class="x">Messy</p>\n');
 		expect((await check(site, { fix: true })).problems).toEqual([]);
 	});
-});
-
-// The repo's own `vp check` and a site's `sitez check` format and lint alike only while the two agree.
-test("Sitez's oxfmt and oxlint are the ones Vite+ vendors", () => {
-	expect(pkg.dependencies.oxfmt).toBe(versions.oxfmt);
-	expect(pkg.dependencies.oxlint).toBe(versions.oxlint);
 });
 
 function copy(name: string): string {
