@@ -126,11 +126,15 @@ describe('siteMetadata', () => {
 	}
 
 	test('is the block, and only the block', () => {
-		expect(site('name: Notes\nurl: https://notes.example.com\nlang: en')).toEqual({
+		expect(site('name: Notes\nurl: https://notes.example.com\nlang: hi')).toEqual({
 			name: 'Notes',
 			url: 'https://notes.example.com',
-			lang: 'en'
+			lang: 'hi'
 		});
+	});
+
+	test('is in English unless it says otherwise', () => {
+		expect(site('name: Notes')).toEqual({ lang: 'en', name: 'Notes' });
 	});
 
 	test.each([

@@ -15,7 +15,7 @@ import { parse } from 'markz';
 import { discover, nearest, NOT_FOUND, outputFile, type Page } from './discover.ts';
 import { SiteError } from './errors.ts';
 import { headTags } from './head.ts';
-import type { LinkTargets } from './links.ts';
+import { renderedLinkProblem, type LinkTargets } from './links.ts';
 import { SITE_FILE } from './root.ts';
 import {
 	isDraft,
@@ -70,7 +70,12 @@ export async function build(
 		if (!isDraft(pageData)) warnings.push(...markzWarnings(page.file, doc));
 	}
 
-	const links: LinkTargets = { root, repo: stringOf(site.repo), pages: new Map() };
+	const links: LinkTargets = {
+		root,
+		repo: stringOf(site.repo),
+		pages: new Map(),
+		generated: new Set(['/sitemap.xml'])
+	};
 	const server = await siteServer(root, links);
 	let rendered: Rendered[];
 	try {
@@ -91,6 +96,7 @@ export async function build(
 			.filter((page) => page.kind === 'prose' && page.url !== NOT_FOUND)
 			.map((page) => data.get(page)!);
 		const hasFeed = built.some((page) => page.url !== NOT_FOUND && data.get(page)!.date);
+		if (hasFeed) links.generated.add('/feed.xml');
 		const svelte = await svelteOf(server);
 
 		/** @prose
@@ -114,7 +120,14 @@ export async function build(
 				? { file: layoutFile, component: (await server.load(layoutFile)).default as never }
 				: undefined;
 			const out = await renderLayout(svelte, layout, { page: pageData, prose, site }, body);
-			const html = document(headTags(pageData, site, hasFeed), out.head, out.body);
+			const html = document(site, headTags(pageData, site, hasFeed), out.head, out.body);
+			const problem = renderedLinkProblem(links, page.url, html);
+			if (problem) {
+				throw new SiteError(
+					page.file,
+					`${problem} The link is in this page, its layout or a component they render.`
+				);
+			}
 			return { url: page.url, file: page.file, data: pageData, html, ms: performance.now() - t };
 		};
 

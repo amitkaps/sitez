@@ -9,8 +9,8 @@
    files, and `site.md` is the site's metadata. There is no configuration.
 2. **A file is a page.** Its path is its URL. There is no route file.
 3. **Every page is complete HTML.** The build does the work so the browser doesn't.
-4. **Links are checked.** Prose links to files, Sitez turns them into URLs, and a broken one fails
-   the build.
+4. **Links are checked.** Prose links to files, Sitez turns them into URLs, and a broken link
+   anywhere on a page fails the build.
 5. **JavaScript only where a page is interactive, and you see what every page costs.**
 
 The line Sitez holds: static pages, islands and prose. Anything that needs more is a different
@@ -61,7 +61,9 @@ site/
    other site's would be. A link to another file in the repo, such as source code, goes
    to that file on GitHub, from `repo` in `site.md`; an image has to be in `public/`. Sitez knows
    every URL, so a link to a page or file that doesn't exist fails the build. A draft doesn't
-   exist in `build`, so linking to one fails too, rather than shipping a broken link.
+   exist in `build`, so linking to one fails too, rather than shipping a broken link. Patterns
+   write URLs, not files, and every link in a built page is checked the same way: a layout's
+   `<a href="/blog">` fails, asking for `/blog/`, the URL as the site serves it.
 5. **Patterns run at build time.** Pages and layouts get `page`, this page's URL and metadata;
    `prose`, the same for every prose page; and `site`, the metadata in `site.md`. So does a
    component a Markz element renders, since prose can't pass them: `{@essay-list /}` in
@@ -132,12 +134,13 @@ Site-wide metadata lives in `site.md` at the root, in the same Markz metadata bl
 name: Amit Kapoor
 url: https://amitkaps.com
 repo: https://github.com/amitkaps/site
+lang: en
 ---
 
 Notes for whoever maintains the site. Sitez reads only the block above.
 ```
 
-`url` is required: the sitemap, the feed and every page's canonical link are full addresses, so
+`lang` is the language of every page, `en` unless it says otherwise. `url` is required: the sitemap, the feed and every page's canonical link are full addresses, so
 `build` fails without it rather than writing relative ones.
 
 It is also how Sitez finds the site: the folder holding `site.md` is the root, from wherever
@@ -145,7 +148,7 @@ It is also how Sitez finds the site: the folder holding `site.md` is the root, f
 works for a site with no `prose/` at all.
 
 From that, Sitez writes `<title>`, the meta description, canonical URLs, Open Graph tags,
-`sitemap.xml` and `feed.xml`. A pattern's `<svelte:head>` can add anything else, but writing one
+`sitemap.xml` and `feed.xml`; Twitter reads the Open Graph tags. A pattern's `<svelte:head>` can add anything else, but writing one
 of those tags itself fails, naming the metadata key that sets it.
 
 ## Styling

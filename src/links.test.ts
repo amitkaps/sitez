@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { describe, expect, test } from 'vite-plus/test';
-import { linkTarget, type LinkKind, type LinkTargets } from './links.ts';
+import { linkTarget, renderedLinkProblem, type LinkKind, type LinkTargets } from './links.ts';
 
 const root = mkdtempSync(join(tmpdir(), 'sitez-'));
 mkdirSync(join(root, '.git'));
@@ -27,7 +27,8 @@ const targets: LinkTargets = {
 		['/404/', { draft: false }],
 		['/blog/hello/', { draft: false }],
 		['/blog/draft/', { draft: true }]
-	])
+	]),
+	generated: new Set(['/sitemap.xml'])
 };
 const from = join(root, 'prose/blog/hello.md');
 const link = (destination: string, kind: LinkKind = 'link', site = targets) =>
@@ -92,5 +93,31 @@ describe('linkTarget', () => {
 		expect(link('../../../outside.md')).toMatchObject({
 			problem: expect.stringMatching(/isn't there/)
 		});
+	});
+});
+
+describe('renderedLinkProblem', () => {
+	const check = (html: string) => renderedLinkProblem(targets, '/blog/hello/', html);
+
+	test('passes URLs the site serves, relative ones read from the page', () => {
+		expect(
+			check(
+				'<a href="/">Home</a> <a href="../hello/#top">Me</a> <img src="/logo.svg"> ' +
+					'<a href="/sitemap.xml">Map</a> <a href="https://example.com">Out</a> <a href="#x">X</a>'
+			)
+		).toBeUndefined();
+	});
+
+	test('names the first broken link, whoever wrote it', () => {
+		expect(check('<nav><a href="/">Home</a> <a href="/posts/">Posts</a></nav>')).toBe(
+			'href="/posts/": /posts/ isn\'t a page or a file in public/. Link to one that is, or write a page elsewhere on this domain in full, starting https://'
+		);
+		expect(check('<a href="/blog/draft/">Soon</a>')).toMatch(/is a draft/);
+	});
+
+	test('asks for the URL as served, not one a host redirects', () => {
+		expect(check('<a href="/blog/hello">Me</a>')).toBe(
+			'href="/blog/hello": /blog/hello is served at /blog/hello/. Write that, so no host has to redirect it.'
+		);
 	});
 });

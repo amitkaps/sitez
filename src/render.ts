@@ -9,7 +9,7 @@
  */
 import type { Component, Snippet } from 'svelte';
 import { SiteError } from './errors.ts';
-import { checkHead } from './head.ts';
+import { checkHead, escape } from './head.ts';
 import type { Metadata, PageData } from './metadata.ts';
 import type { SiteServer } from './vite.ts';
 
@@ -83,12 +83,12 @@ export async function renderLayout(
 }
 
 /** @prose
- * The document every page shares: Sitez's head tags from the page's metadata (`head.ts`), then
- * whatever the page and its layout put in `<svelte:head>`.
+ * The document every page shares, in the site's `lang`: Sitez's head tags from the page's
+ * metadata (`head.ts`), then whatever the page and its layout put in `<svelte:head>`.
  */
-export function document(tags: string, head: string, body: string): string {
+export function document(site: Metadata, tags: string, head: string, body: string): string {
 	return `<!doctype html>
-<html>
+<html lang="${escape(String(site.lang))}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">

@@ -73,9 +73,13 @@ for a folder), with the path from the git root, which may be above the site's. A
 (`/about`) is looked up among the pages, then in `public/`. A link to a draft, to the 404 page,
 or to anything that isn't there fails with its line. The check needs every page's draft status
 before any prose loads, so `build` loads the Svelte pages' modules for their `metadata` first.
+Then each rendered page's `href` and `src` attributes are checked against the same pages,
+`public/` and Sitez's own files, which catches what patterns and raw blocks write. A site link
+there has to be exact (`/blog/`), since the HTML is finished and nothing rewrites it.
 
 The head is written from metadata (`head.ts`): `<title>`, the description, the canonical URL and
-Open Graph tags, and a feed link when the site has one. A `<svelte:head>` that writes one of those
+Open Graph tags, Twitter's card (it reads the rest from Open Graph), and a feed link when the site
+has one; `<html lang>` is `lang` from `site.md`. A `<svelte:head>` that writes one of those
 fails, so there is one source for what a page says about itself. `sitemap.xml` lists every page
 but the 404; `feed.xml` is RSS 2.0 with the pages that have a `date`, newest first, each with its
 title, summary and date. The 404 page is written as `404.html` and left out of `prose`, since
@@ -179,3 +183,7 @@ carries no Wrangler.
 - **Raw HTML.** A ` ```=html ` block ships as written, `<script>` included: it is the author's
   escape hatch, outside the islands and the JavaScript they account for. Whether to sanitize it,
   or count it in the build report, waits until sites use it enough to say.
+- **A social image.** `og:image` is left out until Sitez can make one: each page's card drawn by
+  a pattern (a `Card.svelte` given `page` and `site`, or an SVG template), rendered at build time.
+  Social sites don't take SVG, so the card has to be rasterized to PNG, which means a renderer
+  such as resvg in the toolchain. Twitter's card becomes `summary_large_image` once there is one.

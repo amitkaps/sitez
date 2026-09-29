@@ -3,12 +3,9 @@
  *
  * What a page's `<head>` says about it, written from its metadata and the site's: `<title>` is
  * the page's `title`, as written, the description its `summary`, and the canonical URL and Open
- * Graph tags follow from those and `url` in `site.md`. So a page's head changes with its
- * metadata, never with its patterns, and a pattern that writes one of these tags itself fails.
- */
-/** @note Still open: `<html lang>` (no key sets it; `lang` in `site.md` would be metadata, but
- * it isn't in idea.md), and an Open Graph image and Twitter tags, which want an `image` key
- * on pages or the site. Both are metadata keys Sitez would start reading, so they're yours.
+ * Graph tags follow from those and `url` in `site.md`. Twitter reads the Open Graph tags, so it
+ * needs only its card. So a page's head changes with its metadata, never with its patterns, and a
+ * pattern that writes one of these tags itself fails.
  */
 import { NOT_FOUND } from './discover.ts';
 import { SiteError } from './errors.ts';
@@ -33,6 +30,7 @@ export function headTags(page: PageData, site: Metadata, feed: boolean): string 
 	tags.push(meta('property', 'og:title', title));
 	if (page.summary) tags.push(meta('property', 'og:description', page.summary));
 	if (name) tags.push(meta('property', 'og:site_name', name));
+	tags.push(meta('name', 'twitter:card', 'summary'));
 	if (feed) {
 		tags.push(
 			`<link rel="alternate" type="application/rss+xml" title="${escape(name ?? title)}" href="/feed.xml">`
@@ -61,6 +59,7 @@ const owned: [RegExp, string, string][] = [
 	[/<title[\s>]/, 'a <title>', "and set title in the page's metadata"],
 	[/<meta\b[^>]*\bname="description"/, 'a description', "and set summary in the page's metadata"],
 	[/<link\b[^>]*\brel="canonical"/, 'a canonical link', 'as it comes from url in site.md'],
+	[/<meta\b[^>]*\bname="twitter:/, 'a Twitter tag', 'as it comes from the Open Graph tags'],
 	[
 		/<meta\b[^>]*\bproperty="og:/,
 		'an Open Graph tag',

@@ -28,12 +28,15 @@ export interface PageData extends Metadata {
 	draft?: boolean;
 }
 
-/** The metadata block in `site.md`; the rest of the file is notes for whoever maintains the site. */
+/** @prose
+ * The metadata block in `site.md`; the rest of the file is notes for whoever maintains the site.
+ * `lang` is the language every page is written in, English unless it says otherwise.
+ */
 export function siteMetadata(root: string): Metadata {
 	const file = join(root, SITE_FILE);
 	const block: Metadata = { ...parse(readFileSync(file, 'utf8')).metadata };
 	check(file, block, siteKeys);
-	return block;
+	return { lang: 'en', ...block };
 }
 
 export function proseMetadata(file: string, url: string, doc: Document): PageData {
@@ -97,7 +100,12 @@ const absoluteUrl: Rule = (value) =>
 		? undefined
 		: 'write the full address, starting https://';
 
-const siteKeys: Record<string, Rule> = { name: text, url: absoluteUrl, repo: absoluteUrl };
+const siteKeys: Record<string, Rule> = {
+	name: text,
+	url: absoluteUrl,
+	repo: absoluteUrl,
+	lang: text
+};
 
 function check(file: string, block: Metadata, rules: Record<string, Rule>): void {
 	for (const [key, rule] of Object.entries(rules)) {

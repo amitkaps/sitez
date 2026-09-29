@@ -32,12 +32,12 @@ to one line each.
   warnings (`warnings.ts`). The `elements` site shows both, and `warnings.txt` snapshots them.
 - **4. Links.** `links.ts`: page files to URLs, site links checked, `public/` files by path, other
   repo files to GitHub, images only from `public/`; a missing target, a draft or the 404 fails at
-  its line. Rewritten in the view `html()` renders, so code is untouched. Links in Svelte
-  patterns are unchecked, with a `@note` asking whether promise 4 should cover them.
-- **5. The site's own files.** `head.ts` writes the head from metadata and fails a
-  `<svelte:head>` that writes those tags; `sitemap.ts` writes `sitemap.xml` and an RSS
-  `feed.xml` of summaries; the 404 page is `404.html`; `url` in `site.md` is required. `lang`,
-  an Open Graph image and Twitter tags wait on a `@note` in `head.ts`.
+  its line. Rewritten in the view `html()` renders, so code is untouched. Every rendered page's
+  `href` and `src` are checked too, so a layout's nav can't break.
+- **5. The site's own files.** `head.ts` writes the head from metadata, with Twitter's card and
+  `lang` (from `site.md`, `en` by default), and fails a `<svelte:head>` that writes those tags;
+  `sitemap.ts` writes `sitemap.xml` and an RSS `feed.xml` of summaries; the 404 page is
+  `404.html`; `url` in `site.md` is required. The social image is an open question in design.md.
 
 ## Open work, in order
 

@@ -8,11 +8,9 @@
  * way. A full URL is another site's, and is never checked.
  *
  * Sitez knows every page and file, so a link to one that isn't there fails the build, as does a
- * link to a page `build` leaves out: a draft, or the 404 page. Nothing is guessed.
- */
-/** @note Links in Svelte patterns (a layout's `<a href="/blog/">`) aren't checked: promise 4
- * says prose. They could be, against the same pages and `public/`, by reading every `href` in
- * the rendered HTML, which would catch a broken nav link too. Should promise 4 say "every link"?
+ * link to a page `build` leaves out: a draft, or the 404 page. Nothing is guessed. Once a page
+ * has rendered, every link in its HTML is checked the same way, so a layout's nav or a
+ * component's `href` can't break either.
  */
 import { statSync } from 'node:fs';
 import { dirname, extname, join, relative, resolve, sep } from 'node:path';
@@ -21,12 +19,13 @@ import { NOT_FOUND, urlOf } from './discover.ts';
 /** @prose
  * What a link can point at. `pages` holds every page by URL, with whether this run leaves it out:
  * `build` fills it before any prose loads, since a Svelte page is a draft only once its module has
- * said so.
+ * said so. `generated` is what Sitez writes beside the pages (`/sitemap.xml`, `/feed.xml`).
  */
 export interface LinkTargets {
 	root: string;
 	repo: string | undefined;
 	pages: Map<string, { draft: boolean }>;
+	generated: Set<string>;
 }
 
 export type LinkKind = 'link' | 'image';
@@ -68,7 +67,9 @@ function isFullUrl(destination: string): boolean {
 function siteLink(targets: LinkTargets, path: string): { href: string } | { problem: string } {
 	const url = path.endsWith('/') ? path : `${path}/`;
 	if (targets.pages.has(url)) return pageLink(targets, url);
-	if (isFile(join(targets.root, 'public', path))) return { href: path };
+	if (targets.generated.has(path) || isFile(join(targets.root, 'public', path))) {
+		return { href: path };
+	}
 	return {
 		problem: `${path} isn't a page or a file in public/. Link to one that is, or write a page elsewhere on this domain in full, starting https://`
 	};
@@ -118,6 +119,37 @@ function fileLink(
 	return {
 		href: `${repo.replace(/\/$/, '')}/${stat.isFile() ? 'blob' : 'tree'}/main/${posix(top, target)}`
 	};
+}
+
+/** @prose
+ * The first broken link in a page's rendered HTML, whoever wrote it: a layout's nav, a
+ * component's `href`, a raw block's `<img src>`. Patterns write URLs, not files, so a site link
+ * must be the URL as the site serves it, `/about/` rather than `/about`, which a host would
+ * redirect; a relative one is read from the page's URL, as a browser reads it. Prose links arrive
+ * already rewritten, so they pass.
+ */
+export function renderedLinkProblem(
+	targets: LinkTargets,
+	url: string,
+	html: string
+): string | undefined {
+	for (const [, attribute, value = ''] of html.matchAll(/\s(href|src)="([^"]*)"/g)) {
+		const destination = value.replaceAll('&amp;', '&');
+		if (destination === '' || destination.startsWith('#') || isFullUrl(destination)) continue;
+		let path: string;
+		try {
+			path = decodeURI(new URL(destination, `https://site.invalid${url}`).pathname);
+		} catch {
+			path = destination;
+		}
+		const where = `${attribute}="${value}"`;
+		const target = siteLink(targets, path);
+		if ('problem' in target) return `${where}: ${target.problem}`;
+		if (target.href !== path) {
+			return `${where}: ${path} is served at ${target.href}. Write that, so no host has to redirect it.`;
+		}
+	}
+	return undefined;
 }
 
 /** @prose
