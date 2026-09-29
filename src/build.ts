@@ -13,17 +13,8 @@ import { gzipSync } from 'node:zlib';
 import { scripts, stylesheet, type Files } from './bundle.ts';
 import { outputFile } from './discover.ts';
 import { SiteError } from './errors.ts';
-import type { Islands } from './islands.ts';
 import { document } from './render.ts';
-import {
-	islandsIn,
-	linkTargets,
-	readRun,
-	readSite,
-	renderPage,
-	type Rendered,
-	type Run
-} from './site.ts';
+import { readRun, renderPage, type Rendered, type Run } from './site.ts';
 import { feed, sitemap } from './sitemap.ts';
 import { siteServer } from './vite.ts';
 import type { MarkzWarning } from './warnings.ts';
@@ -62,15 +53,12 @@ export async function build(
 	{ outDir = join(root, 'dist') } = {}
 ): Promise<BuildResult> {
 	const start = performance.now();
-	readSite(root);
-	const links = linkTargets(root);
-	const islands: Islands = new Map();
-	const server = await siteServer(root, links, islands);
+	const server = await siteServer(root);
 	let run: Run;
 	let rendered: Rendered[];
 	let components: string[];
 	try {
-		run = await readRun(root, server, links);
+		run = await readRun(server);
 		rendered = await Promise.all(run.pages.map((page) => renderPage(run, page)));
 		components = server.components();
 	} finally {
@@ -78,17 +66,15 @@ export async function build(
 	}
 	const { site, warnings } = run;
 
-	/** @prose
-	 * The islands a page rendered are the markers in its HTML, so a page's script imports exactly
-	 * those. Then every page gets the stylesheet and, if it has islands, its script.
-	 */
-	const used = new Map<string, string[]>();
-	for (const page of rendered) {
-		const names = islandsIn(page.parts.body);
-		if (names.length > 0) used.set(entryName(page.url), names);
-	}
+	// A page's script imports exactly the islands it rendered; then every page gets the
+	// stylesheet and, if it has islands, its script.
+	const used = new Map(
+		rendered
+			.filter((page) => page.islands.length > 0)
+			.map((page) => [entryName(page.url), page.islands])
+	);
 	const css = await stylesheet(root, server.real, components);
-	const js = await scripts(root, server.real, used, islands);
+	const js = await scripts(root, server.real, used, server.islands);
 	const files: Files = new Map([...css.files, ...js.files]);
 	const pagesBuilt: Built[] = [];
 	for (const page of rendered) {

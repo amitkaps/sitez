@@ -8,12 +8,13 @@
  * layouts are never islands: they are what an island sits in.
  */
 import { readFileSync } from 'node:fs';
-import { basename, dirname, join, relative, resolve, sep } from 'node:path';
+import { basename, dirname, join, resolve, sep } from 'node:path';
 import { parse } from 'svelte/compiler';
 import type { Plugin } from 'vite';
 import { SiteError } from './errors.ts';
 import type { Info } from './runtime/server.ts';
-import { runtime } from './vite.ts';
+import { posix } from './discover.ts';
+import { asGiven, runtime } from './vite.ts';
 
 export interface Behavior {
 	/** What the component does, as a message names it: `an onclick handler on <button>`. */
@@ -218,13 +219,10 @@ export function islandModules(root: string, real: string, islands: Islands): Plu
 		load(id) {
 			if (!id.startsWith(WRAP)) return null;
 			const file = id.slice(WRAP.length, -WRAPPED.length);
-			const shown = file.startsWith(real + sep) ? root + file.slice(real.length) : file;
+			const shown = asGiven(root, real, file);
 			const { behavior, reads } = analyze(file);
 			const name = file.startsWith(pattern)
-				? relative(pattern, file)
-						.split(sep)
-						.join('/')
-						.replace(/\.svelte$/, '')
+				? posix(pattern, file).replace(/\.svelte$/, '')
 				: packageName(file);
 			if (behavior) {
 				if (basename(file) === 'Layout.svelte') checkNotIsland(shown, 'layout');

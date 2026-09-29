@@ -34,6 +34,9 @@ type Where = { island: string } | { childrenOf: string };
 
 export const WHERE = 'sitez:island';
 
+// The names of the islands this render wrote, which `render.ts` passes in under this key.
+const USED = 'sitez:used';
+
 type Render = (renderer: unknown, props: Record<string, unknown>) => void;
 
 // Sitez gives every page, layout and element component these; an island gets only what it reads.
@@ -92,6 +95,7 @@ export function component(
 			`${info.name} is an island, and its prop ${path.replace(/^\./, '')} is a function, which can't reach the browser. Pass data instead, or make the function inside ${info.name}.`
 		);
 	}
+	getContext<Set<string> | undefined>(USED)?.add(info.name);
 	const wrapper = (children ? IslandWithChildren : Island) as unknown as Render;
 	wrapper(renderer, { component: real, name: info.name, p, props: data, children });
 }

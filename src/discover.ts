@@ -83,6 +83,11 @@ export function urlOf(folder: string, file: string): string {
 	return segments.length === 0 ? '/' : `/${segments.join('/')}/`;
 }
 
+/** A file's path below `folder`, with `/` between its parts on every system. */
+export function posix(folder: string, file: string): string {
+	return relative(folder, file).split(sep).join('/');
+}
+
 /** Every file below `folder`, sorted, skipping anything under a name starting with `.`. */
 function files(folder: string): string[] {
 	if (!statSync(folder, { throwIfNoEntry: false })?.isDirectory()) return [];

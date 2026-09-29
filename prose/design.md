@@ -172,8 +172,9 @@ an element's component always gets, only the ones its `$props()` names are seria
 `prose` fails: every page's metadata would ship to the browser. A component with a scoping class
 hashed from its path renders the same class on the server and in the browser.
 
-The build reads each page's markers from its HTML and gives the page an entry that imports those
-islands and `runtime/client.ts`, which finds each marker and calls
+Each island adds its name to a set the render is given, through Svelte's context, and the build
+gives the page an entry that imports those islands and `runtime/client.ts`, which finds each
+marker and calls
 `hydrate(Component, { target, props })`. Children
 aren't in the JavaScript: they're already in the page, so the script passes back the
 `<sitez-children>` element's own HTML through `createRawSnippet`, and hydration reuses the

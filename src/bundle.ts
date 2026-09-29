@@ -10,11 +10,19 @@
  * Every file's name carries a content hash, so a new deploy is never served from a stale cache.
  */
 import { existsSync, readFileSync } from 'node:fs';
-import { join, sep } from 'node:path';
+import { join } from 'node:path';
 import { build, type InlineConfig, type Logger, type Plugin, type Rolldown } from 'vite';
 import { SiteError } from './errors.ts';
 import type { Islands } from './islands.ts';
-import { cacheDir, fromSitez, noOptimizer, runtime, siteError, sveltePlugin } from './vite.ts';
+import {
+	asGiven,
+	cacheDir,
+	fromSitez,
+	noOptimizer,
+	runtime,
+	siteError,
+	sveltePlugin
+} from './vite.ts';
 
 /** Files to write into `dist/`, by path. */
 export type Files = Map<string, string | Uint8Array>;
@@ -23,17 +31,16 @@ export type Files = Map<string, string | Uint8Array>;
  * The stylesheet, and the file it is written to. The reset is a layer of its own, so the order
  * that matters is the site's: `pattern/style.css` first, then components in a fixed order, so a
  * component's rule wins over the site's at equal specificity. A `url()` that doesn't resolve
- * fails the build rather than shipping as written, as a broken link would.
+ * fails the build rather than shipping as written, as a broken link would. The build has no code
+ * splitting, so its CSS is one file even when a component imports something dynamically.
  */
 export async function stylesheet(
 	root: string,
 	real: string,
 	components: string[]
 ): Promise<{ href: string; files: Files }> {
-	const style = join(root, 'pattern', 'style.css');
 	const imports = [
-		`import ${JSON.stringify(join(runtime, 'reset.css'))};`,
-		...(existsSync(style) ? [`import '/pattern/style.css';`] : []),
+		...styleImports(real, `/pattern/style.css`),
 		// Only a component's module brings its styles, so each is kept by exporting it.
 		...components.map((file, i) => `export { default as c${i} } from ${JSON.stringify(file)};`)
 	];
@@ -42,35 +49,52 @@ export async function stylesheet(
 		real,
 		{ style: imports.join('\n') },
 		{
+			codeSplitting: false,
 			assetFileNames: (asset) =>
 				asset.names.some((name) => name.endsWith('.css'))
 					? 'style.[hash].css'
 					: 'assets/[name].[hash][extname]'
 		}
 	);
-	if (unresolved.length > 0) {
-		const [url] = unresolved;
-		const file = [style, ...components.map((file) => root + file.slice(real.length))].find(
-			(file) => existsSync(file) && readText(file).includes(url!)
+	const [url] = unresolved;
+	if (url) {
+		// Vite's warning names only the URL, so the file is the one whose source has it.
+		const file = [join(real, 'pattern', 'style.css'), ...components].find(
+			(file) => existsSync(file) && readFileSync(file, 'utf8').includes(url)
 		);
 		throw new SiteError(
-			file ?? style,
+			asGiven(root, real, file ?? join(real, 'pattern', 'style.css')),
 			`url(${url}) isn't there. Fix the path: relative to this file, or /… for a file in public/.`
 		);
 	}
 	const files: Files = new Map();
-	let href: string | undefined;
+	let href = '';
 	for (const item of output) {
 		if (item.type !== 'asset') continue;
-		if (!item.fileName.endsWith('.css')) {
-			files.set(item.fileName, item.source);
-			continue;
-		}
-		// Vite marks the CSS it emits with a comment for its own later passes.
-		files.set(item.fileName, String(item.source).replace(/\/\*\$vite\$:\d+\*\/\n?/g, ''));
-		href = `/${item.fileName}`;
+		files.set(item.fileName, item.source);
+		if (item.fileName.endsWith('.css')) href = `/${item.fileName}`;
 	}
-	return { href: href!, files };
+	return { href, files };
+}
+
+/** @prose
+ * The imports every page's styles start with: Sitez's reset, then the site's own
+ * `pattern/style.css` when there is one, imported as `style` names it.
+ */
+export function styleImports(real: string, style: string): string[] {
+	return [
+		`import ${JSON.stringify(join(runtime, 'reset.css'))};`,
+		...(existsSync(join(real, 'pattern', 'style.css')) ? [`import ${JSON.stringify(style)};`] : [])
+	];
+}
+
+/** A page's script: its islands imported, then hydrated by name. */
+export function hydrateEntry(used: string[], islands: Islands): string {
+	return [
+		`import { hydrateIslands } from ${JSON.stringify(join(runtime, 'client.ts'))};`,
+		...used.map((island, i) => `import I${i} from ${JSON.stringify(islands.get(island))};`),
+		`hydrateIslands({ ${used.map((island, i) => `${JSON.stringify(island)}: I${i}`).join(', ')} });`
+	].join('\n');
 }
 
 /** @prose
@@ -79,7 +103,7 @@ export async function stylesheet(
  * `blog/index.html`). What more than one page uses, the Svelte runtime first, goes in
  * `common.[hash].js`. The build is in production mode whatever the process says, since a dev
  * server earlier in the same process leaves `NODE_ENV` at `development`, and Svelte's dev code is
- * larger. The islands' styles are already in the stylesheet, so this build's CSS is dropped.
+ * larger. The islands' styles are already in the stylesheet, so Svelte emits none here.
  */
 export async function scripts(
 	root: string,
@@ -87,52 +111,50 @@ export async function scripts(
 	pages: Map<string, string[]>,
 	islands: Islands
 ): Promise<Scripts> {
-	const files: Files = new Map();
-	const scripts: Scripts = { files, pages: new Map(), common: undefined };
-	if (pages.size === 0) return scripts;
-	const client = JSON.stringify(join(runtime, 'client.ts'));
+	if (pages.size === 0) return { files: new Map(), pages: new Map(), common: undefined };
 	const entries = Object.fromEntries(
-		[...pages].map(([name, used]) => [
-			name,
-			[
-				`import { hydrateIslands } from ${client};`,
-				...used.map((island, i) => `import I${i} from ${JSON.stringify(islands.get(island))};`),
-				`hydrateIslands({ ${used.map((island, i) => `${JSON.stringify(island)}: I${i}`).join(', ')} });`
-			].join('\n')
-		])
+		[...pages].map(([name, used]) => [name, hydrateEntry(used, islands)])
 	);
 	const mode = process.env.NODE_ENV;
 	process.env.NODE_ENV = 'production';
 	let output: Rolldown.RolldownOutput['output'];
 	try {
-		({ output } = await bundle(root, real, entries, {
-			entryFileNames: '[name].[hash].js',
-			chunkFileNames: (chunk) =>
-				chunk.name === 'common' ? 'common.[hash].js' : 'assets/[name].[hash].js',
-			assetFileNames: 'assets/[name].[hash][extname]',
-			codeSplitting: { groups: [{ name: 'common', minShareCount: 2 }] }
-		}));
+		({ output } = await bundle(
+			root,
+			real,
+			entries,
+			{
+				entryFileNames: '[name].[hash].js',
+				chunkFileNames: (chunk) =>
+					chunk.name === 'common' ? 'common.[hash].js' : 'assets/[name].[hash].js',
+				assetFileNames: 'assets/[name].[hash][extname]',
+				codeSplitting: { groups: [{ name: 'common', minShareCount: 2 }] }
+			},
+			{ css: false }
+		));
 	} finally {
 		if (mode === undefined) delete process.env.NODE_ENV;
 		else process.env.NODE_ENV = mode;
 	}
+	const common = output.find(
+		(item) => item.type === 'chunk' && item.name === 'common' && !item.isEntry
+	)?.fileName;
+	const files: Files = new Map();
+	const scripts: Scripts['pages'] = new Map();
 	for (const item of output) {
 		if (item.type === 'asset') {
-			if (!item.fileName.endsWith('.css')) files.set(item.fileName, item.source);
+			files.set(item.fileName, item.source);
 			continue;
 		}
 		files.set(item.fileName, item.code);
-		if (item.name === 'common' && !item.isEntry) scripts.common = item.fileName;
-	}
-	for (const item of output) {
-		if (item.type !== 'chunk' || !item.isEntry) continue;
+		if (!item.isEntry) continue;
 		const preload = item.imports.map((file) => `<link rel="modulepreload" href="/${file}">`);
-		scripts.pages.set(item.name, {
+		scripts.set(item.name, {
 			tags: [`<script type="module" src="/${item.fileName}"></script>`, ...preload].join('\n'),
-			own: [item.fileName, ...item.imports.filter((file) => file !== scripts.common)]
+			own: [item.fileName, ...item.imports.filter((file) => file !== common)]
 		});
 	}
-	return scripts;
+	return { files, pages: scripts, common };
 }
 
 /** What `scripts` built: by page, the tags that load its script and the files only it loads. */
@@ -144,15 +166,16 @@ export interface Scripts {
 
 /** @prose
  * One client build from generated entries, written to memory: nothing reaches `dist/` until
- * every page has built. Vite reports a `url()` it can't find as a warning and leaves it in the
- * CSS, so warnings are read here instead of printed, and a file that doesn't compile fails naming
- * it, as it would while rendering.
+ * every page has built. Vite reports a `url()` it can't find only as a warning, and leaves it in
+ * the CSS, so warnings are read here instead of printed. A file that doesn't
+ * compile fails naming it, as it would while rendering.
  */
 async function bundle(
 	root: string,
 	real: string,
 	entries: Record<string, string>,
-	output: Rolldown.OutputOptions
+	output: Rolldown.OutputOptions,
+	{ css = true } = {}
 ): Promise<{ output: Rolldown.RolldownOutput['output']; unresolved: string[] }> {
 	const unresolved: string[] = [];
 	const logger = quietLogger((message) => {
@@ -165,11 +188,10 @@ async function bundle(
 		cacheDir: cacheDir(real),
 		logLevel: 'silent',
 		customLogger: logger,
-		plugins: [fromSitez(), entryModules(entries), sveltePlugin(real), noOptimizer()],
+		plugins: [fromSitez(), entryModules(entries), sveltePlugin(real, { css }), noOptimizer()],
 		build: {
 			write: false,
 			assetsInlineLimit: 0,
-			cssCodeSplit: false,
 			modulePreload: { polyfill: false },
 			rolldownOptions: {
 				input: Object.fromEntries(Object.keys(entries).map((name) => [name, ENTRY + name])),
@@ -183,11 +205,7 @@ async function bundle(
 		const result = (await build(config)) as Rolldown.RolldownOutput;
 		return { output: result.output, unresolved };
 	} catch (error) {
-		const named = siteError(error, join(real, 'pattern'));
-		if (!named.file.startsWith(real + sep)) throw named;
-		throw new SiteError(root + named.file.slice(real.length), named.message, {
-			cause: named.cause
-		});
+		throw siteError(error, join(real, 'pattern'), root, real);
 	}
 }
 
@@ -216,8 +234,4 @@ function quietLogger(onWarn: (message: string) => void): Logger {
 		clearScreen() {},
 		hasErrorLogged: () => false
 	};
-}
-
-function readText(file: string): string {
-	return readFileSync(file, 'utf8');
 }

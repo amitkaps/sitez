@@ -22,10 +22,13 @@ export interface Props {
 interface Svelte {
 	render: (
 		component: Component<any>,
-		options: { props: object }
+		options: { props: object; context?: Map<string, unknown> }
 	) => PromiseLike<{ head: string; body: string }>;
 	createRawSnippet: (fn: () => { render: () => string }) => Snippet;
 }
+
+// The context key `runtime/server.ts` finds the render's island names under.
+const USED = 'sitez:used';
 
 // Where the page goes in its layout's HTML: one element, as a raw snippet needs.
 const slot = '<sitez-body></sitez-body>';
@@ -42,13 +45,19 @@ export async function svelteOf(server: SiteServer): Promise<Svelte> {
 	return { render, createRawSnippet } as Svelte;
 }
 
+/** @prose
+ * `islands` collects the name of each island rendered, which `runtime/server.ts` adds as it
+ * writes the island's marker, so a page's script imports exactly those.
+ */
 export async function renderBody(
 	svelte: Svelte,
 	file: string,
 	component: Component<any>,
-	props: Props
+	props: Props,
+	islands: Set<string>
 ): Promise<{ head: string; body: string }> {
-	const out = await guard(file, () => svelte.render(component, { props }));
+	const context = new Map([[USED, islands]]);
+	const out = await guard(file, () => svelte.render(component, { props, context }));
 	checkHead(file, out.head);
 	return out;
 }
@@ -62,12 +71,14 @@ export async function renderLayout(
 	svelte: Svelte,
 	layout: { file: string; component: Component<any> } | undefined,
 	props: Props,
-	page: { head: string; body: string }
+	page: { head: string; body: string },
+	islands: Set<string>
 ): Promise<{ head: string; body: string }> {
 	if (!layout) return page;
 	const children = svelte.createRawSnippet(() => ({ render: () => slot }));
+	const context = new Map([[USED, islands]]);
 	const out = await guard(layout.file, () =>
-		svelte.render(layout.component, { props: { ...props, children } })
+		svelte.render(layout.component, { props: { ...props, children }, context })
 	);
 	checkHead(layout.file, out.head);
 	const count = out.body.split(slot).length - 1;

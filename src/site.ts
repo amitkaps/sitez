@@ -51,6 +51,8 @@ export interface Rendered {
 	ms: number;
 	data: PageData;
 	parts: { tags: string; head: string; body: string };
+	/** The islands the page and its layout rendered, by name, sorted. */
+	islands: string[];
 }
 
 /** @prose
@@ -71,16 +73,13 @@ export function readSite(root: string): Metadata & { url: string } {
 /** @prose
  * Every page's metadata, read before anything renders. A Svelte page is a draft only once its
  * module says so, and a prose page's links are checked as it loads, so every Svelte page's
- * metadata is read before any prose loads. `links` is the server's own, refilled here, since
- * the server's prose plugin checks links against it. Drafts are left out of `build`, and so are
+ * metadata is read before any prose loads. The link targets are built whole and only then become
+ * the server's, which its prose plugin checks against. Drafts are left out of `build`, and so are
  * they from `prose` and from what links can reach, so no page lists or links to what isn't built.
+ * Pages and layouts are checked for browser behavior here, each file once.
  */
-export async function readRun(
-	root: string,
-	server: SiteServer,
-	links: LinkTargets,
-	{ dev = false } = {}
-): Promise<Run> {
+export async function readRun(server: SiteServer, { dev = false } = {}): Promise<Run> {
+	const { root } = server;
 	const site = readSite(root);
 	const siteFile = join(root, SITE_FILE);
 	const pages = discover(root);
@@ -96,10 +95,12 @@ export async function readRun(
 		if (!draft(pageData)) warnings.push(...markzWarnings(page.file, doc));
 	}
 
-	links.repo = typeof site.repo === 'string' ? site.repo : undefined;
-	links.pages.clear();
-	links.generated.clear();
-	links.generated.add('/sitemap.xml');
+	const links: LinkTargets = {
+		root,
+		repo: typeof site.repo === 'string' ? site.repo : undefined,
+		pages: new Map(),
+		generated: new Set(['/sitemap.xml'])
+	};
 	const modules = new Map<Page, Record<string, unknown>>();
 	for (const page of pages) {
 		if (page.kind !== 'pattern') continue;
@@ -115,6 +116,9 @@ export async function readRun(
 		.map((page) => data.get(page)!);
 	const hasFeed = built.some((page) => page.url !== NOT_FOUND && data.get(page)!.date);
 	if (hasFeed) links.generated.add('/feed.xml');
+	const layouts = new Set(built.map((page) => nearest(root, page.url, 'Layout')));
+	for (const layout of layouts) if (layout) checkNotIsland(layout, 'layout');
+	server.links = links;
 	const svelte = await svelteOf(server);
 	return {
 		root,
@@ -140,20 +144,22 @@ export async function renderPage(run: Run, page: Page): Promise<Rendered> {
 	const t = performance.now();
 	const module = run.modules.get(page) ?? (await server.load(page.file));
 	let pageData = run.data.get(page)!;
-	const body = await renderBody(svelte, page.file, module.default as never, {
-		page: pageData,
-		prose,
-		site
-	});
+	const islands = new Set<string>();
+	const body = await renderBody(
+		svelte,
+		page.file,
+		module.default as never,
+		{ page: pageData, prose, site },
+		islands
+	);
 	if (page.kind === 'pattern' && pageData.title === undefined) {
 		pageData = patternMetadata(page.file, page.url, module.metadata, body.body);
 	}
 	const layoutFile = nearest(root, page.url, 'Layout');
-	if (layoutFile) checkNotIsland(layoutFile, 'layout');
 	const layout = layoutFile
 		? { file: layoutFile, component: (await server.load(layoutFile)).default as never }
 		: undefined;
-	const out = await renderLayout(svelte, layout, { page: pageData, prose, site }, body);
+	const out = await renderLayout(svelte, layout, { page: pageData, prose, site }, body, islands);
 	const tags = headTags(pageData, site, run.hasFeed);
 	const problem = renderedLinkProblem(
 		run.links,
@@ -171,17 +177,7 @@ export async function renderPage(run: Run, page: Page): Promise<Rendered> {
 		file: page.file,
 		data: pageData,
 		parts: { tags, ...out },
+		islands: [...islands].sort(),
 		ms: performance.now() - t
 	};
-}
-
-/** The islands a page rendered: the markers in its HTML, by name. */
-export function islandsIn(body: string): string[] {
-	const names = [...body.matchAll(/<sitez-island c="([^"]+)"/g)].map((match) => match[1]!);
-	return [...new Set(names)].sort();
-}
-
-/** A fresh set of link targets, for the server's prose plugin to check against. */
-export function linkTargets(root: string): LinkTargets {
-	return { root, repo: undefined, pages: new Map(), generated: new Set() };
 }

@@ -9,13 +9,13 @@
 import { createHash } from 'node:crypto';
 import { readFileSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, relative, sep } from 'node:path';
+import { join, sep } from 'node:path';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { parse } from '@amitkaps/markz';
 import { compile } from 'svelte/compiler';
 import { createServer, type Plugin, type ViteDevServer } from 'vite';
 import { SiteError } from './errors.ts';
-import { nearest, urlOf } from './discover.ts';
+import { nearest, posix, urlOf } from './discover.ts';
 import { islandModules, type Islands } from './islands.ts';
 import { linkTarget, type LinkTargets } from './links.ts';
 import { componentName, proseComponent } from './prose.ts';
@@ -25,8 +25,17 @@ export const runtime = join(import.meta.dirname, 'runtime');
 
 export interface SiteServer {
 	vite: ViteDevServer;
+	/** The site's root, as the site was given and every message names it. */
+	root: string;
 	/** The site's root as Vite names its modules: its real path. */
 	real: string;
+	/** @prose
+	 * What prose links are checked against as prose loads: the last run's, replaced whole by the
+	 * next once it is complete, so a page loading meanwhile never sees half of one.
+	 */
+	links: LinkTargets;
+	/** The site's islands, found as the server loads components. */
+	islands: Islands;
 	/** Imports a site file (absolute path) through the module runner. */
 	load(file: string): Promise<Record<string, unknown>>;
 	/** @prose
@@ -49,11 +58,11 @@ export interface SiteServer {
  */
 export async function siteServer(
 	root: string,
-	links: LinkTargets,
-	islands: Islands,
 	dev?: { port: number; plugin: Plugin }
 ): Promise<SiteServer> {
 	const real = realpathSync(root);
+	const islands: Islands = new Map();
+	let site: SiteServer | undefined;
 	const vite = await createServer({
 		configFile: false,
 		root: real,
@@ -66,38 +75,33 @@ export async function siteServer(
 			: { middlewareMode: true, hmr: false, watch: null },
 		plugins: [
 			fromSitez(),
-			proseModules(root, real, links),
+			proseModules(root, real, () => site!.links),
 			islandModules(root, real, islands),
 			sveltePlugin(real, { hmr: dev !== undefined }),
 			noOptimizer(),
 			...(dev ? [dev.plugin] : [])
 		]
 	});
-	return {
+	site = {
 		vite,
+		root,
 		real,
+		links: { root, repo: undefined, pages: new Map(), generated: new Set() },
+		islands,
 		components: () =>
 			[...vite.environments.ssr.moduleGraph.idToModuleMap.keys()]
 				.filter((id) => id.endsWith('.svelte') && !id.startsWith('\0') && !id.startsWith(runtime))
 				.sort(),
 		load: async (file) => {
 			try {
-				return await vite.ssrLoadModule(
-					`/${file
-						.slice(root.length + 1)
-						.split(sep)
-						.join('/')}`
-				);
+				return await vite.ssrLoadModule(`/${posix(root, file)}`);
 			} catch (error) {
-				const named = siteError(error, file);
-				if (!named.file.startsWith(real + sep)) throw named;
-				throw new SiteError(root + named.file.slice(real.length), named.message, {
-					cause: named.cause
-				});
+				throw siteError(error, file, root, real);
 			}
 		},
 		close: () => vite.close()
 	};
+	return site;
 }
 
 /** @prose
@@ -114,19 +118,17 @@ export function cacheDir(real: string): string {
  * path in the site, not on the disk, so the server render and the client build agree on it, and
  * a site builds to the same files wherever it is checked out.
  */
-export function sveltePlugin(real: string, { hmr = false } = {}): Plugin[] {
+export function sveltePlugin(real: string, { hmr = false, css = true } = {}): Plugin[] {
 	return svelte({
 		configFile: false,
+		// Without CSS, a component's styles are neither emitted nor injected: they are dropped.
+		emitCss: css,
 		compilerOptions: {
+			css: 'external',
 			dev: false,
 			hmr,
 			experimental: { async: true },
-			cssHash: ({ hash, filename }) =>
-				`svelte-${hash(
-					relative(real, filename ?? '')
-						.split(sep)
-						.join('/')
-				)}`
+			cssHash: ({ hash, filename }) => `svelte-${hash(posix(real, filename ?? ''))}`
 		}
 	});
 }
@@ -136,13 +138,18 @@ export function sveltePlugin(real: string, { hmr = false } = {}): Plugin[] {
  * Vite's error says which file (`id`) and shows the lines around it (`frame`); without an `id`,
  * it's the file being loaded.
  */
-export function siteError(error: unknown, file: string): SiteError {
+export function siteError(error: unknown, file: string, root: string, real: string): SiteError {
 	const { message, id, frame } = error as { message?: string; id?: string; frame?: string };
 	return new SiteError(
-		id?.split('?')[0] ?? file,
+		asGiven(root, real, id?.split('?')[0] ?? file),
 		`${message ?? String(error)}${frame ? `\n\n${frame}` : ''}`,
 		{ cause: error }
 	);
+}
+
+/** A file Vite names by its real path, named by the root the site was given, as messages are. */
+export function asGiven(root: string, real: string, file: string): string {
+	return file.startsWith(real + sep) ? root + file.slice(real.length) : file;
 }
 
 /** @prose
@@ -166,10 +173,10 @@ export function fromSitez(): Plugin {
 /** @prose
  * Each `.md` in `prose/` loads as the Svelte component `prose.ts` writes for it, with the
  * components its elements render found up the tree from the page's URL, as its layout is, and
- * its links checked against `links`. Vite hands over the real path; links and components are
+ * its links checked against the server's current `links`. Vite hands over the real path; links and components are
  * looked up from the root the site was given, as every message names it.
  */
-function proseModules(root: string, real: string, links: LinkTargets): Plugin {
+function proseModules(root: string, real: string, links: () => LinkTargets): Plugin {
 	const folder = join(real, 'prose') + sep;
 	return {
 		name: 'sitez:prose',
@@ -178,11 +185,11 @@ function proseModules(root: string, real: string, links: LinkTargets): Plugin {
 			const file = id.split('?')[0]!;
 			if (!file.startsWith(folder) || !file.endsWith('.md')) return null;
 			const doc = parse(readFileSync(file, 'utf8'));
-			const page = root + file.slice(real.length);
+			const page = asGiven(root, real, file);
 			const url = urlOf(join(root, 'prose'), page);
 			const source = proseComponent(page, doc, {
 				component: (name) => nearest(root, url, componentName(name)),
-				link: (destination, kind) => linkTarget(links, page, destination, kind)
+				link: (destination, kind) => linkTarget(links(), page, destination, kind)
 			});
 			const { js } = compile(source, {
 				filename: file,

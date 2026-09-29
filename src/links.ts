@@ -14,7 +14,7 @@
  */
 import { statSync } from 'node:fs';
 import { dirname, extname, join, relative, resolve, sep } from 'node:path';
-import { NOT_FOUND, urlOf } from './discover.ts';
+import { NOT_FOUND, posix, urlOf } from './discover.ts';
 
 /** @prose
  * What a link can point at. `pages` holds every page by URL, with whether this run leaves it out:
@@ -185,10 +185,6 @@ function gitRoot(root: string): string {
 
 function inside(folder: string, file: string): boolean {
 	return file.startsWith(folder + sep);
-}
-
-function posix(folder: string, file: string): string {
-	return relative(folder, file).split(sep).join('/');
 }
 
 function isFile(path: string): boolean {

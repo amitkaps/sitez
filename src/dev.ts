@@ -8,19 +8,18 @@
  * replace in place. A mistake shows in the browser as the message `build` would print, and the
  * page reloads when it's fixed.
  */
-import { existsSync } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { join, relative } from 'node:path';
 import type { Plugin, ViteDevServer } from 'vite';
+import { hydrateEntry, styleImports } from './bundle.ts';
 import { NOT_FOUND } from './discover.ts';
 import { SiteError } from './errors.ts';
 import { escape } from './head.ts';
-import type { Islands } from './islands.ts';
 import { document } from './render.ts';
 import { pathOf } from './preview.ts';
-import { islandsIn, linkTargets, readRun, renderPage, type Run } from './site.ts';
+import { readRun, renderPage, type Run } from './site.ts';
 import { feed, sitemap } from './sitemap.ts';
-import { runtime, siteServer, type SiteServer } from './vite.ts';
+import { siteServer, type SiteServer } from './vite.ts';
 import { formatWarning, type MarkzWarning } from './warnings.ts';
 
 export interface Dev {
@@ -43,34 +42,41 @@ export async function dev(
 	root: string,
 	{ port = 5173, cwd = root, warn = () => {}, error: report = () => {} }: DevOptions = {}
 ): Promise<Dev> {
-	const links = linkTargets(root);
-	const islands: Islands = new Map();
 	// What each page's script loads: its islands, from its last render.
 	const rendered = new Map<string, string[]>();
 	const warned = new Set<string>();
-	const state = { server: undefined as SiteServer | undefined };
+	// A request that isn't a page after all reaches `notFound` with the site already read.
+	const runs = new WeakMap<IncomingMessage, Run>();
+	let server: SiteServer;
 
 	const shown = (file: string) => relative(cwd, file) || file;
-	const failed = (error: unknown) => {
-		const text = errorText(error, shown);
-		report(text);
-		return errorPage(text);
-	};
-	// One request reads and renders at a time: reading the site refills the link targets that
-	// rendering checks against. Overlapping requests happen not to see them half-filled today,
-	// only because of how their awaits resolve; this makes it not depend on that.
-	let queue: Promise<unknown> = Promise.resolve();
-	const oneAtATime = (work: () => Promise<unknown>): Promise<unknown> => {
-		const done = queue.then(work, work);
-		queue = done.catch(() => {});
-		return done;
-	};
 	const newWarnings = (warnings: MarkzWarning[]) => {
 		for (const warning of warnings) {
 			const line = formatWarning(warning, shown);
 			if (warned.has(line)) continue;
 			warned.add(line);
 			warn(line);
+		}
+	};
+
+	/** @prose
+	 * Every page request reads the site, then answers from it. A mistake anywhere in that is
+	 * answered with `build`'s message, as a page.
+	 */
+	const withRun = async (
+		request: IncomingMessage,
+		response: ServerResponse,
+		answer: (run: Run) => Promise<void> | void
+	) => {
+		try {
+			const run = runs.get(request) ?? (await readRun(server, { dev: true }));
+			runs.set(request, run);
+			newWarnings(run.warnings);
+			await answer(run);
+		} catch (error) {
+			const text = errorText(error, shown);
+			report(text);
+			send(response, 500, 'text/html', errorPage(text));
 		}
 	};
 
@@ -82,7 +88,7 @@ export async function dev(
 		const found = run.pages.find((page) => page.url === url);
 		if (!found) return undefined;
 		const out = await renderPage(run, found);
-		rendered.set(url, islandsIn(out.parts.body));
+		rendered.set(url, out.islands);
 		const assets = [
 			'<script type="module" src="/@vite/client"></script>',
 			`<script type="module" src="${ENTRY}?url=${encodeURIComponent(url)}"></script>`
@@ -97,22 +103,14 @@ export async function dev(
 	 * Svelte compiled them into, never from the component itself, which may import what only runs
 	 * on the server.
 	 */
-	const entry = (url: string): string => {
-		const server = state.server!;
-		const style = join(server.real, 'pattern', 'style.css');
-		const used = rendered.get(url) ?? [];
-		const client = JSON.stringify(join(runtime, 'client.ts'));
-		return [
-			`import ${JSON.stringify(join(runtime, 'reset.css'))};`,
-			...(existsSync(style) ? [`import ${JSON.stringify(style)};`] : []),
+	const entry = (url: string): string =>
+		[
+			...styleImports(server.real, join(server.real, 'pattern', 'style.css')),
 			...server
 				.components()
 				.map((file) => `import ${JSON.stringify(`${file}?svelte&type=style&lang.css`)};`),
-			`import { hydrateIslands } from ${client};`,
-			...used.map((island, i) => `import I${i} from ${JSON.stringify(islands.get(island))};`),
-			`hydrateIslands({ ${used.map((island, i) => `${JSON.stringify(island)}: I${i}`).join(', ')} });`
+			hydrateEntry(rendered.get(url) ?? [], server.islands)
 		].join('\n');
-	};
 
 	/** @prose
 	 * Pages first, before Vite's own middleware. `/about` redirects to `/about/`, as a static host
@@ -120,44 +118,34 @@ export async function dev(
 	 * other request that isn't a page is Vite's: a module, a file in `public/`. What nothing
 	 * serves gets the 404 page, with a 404 status.
 	 */
-	const serve = async (request: IncomingMessage, response: ServerResponse, next: () => void) => {
+	const serve = (request: IncomingMessage, response: ServerResponse, next: () => void) => {
 		if (request.method !== 'GET' && request.method !== 'HEAD') return next();
 		const url = new URL(request.url ?? '/', 'http://localhost');
 		const path = pathOf(url);
 		if (path.startsWith('/@') || path.startsWith('/__') || !looksLikePage(path)) return next();
-		return oneAtATime(async () => {
-			try {
-				const run = await readRun(root, state.server!, links, { dev: true });
-				newWarnings(run.warnings);
-				const data = run.pages.map((page) => run.data.get(page)!);
-				if (path === '/sitemap.xml')
-					return send(response, 200, 'application/xml', sitemap(run.site.url, data));
-				if (path === '/feed.xml' && run.hasFeed) {
-					return send(response, 200, 'application/rss+xml', feed(run.site, run.site.url, data)!);
-				}
-				const target = path.endsWith('/index.html') ? path.slice(0, -'index.html'.length) : path;
-				const html = target === NOT_FOUND ? undefined : await page(run, target);
-				if (html !== undefined) return send(response, 200, 'text/html', html);
-				if (!path.endsWith('/') && run.pages.some((page) => page.url === `${path}/`)) {
-					response.writeHead(301, { location: `${url.pathname}/${url.search}` });
-					return response.end();
-				}
-				next();
-			} catch (error) {
-				send(response, 500, 'text/html', failed(error));
+		return withRun(request, response, async (run) => {
+			const data = run.pages.map((page) => run.data.get(page)!);
+			if (path === '/sitemap.xml') {
+				return send(response, 200, 'application/xml', sitemap(run.site.url, data));
 			}
+			if (path === '/feed.xml' && run.hasFeed) {
+				return send(response, 200, 'application/rss+xml', feed(run.site, run.site.url, data)!);
+			}
+			const target = path.endsWith('/index.html') ? path.slice(0, -'index.html'.length) : path;
+			const html = target === NOT_FOUND ? undefined : await page(run, target);
+			if (html !== undefined) return send(response, 200, 'text/html', html);
+			if (!path.endsWith('/') && run.pages.some((page) => page.url === `${path}/`)) {
+				response.writeHead(301, { location: `${url.pathname}/${url.search}` });
+				return void response.end();
+			}
+			next();
 		});
 	};
 
 	const notFound = (request: IncomingMessage, response: ServerResponse) =>
-		oneAtATime(async () => {
-			try {
-				const run = await readRun(root, state.server!, links, { dev: true });
-				const html = await page(run, NOT_FOUND);
-				send(response, 404, 'text/html', html ?? `Nothing at ${escape(request.url ?? '/')}`);
-			} catch (error) {
-				send(response, 500, 'text/html', failed(error));
-			}
+		withRun(request, response, async (run) => {
+			const html = await page(run, NOT_FOUND);
+			send(response, 404, 'text/html', html ?? `Nothing at ${escape(request.url ?? '/')}`);
 		});
 
 	/** @prose
@@ -165,13 +153,13 @@ export async function dev(
 	 * dropped, since any of them can change any page's HTML, and so are the pages' scripts, since
 	 * a page may now use an island or a component it didn't.
 	 */
-	const reload = (server: ViteDevServer) => {
-		server.environments.ssr.moduleGraph.invalidateAll();
-		const client = server.environments.client.moduleGraph;
+	const reload = (vite: ViteDevServer) => {
+		vite.environments.ssr.moduleGraph.invalidateAll();
+		const client = vite.environments.client.moduleGraph;
 		for (const [id, module] of client.idToModuleMap) {
 			if (id.startsWith(`\0${ENTRY}`)) client.invalidateModule(module);
 		}
-		server.ws.send({ type: 'full-reload' });
+		vite.ws.send({ type: 'full-reload' });
 	};
 
 	const plugin: Plugin = {
@@ -181,25 +169,24 @@ export async function dev(
 			if (!id.startsWith(`\0${ENTRY}`)) return null;
 			return entry(new URLSearchParams(id.split('?')[1]).get('url') ?? '/');
 		},
-		configureServer(server) {
-			server.middlewares.use((request, response, next) => void serve(request, response, next));
-			server.watcher.on('add', () => reload(server));
-			server.watcher.on('unlink', () => reload(server));
+		configureServer(vite) {
+			vite.middlewares.use((request, response, next) => void serve(request, response, next));
+			vite.watcher.on('add', () => reload(vite));
+			vite.watcher.on('unlink', () => reload(vite));
 			return () => {
-				server.middlewares.use((request, response) => void notFound(request, response));
+				vite.middlewares.use((request, response) => void notFound(request, response));
 			};
 		},
 		// CSS is Vite's to replace, and an island's component Svelte's.
-		hotUpdate({ file, server }) {
+		hotUpdate({ file, server: vite }) {
 			if (this.environment.name !== 'client') return;
-			if (file.endsWith('.css') || [...islands.values()].includes(file)) return;
-			reload(server);
+			if (file.endsWith('.css') || [...server.islands.values()].includes(file)) return;
+			reload(vite);
 			return [];
 		}
 	};
 
-	const server = await siteServer(root, links, islands, { port, plugin });
-	state.server = server;
+	server = await siteServer(root, { port, plugin });
 	await server.vite.listen();
 	const address = server.vite.resolvedUrls?.local[0] ?? `http://localhost:${port}/`;
 	return { url: address, close: () => server.close() };
