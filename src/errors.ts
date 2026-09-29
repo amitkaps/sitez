@@ -6,22 +6,22 @@
  * one. The CLI prints it without a stack trace; anything else that is thrown is a Sitez bug and
  * keeps its stack.
  */
-import { relative } from 'node:path';
+import { relative } from "node:path";
 
 export class SiteError extends Error {
-	/** The file or folder at fault, as an absolute path. */
-	readonly file: string;
+  /** The file or folder at fault, as an absolute path. */
+  readonly file: string;
 
-	constructor(file: string, message: string, options?: ErrorOptions) {
-		super(message, options);
-		this.name = 'SiteError';
-		this.file = file;
-	}
+  constructor(file: string, message: string, options?: ErrorOptions) {
+    super(message, options);
+    this.name = "SiteError";
+    this.file = file;
+  }
 }
 
 /** How every message names a file: relative to where `sitez` runs. */
 export function shownFrom(cwd: string): (file: string) => string {
-	return (file) => relative(cwd, file) || file;
+  return (file) => relative(cwd, file) || file;
 }
 
 /** @prose
@@ -29,5 +29,5 @@ export function shownFrom(cwd: string): (file: string) => string {
  * such as there being no site, is `sitez`'s own.
  */
 export function siteErrorText(error: SiteError, cwd: string): string {
-	return `${relative(cwd, error.file) || 'sitez'}: ${error.message}`;
+  return `${relative(cwd, error.file) || "sitez"}: ${error.message}`;
 }

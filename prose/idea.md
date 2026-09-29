@@ -72,8 +72,8 @@ site/
 
    ```svelte
    <script>
-   	let { page, prose, site } = $props();
-   	const posts = prose.filter((p) => p.url.startsWith('/blog/') && p.date);
+     let { page, prose, site } = $props();
+     const posts = prose.filter((p) => p.url.startsWith("/blog/") && p.date);
    </script>
    ```
 
@@ -81,7 +81,7 @@ site/
 
    ```svelte
    <script module>
-   	export const metadata = { title: 'Blog' };
+     export const metadata = { title: "Blog" };
    </script>
    ```
 
@@ -169,8 +169,8 @@ and one that isn't there fails the build.
 
 ```css
 @font-face {
-	font-family: 'Inter';
-	src: url('./fonts/Inter.woff2') format('woff2');
+  font-family: "Inter";
+  src: url("./fonts/Inter.woff2") format("woff2");
 }
 ```
 

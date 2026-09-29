@@ -7,4 +7,4 @@ minimumReleaseAge: 0
 # Collapse every `vite` in the tree onto Vite+'s core build.
 # Bump this alongside the `vite-plus` devDependency.
 overrides:
-  'vite@*': 'npm:@voidzero-dev/vite-plus-core@1.0.0'
+  "vite@*": "npm:@voidzero-dev/vite-plus-core@1.0.0"

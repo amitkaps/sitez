@@ -6,49 +6,49 @@
  * and `import.meta.url` still points at them: the Markz site's Quality page reads its test cases
  * relative to its own file. A site has no `node_modules`, so its imports resolve from Sitez.
  */
-import { createHash } from 'node:crypto';
-import { readFileSync, realpathSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join, sep } from 'node:path';
-import { svelte } from '@sveltejs/vite-plugin-svelte';
-import { parse } from '@amitkaps/markz';
-import { compile } from 'svelte/compiler';
-import { createServer, type Plugin, type ViteDevServer } from 'vite';
-import { SiteError } from './errors.ts';
-import { nearest, posix, urlOf } from './discover.ts';
-import { islandModules, type Islands } from './islands.ts';
-import { linkTarget, type LinkTargets } from './links.ts';
-import { componentName, proseComponent } from './prose.ts';
+import { createHash } from "node:crypto";
+import { readFileSync, realpathSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, sep } from "node:path";
+import { svelte } from "@sveltejs/vite-plugin-svelte";
+import { parse } from "@amitkaps/markz";
+import { compile } from "svelte/compiler";
+import { createServer, type Plugin, type ViteDevServer } from "vite";
+import { SiteError } from "./errors.ts";
+import { nearest, posix, urlOf } from "./discover.ts";
+import { islandModules, type Islands } from "./islands.ts";
+import { linkTarget, type LinkTargets } from "./links.ts";
+import { componentName, proseComponent } from "./prose.ts";
 
 /** Sitez's own files a site's pages and bundles load: the reset, and the islands' runtime. */
-export const runtime = join(import.meta.dirname, 'runtime');
+export const runtime = join(import.meta.dirname, "runtime");
 
 export interface SiteServer {
-	vite: ViteDevServer;
-	/** The site's root, as the site was given and every message names it. */
-	root: string;
-	/** The site's root as Vite names its modules: its real path. */
-	real: string;
-	/** @prose
-	 * What prose links are checked against as prose loads: the last run's, replaced whole by the
-	 * next once it is complete, so a page loading meanwhile never sees half of one.
-	 */
-	links: LinkTargets;
-	/** The site's islands, found as the server loads components. */
-	islands: Islands;
-	/** @prose
-	 * Imports a site file (absolute path) through the module runner. It's `ssrLoadModule`, not the
-	 * SSR environment's own runner: that one keeps what it has run until a hot update reaches it,
-	 * so a page asked for right after a change can render the old code, where `ssrLoadModule`
-	 * checks Vite's module graph on every import.
-	 */
-	load(file: string): Promise<Record<string, unknown>>;
-	/** @prose
-	 * Every Svelte component a render has loaded, in a fixed order: pages, layouts and what they
-	 * import, from the site or a library. They are the components whose styles the site uses.
-	 */
-	components(): string[];
-	close(): Promise<void>;
+  vite: ViteDevServer;
+  /** The site's root, as the site was given and every message names it. */
+  root: string;
+  /** The site's root as Vite names its modules: its real path. */
+  real: string;
+  /** @prose
+   * What prose links are checked against as prose loads: the last run's, replaced whole by the
+   * next once it is complete, so a page loading meanwhile never sees half of one.
+   */
+  links: LinkTargets;
+  /** The site's islands, found as the server loads components. */
+  islands: Islands;
+  /** @prose
+   * Imports a site file (absolute path) through the module runner. It's `ssrLoadModule`, not the
+   * SSR environment's own runner: that one keeps what it has run until a hot update reaches it,
+   * so a page asked for right after a change can render the old code, where `ssrLoadModule`
+   * checks Vite's module graph on every import.
+   */
+  load(file: string): Promise<Record<string, unknown>>;
+  /** @prose
+   * Every Svelte component a render has loaded, in a fixed order: pages, layouts and what they
+   * import, from the site or a library. They are the components whose styles the site uses.
+   */
+  components(): string[];
+  close(): Promise<void>;
 }
 
 /** @prose
@@ -62,51 +62,51 @@ export interface SiteServer {
  * site was given, as every other message does.
  */
 export async function siteServer(
-	root: string,
-	dev?: { port: number; plugin: Plugin }
+  root: string,
+  dev?: { port: number; plugin: Plugin },
 ): Promise<SiteServer> {
-	const real = realpathSync(root);
-	const islands: Islands = new Map();
-	let site: SiteServer | undefined;
-	const vite = await createServer({
-		configFile: false,
-		root: real,
-		cacheDir: cacheDir(real),
-		logLevel: 'silent',
-		appType: 'custom',
-		// A site's modules import Sitez's runtime and Svelte from outside the site's folder.
-		server: dev
-			? { port: dev.port, host: 'localhost', fs: { strict: false } }
-			: { middlewareMode: true, hmr: false, watch: null },
-		plugins: [
-			fromSitez(),
-			proseModules(root, real, () => site!.links),
-			islandModules(root, real, islands),
-			sveltePlugin(real, { hmr: dev !== undefined }),
-			noOptimizer(),
-			...(dev ? [dev.plugin] : [])
-		]
-	});
-	site = {
-		vite,
-		root,
-		real,
-		links: { root, repo: undefined, pages: new Map(), generated: new Set() },
-		islands,
-		components: () =>
-			[...vite.environments.ssr.moduleGraph.idToModuleMap.keys()]
-				.filter((id) => id.endsWith('.svelte') && !id.startsWith('\0') && !id.startsWith(runtime))
-				.sort(),
-		load: async (file) => {
-			try {
-				return await vite.ssrLoadModule(`/${posix(root, file)}`);
-			} catch (error) {
-				throw siteError(error, file, root, real);
-			}
-		},
-		close: () => vite.close()
-	};
-	return site;
+  const real = realpathSync(root);
+  const islands: Islands = new Map();
+  let site: SiteServer | undefined;
+  const vite = await createServer({
+    configFile: false,
+    root: real,
+    cacheDir: cacheDir(real),
+    logLevel: "silent",
+    appType: "custom",
+    // A site's modules import Sitez's runtime and Svelte from outside the site's folder.
+    server: dev
+      ? { port: dev.port, host: "localhost", fs: { strict: false } }
+      : { middlewareMode: true, hmr: false, watch: null },
+    plugins: [
+      fromSitez(),
+      proseModules(root, real, () => site!.links),
+      islandModules(root, real, islands),
+      sveltePlugin(real, { hmr: dev !== undefined }),
+      noOptimizer(),
+      ...(dev ? [dev.plugin] : []),
+    ],
+  });
+  site = {
+    vite,
+    root,
+    real,
+    links: { root, repo: undefined, pages: new Map(), generated: new Set() },
+    islands,
+    components: () =>
+      [...vite.environments.ssr.moduleGraph.idToModuleMap.keys()]
+        .filter((id) => id.endsWith(".svelte") && !id.startsWith("\0") && !id.startsWith(runtime))
+        .sort(),
+    load: async (file) => {
+      try {
+        return await vite.ssrLoadModule(`/${posix(root, file)}`);
+      } catch (error) {
+        throw siteError(error, file, root, real);
+      }
+    },
+    close: () => vite.close(),
+  };
+  return site;
 }
 
 /** @prose
@@ -115,7 +115,7 @@ export async function siteServer(
  * folder instead, one per site, so a site's folder only ever gets `dist/`.
  */
 export function cacheDir(real: string): string {
-	return join(tmpdir(), 'sitez', createHash('sha256').update(real).digest('hex').slice(0, 12));
+  return join(tmpdir(), "sitez", createHash("sha256").update(real).digest("hex").slice(0, 12));
 }
 
 /** How Svelte compiles a site's files everywhere: without dev checks, with `await` in markup. */
@@ -127,17 +127,17 @@ export const svelteOptions = { dev: false, experimental: { async: true } };
  * a site builds to the same files wherever it is checked out.
  */
 export function sveltePlugin(real: string, { hmr = false, css = true } = {}): Plugin[] {
-	return svelte({
-		configFile: false,
-		// Without CSS, a component's styles are neither emitted nor injected: they are dropped.
-		emitCss: css,
-		compilerOptions: {
-			...svelteOptions,
-			css: 'external',
-			hmr,
-			cssHash: ({ hash, filename }) => `svelte-${hash(posix(real, filename ?? ''))}`
-		}
-	});
+  return svelte({
+    configFile: false,
+    // Without CSS, a component's styles are neither emitted nor injected: they are dropped.
+    emitCss: css,
+    compilerOptions: {
+      ...svelteOptions,
+      css: "external",
+      hmr,
+      cssHash: ({ hash, filename }) => `svelte-${hash(posix(real, filename ?? ""))}`,
+    },
+  });
 }
 
 /** @prose
@@ -146,17 +146,17 @@ export function sveltePlugin(real: string, { hmr = false, css = true } = {}): Pl
  * it's the file being loaded.
  */
 export function siteError(error: unknown, file: string, root: string, real: string): SiteError {
-	const { message, id, frame } = error as { message?: string; id?: string; frame?: string };
-	return new SiteError(
-		asGiven(root, real, id?.split('?')[0] ?? file),
-		`${message ?? String(error)}${frame ? `\n\n${frame}` : ''}`,
-		{ cause: error }
-	);
+  const { message, id, frame } = error as { message?: string; id?: string; frame?: string };
+  return new SiteError(
+    asGiven(root, real, id?.split("?")[0] ?? file),
+    `${message ?? String(error)}${frame ? `\n\n${frame}` : ""}`,
+    { cause: error },
+  );
 }
 
 /** A file Vite names by its real path, named by the root the site was given, as messages are. */
 export function asGiven(root: string, real: string, file: string): string {
-	return file.startsWith(real + sep) ? root + file.slice(real.length) : file;
+  return file.startsWith(real + sep) ? root + file.slice(real.length) : file;
 }
 
 /** @prose
@@ -165,16 +165,16 @@ export function asGiven(root: string, real: string, file: string): string {
  * `svelte` is for a site without one.
  */
 export function fromSitez(): Plugin {
-	const inside = import.meta.filename;
-	return {
-		name: 'sitez:resolve',
-		enforce: 'pre',
-		async resolveId(id, importer, options) {
-			if (!/^[@a-z]/.test(id)) return null;
-			const own = await this.resolve(id, importer, { ...options, skipSelf: true });
-			return own ?? this.resolve(id, inside, { ...options, skipSelf: true });
-		}
-	};
+  const inside = import.meta.filename;
+  return {
+    name: "sitez:resolve",
+    enforce: "pre",
+    async resolveId(id, importer, options) {
+      if (!/^[@a-z]/.test(id)) return null;
+      const own = await this.resolve(id, importer, { ...options, skipSelf: true });
+      return own ?? this.resolve(id, inside, { ...options, skipSelf: true });
+    },
+  };
 }
 
 /** @prose
@@ -184,28 +184,28 @@ export function fromSitez(): Plugin {
  * looked up from the root the site was given, as every message names it.
  */
 function proseModules(root: string, real: string, links: () => LinkTargets): Plugin {
-	const folder = join(real, 'prose') + sep;
-	return {
-		name: 'sitez:prose',
-		enforce: 'pre',
-		load(id) {
-			const file = id.split('?')[0]!;
-			if (!file.startsWith(folder) || !file.endsWith('.md')) return null;
-			const doc = parse(readFileSync(file, 'utf8'));
-			const page = asGiven(root, real, file);
-			const url = urlOf(join(root, 'prose'), page);
-			const source = proseComponent(page, doc, {
-				component: (name) => nearest(root, url, componentName(name)),
-				link: (destination, kind) => linkTarget(links(), page, destination, kind)
-			});
-			const { js } = compile(source, {
-				filename: file,
-				generate: this.environment.config.consumer,
-				...svelteOptions
-			});
-			return { code: js.code, map: js.map };
-		}
-	};
+  const folder = join(real, "prose") + sep;
+  return {
+    name: "sitez:prose",
+    enforce: "pre",
+    load(id) {
+      const file = id.split("?")[0]!;
+      if (!file.startsWith(folder) || !file.endsWith(".md")) return null;
+      const doc = parse(readFileSync(file, "utf8"));
+      const page = asGiven(root, real, file);
+      const url = urlOf(join(root, "prose"), page);
+      const source = proseComponent(page, doc, {
+        component: (name) => nearest(root, url, componentName(name)),
+        link: (destination, kind) => linkTarget(links(), page, destination, kind),
+      });
+      const { js } = compile(source, {
+        filename: file,
+        generate: this.environment.config.consumer,
+        ...svelteOptions,
+      });
+      return { code: js.code, map: js.map };
+    },
+  };
 }
 
 /** @prose
@@ -216,16 +216,16 @@ function proseModules(root: string, real: string, links: () => LinkTargets): Plu
  * have.
  */
 export function noOptimizer(): Plugin {
-	return {
-		name: 'sitez:no-optimizer',
-		configResolved(config) {
-			for (const options of [
-				config.optimizeDeps,
-				...Object.values(config.environments).map((environment) => environment.optimizeDeps)
-			]) {
-				options.include = [];
-				options.noDiscovery = true;
-			}
-		}
-	};
+  return {
+    name: "sitez:no-optimizer",
+    configResolved(config) {
+      for (const options of [
+        config.optimizeDeps,
+        ...Object.values(config.environments).map((environment) => environment.optimizeDeps),
+      ]) {
+        options.include = [];
+        options.noDiscovery = true;
+      }
+    },
+  };
 }

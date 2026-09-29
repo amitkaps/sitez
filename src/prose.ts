@@ -8,9 +8,9 @@
  * URLs the site serves (rule 4). Everything else, text, attributes and raw HTML, comes out exactly
  * as Markz writes it.
  */
-import { html, position, walk, type Document, type NodeData, type NodeId } from '@amitkaps/markz';
-import { SiteError } from './errors.ts';
-import type { LinkKind } from './links.ts';
+import { html, position, walk, type Document, type NodeData, type NodeId } from "@amitkaps/markz";
+import { SiteError } from "./errors.ts";
+import type { LinkKind } from "./links.ts";
 
 /** @prose
  * What a prose page needs from its site: the pattern file an element name renders, or nothing
@@ -18,8 +18,8 @@ import type { LinkKind } from './links.ts';
  * what is wrong with it (`links.ts`).
  */
 export interface ProseSite {
-	component(name: string): string | undefined;
-	link(destination: string, kind: LinkKind): { href: string } | { problem: string };
+  component(name: string): string | undefined;
+  link(destination: string, kind: LinkKind): { href: string } | { problem: string };
 }
 
 /** @prose
@@ -44,73 +44,73 @@ export interface ProseSite {
  * outside the islands and not sanitized, and its links aren't checked.
  */
 export function proseComponent(file: string, doc: Document, site: ProseSite): string {
-	const components = new Map<string, string | undefined>();
-	const hrefs = new Map<NodeId, string>();
-	walk(doc, {
-		enter(node) {
-			const type = doc.type(node);
-			if (type === 'link' || type === 'image') {
-				const { destination, destinationRange, expressions } = doc.data(node, type);
-				if (expressions.length > 0) return;
-				const target = site.link(destination, type);
-				if ('problem' in target) {
-					const { line } = position(doc.source)(destinationRange.start);
-					throw new SiteError(file, `line ${line}: ${target.problem}`);
-				}
-				if (target.href !== destination) hrefs.set(node, target.href);
-				return;
-			}
-			if (type !== 'element') return;
-			const { name } = doc.data(node, 'element');
-			if (!components.has(name))
-				components.set(name, name.includes('-') ? site.component(name) : undefined);
-			if (components.get(name)) reserved(file, doc, node, name);
-		}
-	});
+  const components = new Map<string, string | undefined>();
+  const hrefs = new Map<NodeId, string>();
+  walk(doc, {
+    enter(node) {
+      const type = doc.type(node);
+      if (type === "link" || type === "image") {
+        const { destination, destinationRange, expressions } = doc.data(node, type);
+        if (expressions.length > 0) return;
+        const target = site.link(destination, type);
+        if ("problem" in target) {
+          const { line } = position(doc.source)(destinationRange.start);
+          throw new SiteError(file, `line ${line}: ${target.problem}`);
+        }
+        if (target.href !== destination) hrefs.set(node, target.href);
+        return;
+      }
+      if (type !== "element") return;
+      const { name } = doc.data(node, "element");
+      if (!components.has(name))
+        components.set(name, name.includes("-") ? site.component(name) : undefined);
+      if (components.get(name)) reserved(file, doc, node, name);
+    },
+  });
 
-	const { view, raws } = withMarkers(doc, hrefs);
-	let out = html(view).replaceAll('{', '&#123;').replaceAll('}', '&#125;');
-	const imports: string[] = [];
-	for (const [name, pattern] of components) {
-		if (!pattern) continue;
-		const component = componentName(name);
-		imports.push(`\timport ${component} from ${JSON.stringify(pattern)};`);
-		// Markz escapes `>` in attribute values, so a tag ends at the first `>`.
-		out = out
-			.replace(new RegExp(`<${name}(?=[\\s>])`, 'g'), `<${component} {page} {prose} {site}`)
-			.replaceAll(`</${name}>`, `</${component}>`);
-	}
-	out = out.replace(/<sitez-raw-(\d+)><\/sitez-raw-\1>/g, (_, i: string) => {
-		// `<\/` keeps a `</script>` in the content from reading as the end of a tag.
-		return `{@html ${JSON.stringify(raws[Number(i)]).replaceAll('</', '<\\/')}}`;
-	});
-	if (imports.length === 0) return out;
-	imports.push('\tlet { page, prose, site } = $props();');
-	return `<script>\n${imports.join('\n')}\n</script>\n\n${out}`;
+  const { view, raws } = withMarkers(doc, hrefs);
+  let out = html(view).replaceAll("{", "&#123;").replaceAll("}", "&#125;");
+  const imports: string[] = [];
+  for (const [name, pattern] of components) {
+    if (!pattern) continue;
+    const component = componentName(name);
+    imports.push(`\timport ${component} from ${JSON.stringify(pattern)};`);
+    // Markz escapes `>` in attribute values, so a tag ends at the first `>`.
+    out = out
+      .replace(new RegExp(`<${name}(?=[\\s>])`, "g"), `<${component} {page} {prose} {site}`)
+      .replaceAll(`</${name}>`, `</${component}>`);
+  }
+  out = out.replace(/<sitez-raw-(\d+)><\/sitez-raw-\1>/g, (_, i: string) => {
+    // `<\/` keeps a `</script>` in the content from reading as the end of a tag.
+    return `{@html ${JSON.stringify(raws[Number(i)]).replaceAll("</", "<\\/")}}`;
+  });
+  if (imports.length === 0) return out;
+  imports.push("\tlet { page, prose, site } = $props();");
+  return `<script>\n${imports.join("\n")}\n</script>\n\n${out}`;
 }
 
-const PAGE_PROPS = ['page', 'prose', 'site'];
+const PAGE_PROPS = ["page", "prose", "site"];
 
 /** @prose
  * An element's component gets `page`, `prose` and `site` as a page does, so an attribute of one
  * of those names would be silently replaced. It fails instead, naming the line.
  */
 function reserved(file: string, doc: Document, node: NodeId, name: string): void {
-	const clash = doc.attributes(node)?.items.find((item) => PAGE_PROPS.includes(item.key));
-	if (!clash) return;
-	const { line } = position(doc.source)(clash.start);
-	throw new SiteError(
-		file,
-		`line ${line}: {@${name}} has a ${clash.key} attribute, but every component in prose already gets page, prose and site. Rename the attribute.`
-	);
+  const clash = doc.attributes(node)?.items.find((item) => PAGE_PROPS.includes(item.key));
+  if (!clash) return;
+  const { line } = position(doc.source)(clash.start);
+  throw new SiteError(
+    file,
+    `line ${line}: {@${name}} has a ${clash.key} attribute, but every component in prose already gets page, prose and site. Rename the attribute.`,
+  );
 }
 
 /** `call-out` is `CallOut`: Markz requires the hyphen, so every element name has a component name. */
 export function componentName(name: string): string {
-	return name
-		.split('-')
-		.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-		.join('');
+  return name
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join("");
 }
 
 /** @prose
@@ -119,35 +119,35 @@ export function componentName(name: string): string {
  * where N indexes `raws`, the blocks' content. Everything else reads through to the document.
  */
 function withMarkers(
-	doc: Document,
-	hrefs: Map<NodeId, string>
+  doc: Document,
+  hrefs: Map<NodeId, string>,
 ): { view: Document; raws: string[] } {
-	const raws: string[] = [];
-	const swapped = new Map<NodeId, object>();
-	for (const [node, destination] of hrefs) swapped.set(node, { destination });
-	walk(doc, {
-		enter(node) {
-			if (doc.type(node) !== 'raw') return;
-			const { format, value } = doc.data(node, 'raw');
-			if (format !== 'html') return;
-			swapped.set(node, { value: `<sitez-raw-${raws.length}></sitez-raw-${raws.length}>` });
-			raws.push(value);
-		}
-	});
-	if (swapped.size === 0) return { view: doc, raws };
-	const view = new Proxy(doc, {
-		get(target, key) {
-			if (key === 'data') {
-				return (node: NodeId, type: keyof NodeData) => {
-					const data = target.data(node, type);
-					const swap = swapped.get(node);
-					return swap === undefined ? data : { ...data, ...swap };
-				};
-			}
-			const value: unknown = Reflect.get(target, key, target);
-			// Document's accessors read private fields, so they run on the document itself.
-			return typeof value === 'function' ? value.bind(target) : value;
-		}
-	});
-	return { view, raws };
+  const raws: string[] = [];
+  const swapped = new Map<NodeId, object>();
+  for (const [node, destination] of hrefs) swapped.set(node, { destination });
+  walk(doc, {
+    enter(node) {
+      if (doc.type(node) !== "raw") return;
+      const { format, value } = doc.data(node, "raw");
+      if (format !== "html") return;
+      swapped.set(node, { value: `<sitez-raw-${raws.length}></sitez-raw-${raws.length}>` });
+      raws.push(value);
+    },
+  });
+  if (swapped.size === 0) return { view: doc, raws };
+  const view = new Proxy(doc, {
+    get(target, key) {
+      if (key === "data") {
+        return (node: NodeId, type: keyof NodeData) => {
+          const data = target.data(node, type);
+          const swap = swapped.get(node);
+          return swap === undefined ? data : { ...data, ...swap };
+        };
+      }
+      const value: unknown = Reflect.get(target, key, target);
+      // Document's accessors read private fields, so they run on the document itself.
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+  return { view, raws };
 }

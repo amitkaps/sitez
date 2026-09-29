@@ -7,9 +7,9 @@
  * needs only its card. So a page's head changes with its metadata, never with its patterns, and a
  * pattern that writes one of these tags itself fails.
  */
-import { NOT_FOUND } from './discover.ts';
-import { SiteError } from './errors.ts';
-import type { Metadata, PageData } from './metadata.ts';
+import { NOT_FOUND } from "./discover.ts";
+import { SiteError } from "./errors.ts";
+import type { Metadata, PageData } from "./metadata.ts";
 
 /** @prose
  * The tags for one page. The 404 page is served at URLs that aren't its own, so it has no
@@ -17,26 +17,26 @@ import type { Metadata, PageData } from './metadata.ts';
  * the site has a feed to point readers' apps at.
  */
 export function headTags(page: PageData, site: Metadata, feed: boolean): string {
-	const name = typeof site.name === 'string' ? site.name : undefined;
-	const title = page.title ?? name ?? '';
-	const url = typeof site.url === 'string' ? absolute(site.url, page.url) : undefined;
-	const tags = [`<title>${escape(title)}</title>`];
-	if (page.summary) tags.push(meta('name', 'description', page.summary));
-	if (url && page.url !== NOT_FOUND) {
-		tags.push(`<link rel="canonical" href="${escape(url)}">`);
-		tags.push(meta('property', 'og:url', url));
-	}
-	tags.push(meta('property', 'og:type', page.date ? 'article' : 'website'));
-	tags.push(meta('property', 'og:title', title));
-	if (page.summary) tags.push(meta('property', 'og:description', page.summary));
-	if (name) tags.push(meta('property', 'og:site_name', name));
-	tags.push(meta('name', 'twitter:card', 'summary'));
-	if (feed) {
-		tags.push(
-			`<link rel="alternate" type="application/rss+xml" title="${escape(name ?? title)}" href="/feed.xml">`
-		);
-	}
-	return tags.join('\n');
+  const name = typeof site.name === "string" ? site.name : undefined;
+  const title = page.title ?? name ?? "";
+  const url = typeof site.url === "string" ? absolute(site.url, page.url) : undefined;
+  const tags = [`<title>${escape(title)}</title>`];
+  if (page.summary) tags.push(meta("name", "description", page.summary));
+  if (url && page.url !== NOT_FOUND) {
+    tags.push(`<link rel="canonical" href="${escape(url)}">`);
+    tags.push(meta("property", "og:url", url));
+  }
+  tags.push(meta("property", "og:type", page.date ? "article" : "website"));
+  tags.push(meta("property", "og:title", title));
+  if (page.summary) tags.push(meta("property", "og:description", page.summary));
+  if (name) tags.push(meta("property", "og:site_name", name));
+  tags.push(meta("name", "twitter:card", "summary"));
+  if (feed) {
+    tags.push(
+      `<link rel="alternate" type="application/rss+xml" title="${escape(name ?? title)}" href="/feed.xml">`,
+    );
+  }
+  return tags.join("\n");
 }
 
 /** @prose
@@ -46,40 +46,40 @@ export function headTags(page: PageData, site: Metadata, feed: boolean): string 
  * head, so for a page it may be a component the page renders.
  */
 export function checkHead(file: string, head: string): void {
-	for (const [pattern, tag, fix] of owned) {
-		if (!pattern.test(head)) continue;
-		throw new SiteError(
-			file,
-			`this writes ${tag} in <svelte:head>, but Sitez writes it from metadata. Remove it, ${fix}.`
-		);
-	}
+  for (const [pattern, tag, fix] of owned) {
+    if (!pattern.test(head)) continue;
+    throw new SiteError(
+      file,
+      `this writes ${tag} in <svelte:head>, but Sitez writes it from metadata. Remove it, ${fix}.`,
+    );
+  }
 }
 
 const owned: [RegExp, string, string][] = [
-	[/<title[\s>]/, 'a <title>', "and set title in the page's metadata"],
-	[/<meta\b[^>]*\bname="description"/, 'a description', "and set summary in the page's metadata"],
-	[/<link\b[^>]*\brel="canonical"/, 'a canonical link', 'as it comes from url in site.md'],
-	[/<meta\b[^>]*\bname="twitter:/, 'a Twitter tag', 'as it comes from the Open Graph tags'],
-	[
-		/<meta\b[^>]*\bproperty="og:/,
-		'an Open Graph tag',
-		"as it comes from the page's title and summary"
-	]
+  [/<title[\s>]/, "a <title>", "and set title in the page's metadata"],
+  [/<meta\b[^>]*\bname="description"/, "a description", "and set summary in the page's metadata"],
+  [/<link\b[^>]*\brel="canonical"/, "a canonical link", "as it comes from url in site.md"],
+  [/<meta\b[^>]*\bname="twitter:/, "a Twitter tag", "as it comes from the Open Graph tags"],
+  [
+    /<meta\b[^>]*\bproperty="og:/,
+    "an Open Graph tag",
+    "as it comes from the page's title and summary",
+  ],
 ];
 
 /** A page's full address, from `url` in `site.md` with or without its trailing slash. */
 export function absolute(siteUrl: string, path: string): string {
-	return siteUrl.replace(/\/+$/, '') + path;
+  return siteUrl.replace(/\/+$/, "") + path;
 }
 
 function meta(attribute: string, key: string, content: string): string {
-	return `<meta ${attribute}="${key}" content="${escape(content)}">`;
+  return `<meta ${attribute}="${key}" content="${escape(content)}">`;
 }
 
 export function escape(text: string): string {
-	return text
-		.replaceAll('&', '&amp;')
-		.replaceAll('<', '&lt;')
-		.replaceAll('>', '&gt;')
-		.replaceAll('"', '&quot;');
+  return text
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
 }

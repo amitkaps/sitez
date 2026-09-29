@@ -9,20 +9,20 @@
  * image) is bundled beside it. JavaScript is only the islands', only on the pages that have them.
  * Every file's name carries a content hash, so a new deploy is never served from a stale cache.
  */
-import { existsSync, readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { build, type InlineConfig, type Logger, type Plugin, type Rolldown } from 'vite';
-import { SiteError } from './errors.ts';
-import type { Islands } from './islands.ts';
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { build, type InlineConfig, type Logger, type Plugin, type Rolldown } from "vite";
+import { SiteError } from "./errors.ts";
+import type { Islands } from "./islands.ts";
 import {
-	asGiven,
-	cacheDir,
-	fromSitez,
-	noOptimizer,
-	runtime,
-	siteError,
-	sveltePlugin
-} from './vite.ts';
+  asGiven,
+  cacheDir,
+  fromSitez,
+  noOptimizer,
+  runtime,
+  siteError,
+  sveltePlugin,
+} from "./vite.ts";
 
 /** Files to write into `dist/`, by path. */
 export type Files = Map<string, string | Uint8Array>;
@@ -35,43 +35,43 @@ export type Files = Map<string, string | Uint8Array>;
  * splitting, so its CSS is one file even when a component imports something dynamically.
  */
 export async function stylesheet(
-	root: string,
-	real: string,
-	components: string[]
+  root: string,
+  real: string,
+  components: string[],
 ): Promise<{ href: string; files: Files }> {
-	const imports = [
-		...styleImports(real, `/pattern/style.css`),
-		// Only a component's module brings its styles, so each is kept by exporting it.
-		...components.map((file, i) => `export { default as c${i} } from ${JSON.stringify(file)};`)
-	];
-	const { output, unresolved } = await bundle(
-		root,
-		real,
-		{ style: imports.join('\n') },
-		{
-			codeSplitting: false,
-			assetFileNames: (asset) =>
-				asset.names.some((name) => name.endsWith('.css'))
-					? 'style.[hash].css'
-					: 'assets/[name].[hash][extname]'
-		}
-	);
-	const [url] = unresolved;
-	if (url) {
-		// Vite's warning names only the URL, so the file is the one whose source has it.
-		const file = [join(real, 'pattern', 'style.css'), ...components].find(
-			(file) => existsSync(file) && readFileSync(file, 'utf8').includes(url)
-		);
-		throw urlError(asGiven(root, real, file ?? join(real, 'pattern', 'style.css')), url);
-	}
-	const files: Files = new Map();
-	let href = '';
-	for (const item of output) {
-		if (item.type !== 'asset') continue;
-		files.set(item.fileName, item.source);
-		if (item.fileName.endsWith('.css')) href = `/${item.fileName}`;
-	}
-	return { href, files };
+  const imports = [
+    ...styleImports(real, `/pattern/style.css`),
+    // Only a component's module brings its styles, so each is kept by exporting it.
+    ...components.map((file, i) => `export { default as c${i} } from ${JSON.stringify(file)};`),
+  ];
+  const { output, unresolved } = await bundle(
+    root,
+    real,
+    { style: imports.join("\n") },
+    {
+      codeSplitting: false,
+      assetFileNames: (asset) =>
+        asset.names.some((name) => name.endsWith(".css"))
+          ? "style.[hash].css"
+          : "assets/[name].[hash][extname]",
+    },
+  );
+  const [url] = unresolved;
+  if (url) {
+    // Vite's warning names only the URL, so the file is the one whose source has it.
+    const file = [join(real, "pattern", "style.css"), ...components].find(
+      (file) => existsSync(file) && readFileSync(file, "utf8").includes(url),
+    );
+    throw urlError(asGiven(root, real, file ?? join(real, "pattern", "style.css")), url);
+  }
+  const files: Files = new Map();
+  let href = "";
+  for (const item of output) {
+    if (item.type !== "asset") continue;
+    files.set(item.fileName, item.source);
+    if (item.fileName.endsWith(".css")) href = `/${item.fileName}`;
+  }
+  return { href, files };
 }
 
 /** @prose
@@ -82,29 +82,29 @@ export async function stylesheet(
  * components, whose `<style>` is what's read.
  */
 export function missingUrl(root: string, files: string[]): SiteError | undefined {
-	for (const file of files) {
-		if (!existsSync(file)) continue;
-		let css = readFileSync(file, 'utf8');
-		if (file.endsWith('.svelte'))
-			css = [...css.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/g)].map((m) => m[1]).join('\n');
-		css = css.replace(/\/\*[\s\S]*?\*\//g, '');
-		for (const [, , url = ''] of css.matchAll(/url\(\s*(['"]?)([^'")]*)\1\s*\)/g)) {
-			if (url === '' || /^(?:[a-z]+:|\/\/|#)/i.test(url)) continue;
-			const path = decodeURI(url.split(/[?#]/)[0]!);
-			const found = path.startsWith('/')
-				? existsSync(join(root, 'public', path)) || existsSync(join(root, path))
-				: existsSync(join(dirname(file), path));
-			if (!found) return urlError(file, url);
-		}
-	}
-	return undefined;
+  for (const file of files) {
+    if (!existsSync(file)) continue;
+    let css = readFileSync(file, "utf8");
+    if (file.endsWith(".svelte"))
+      css = [...css.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/g)].map((m) => m[1]).join("\n");
+    css = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    for (const [, , url = ""] of css.matchAll(/url\(\s*(['"]?)([^'")]*)\1\s*\)/g)) {
+      if (url === "" || /^(?:[a-z]+:|\/\/|#)/i.test(url)) continue;
+      const path = decodeURI(url.split(/[?#]/)[0]!);
+      const found = path.startsWith("/")
+        ? existsSync(join(root, "public", path)) || existsSync(join(root, path))
+        : existsSync(join(dirname(file), path));
+      if (!found) return urlError(file, url);
+    }
+  }
+  return undefined;
 }
 
 function urlError(file: string, url: string): SiteError {
-	return new SiteError(
-		file,
-		`url(${url}) isn't there. Fix the path: relative to this file, or /… for a file in public/.`
-	);
+  return new SiteError(
+    file,
+    `url(${url}) isn't there. Fix the path: relative to this file, or /… for a file in public/.`,
+  );
 }
 
 /** @prose
@@ -112,19 +112,19 @@ function urlError(file: string, url: string): SiteError {
  * `pattern/style.css` when there is one, imported as `style` names it.
  */
 export function styleImports(real: string, style: string): string[] {
-	return [
-		`import ${JSON.stringify(join(runtime, 'reset.css'))};`,
-		...(existsSync(join(real, 'pattern', 'style.css')) ? [`import ${JSON.stringify(style)};`] : [])
-	];
+  return [
+    `import ${JSON.stringify(join(runtime, "reset.css"))};`,
+    ...(existsSync(join(real, "pattern", "style.css")) ? [`import ${JSON.stringify(style)};`] : []),
+  ];
 }
 
 /** A page's script: its islands imported, then hydrated by name. */
 export function hydrateEntry(used: string[], islands: Islands): string {
-	return [
-		`import { hydrateIslands } from ${JSON.stringify(join(runtime, 'client.ts'))};`,
-		...used.map((island, i) => `import I${i} from ${JSON.stringify(islands.get(island))};`),
-		`hydrateIslands({ ${used.map((island, i) => `${JSON.stringify(island)}: I${i}`).join(', ')} });`
-	].join('\n');
+  return [
+    `import { hydrateIslands } from ${JSON.stringify(join(runtime, "client.ts"))};`,
+    ...used.map((island, i) => `import I${i} from ${JSON.stringify(islands.get(island))};`),
+    `hydrateIslands({ ${used.map((island, i) => `${JSON.stringify(island)}: I${i}`).join(", ")} });`,
+  ].join("\n");
 }
 
 /** @prose
@@ -136,62 +136,62 @@ export function hydrateEntry(used: string[], islands: Islands): string {
  * larger. The islands' styles are already in the stylesheet, so Svelte emits none here.
  */
 export async function scripts(
-	root: string,
-	real: string,
-	pages: Map<string, string[]>,
-	islands: Islands
+  root: string,
+  real: string,
+  pages: Map<string, string[]>,
+  islands: Islands,
 ): Promise<Scripts> {
-	if (pages.size === 0) return { files: new Map(), pages: new Map(), common: undefined };
-	const entries = Object.fromEntries(
-		[...pages].map(([name, used]) => [name, hydrateEntry(used, islands)])
-	);
-	const mode = process.env.NODE_ENV;
-	process.env.NODE_ENV = 'production';
-	let output: Rolldown.RolldownOutput['output'];
-	try {
-		({ output } = await bundle(
-			root,
-			real,
-			entries,
-			{
-				entryFileNames: '[name].[hash].js',
-				chunkFileNames: (chunk) =>
-					chunk.name === 'common' ? 'common.[hash].js' : 'assets/[name].[hash].js',
-				assetFileNames: 'assets/[name].[hash][extname]',
-				codeSplitting: { groups: [{ name: 'common', minShareCount: 2 }] }
-			},
-			{ css: false }
-		));
-	} finally {
-		if (mode === undefined) delete process.env.NODE_ENV;
-		else process.env.NODE_ENV = mode;
-	}
-	const common = output.find(
-		(item) => item.type === 'chunk' && item.name === 'common' && !item.isEntry
-	)?.fileName;
-	const files: Files = new Map();
-	const scripts: Scripts['pages'] = new Map();
-	for (const item of output) {
-		if (item.type === 'asset') {
-			files.set(item.fileName, item.source);
-			continue;
-		}
-		files.set(item.fileName, item.code);
-		if (!item.isEntry) continue;
-		const preload = item.imports.map((file) => `<link rel="modulepreload" href="/${file}">`);
-		scripts.set(item.name, {
-			tags: [`<script type="module" src="/${item.fileName}"></script>`, ...preload].join('\n'),
-			own: [item.fileName, ...item.imports.filter((file) => file !== common)]
-		});
-	}
-	return { files, pages: scripts, common };
+  if (pages.size === 0) return { files: new Map(), pages: new Map(), common: undefined };
+  const entries = Object.fromEntries(
+    [...pages].map(([name, used]) => [name, hydrateEntry(used, islands)]),
+  );
+  const mode = process.env.NODE_ENV;
+  process.env.NODE_ENV = "production";
+  let output: Rolldown.RolldownOutput["output"];
+  try {
+    ({ output } = await bundle(
+      root,
+      real,
+      entries,
+      {
+        entryFileNames: "[name].[hash].js",
+        chunkFileNames: (chunk) =>
+          chunk.name === "common" ? "common.[hash].js" : "assets/[name].[hash].js",
+        assetFileNames: "assets/[name].[hash][extname]",
+        codeSplitting: { groups: [{ name: "common", minShareCount: 2 }] },
+      },
+      { css: false },
+    ));
+  } finally {
+    if (mode === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = mode;
+  }
+  const common = output.find(
+    (item) => item.type === "chunk" && item.name === "common" && !item.isEntry,
+  )?.fileName;
+  const files: Files = new Map();
+  const scripts: Scripts["pages"] = new Map();
+  for (const item of output) {
+    if (item.type === "asset") {
+      files.set(item.fileName, item.source);
+      continue;
+    }
+    files.set(item.fileName, item.code);
+    if (!item.isEntry) continue;
+    const preload = item.imports.map((file) => `<link rel="modulepreload" href="/${file}">`);
+    scripts.set(item.name, {
+      tags: [`<script type="module" src="/${item.fileName}"></script>`, ...preload].join("\n"),
+      own: [item.fileName, ...item.imports.filter((file) => file !== common)],
+    });
+  }
+  return { files, pages: scripts, common };
 }
 
 /** What `scripts` built: by page, the tags that load its script and the files only it loads. */
 export interface Scripts {
-	files: Files;
-	pages: Map<string, { tags: string; own: string[] }>;
-	common: string | undefined;
+  files: Files;
+  pages: Map<string, { tags: string; own: string[] }>;
+  common: string | undefined;
 }
 
 /** @prose
@@ -201,67 +201,67 @@ export interface Scripts {
  * compile fails naming it, as it would while rendering.
  */
 async function bundle(
-	root: string,
-	real: string,
-	entries: Record<string, string>,
-	output: Rolldown.OutputOptions,
-	{ css = true } = {}
-): Promise<{ output: Rolldown.RolldownOutput['output']; unresolved: string[] }> {
-	const unresolved: string[] = [];
-	const logger = quietLogger((message) => {
-		const found = /^\s*(\S+) referenced in .* didn't resolve at build time/.exec(message);
-		if (found) unresolved.push(found[1]!);
-	});
-	const config: InlineConfig = {
-		configFile: false,
-		root: real,
-		cacheDir: cacheDir(real),
-		logLevel: 'silent',
-		customLogger: logger,
-		plugins: [fromSitez(), entryModules(entries), sveltePlugin(real, { css }), noOptimizer()],
-		build: {
-			write: false,
-			assetsInlineLimit: 0,
-			modulePreload: { polyfill: false },
-			rolldownOptions: {
-				input: Object.fromEntries(Object.keys(entries).map((name) => [name, ENTRY + name])),
-				// Vite drops an app entry's exports, and with them the modules only exported.
-				preserveEntrySignatures: 'exports-only',
-				output
-			}
-		}
-	};
-	try {
-		const result = (await build(config)) as Rolldown.RolldownOutput;
-		return { output: result.output, unresolved };
-	} catch (error) {
-		throw siteError(error, join(real, 'pattern'), root, real);
-	}
+  root: string,
+  real: string,
+  entries: Record<string, string>,
+  output: Rolldown.OutputOptions,
+  { css = true } = {},
+): Promise<{ output: Rolldown.RolldownOutput["output"]; unresolved: string[] }> {
+  const unresolved: string[] = [];
+  const logger = quietLogger((message) => {
+    const found = /^\s*(\S+) referenced in .* didn't resolve at build time/.exec(message);
+    if (found) unresolved.push(found[1]!);
+  });
+  const config: InlineConfig = {
+    configFile: false,
+    root: real,
+    cacheDir: cacheDir(real),
+    logLevel: "silent",
+    customLogger: logger,
+    plugins: [fromSitez(), entryModules(entries), sveltePlugin(real, { css }), noOptimizer()],
+    build: {
+      write: false,
+      assetsInlineLimit: 0,
+      modulePreload: { polyfill: false },
+      rolldownOptions: {
+        input: Object.fromEntries(Object.keys(entries).map((name) => [name, ENTRY + name])),
+        // Vite drops an app entry's exports, and with them the modules only exported.
+        preserveEntrySignatures: "exports-only",
+        output,
+      },
+    },
+  };
+  try {
+    const result = (await build(config)) as Rolldown.RolldownOutput;
+    return { output: result.output, unresolved };
+  } catch (error) {
+    throw siteError(error, join(real, "pattern"), root, real);
+  }
 }
 
-const ENTRY = 'sitez:entry/';
+const ENTRY = "sitez:entry/";
 
 function entryModules(entries: Record<string, string>): Plugin {
-	return {
-		name: 'sitez:entry',
-		resolveId: (id) => (id.startsWith(ENTRY) ? `\0${id}` : null),
-		load: (id) => (id.startsWith(`\0${ENTRY}`) ? entries[id.slice(ENTRY.length + 1)] : null)
-	};
+  return {
+    name: "sitez:entry",
+    resolveId: (id) => (id.startsWith(ENTRY) ? `\0${id}` : null),
+    load: (id) => (id.startsWith(`\0${ENTRY}`) ? entries[id.slice(ENTRY.length + 1)] : null),
+  };
 }
 
 function quietLogger(onWarn: (message: string) => void): Logger {
-	const warned = new Set<string>();
-	return {
-		hasWarned: false,
-		info() {},
-		warn: (message) => onWarn(message),
-		warnOnce(message) {
-			if (warned.has(message)) return;
-			warned.add(message);
-			onWarn(message);
-		},
-		error() {},
-		clearScreen() {},
-		hasErrorLogged: () => false
-	};
+  const warned = new Set<string>();
+  return {
+    hasWarned: false,
+    info() {},
+    warn: (message) => onWarn(message),
+    warnOnce(message) {
+      if (warned.has(message)) return;
+      warned.add(message);
+      onWarn(message);
+    },
+    error() {},
+    clearScreen() {},
+    hasErrorLogged: () => false,
+  };
 }

@@ -7,17 +7,17 @@
  * from what they rendered. Nothing is written until everything has built. Markz's warnings are
  * returned for the command to print, with what each page costs for the report.
  */
-import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname, join, sep } from 'node:path';
-import { gzipSync } from 'node:zlib';
-import { scripts, stylesheet, type Files } from './bundle.ts';
-import { outputFile } from './discover.ts';
-import { SiteError } from './errors.ts';
-import { document } from './render.ts';
-import { readRun, renderPage, type Rendered, type Run } from './site.ts';
-import { feed, sitemap } from './sitemap.ts';
-import { siteServer } from './vite.ts';
-import type { MarkzWarning } from './warnings.ts';
+import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, join, sep } from "node:path";
+import { gzipSync } from "node:zlib";
+import { scripts, stylesheet, type Files } from "./bundle.ts";
+import { outputFile } from "./discover.ts";
+import { SiteError } from "./errors.ts";
+import { document } from "./render.ts";
+import { readRun, renderPage, type Rendered, type Run } from "./site.ts";
+import { feed, sitemap } from "./sitemap.ts";
+import { siteServer } from "./vite.ts";
+import type { MarkzWarning } from "./warnings.ts";
 
 /** @prose
  * What a page costs, for the build report: bytes gzipped, as a browser receives them, and time to
@@ -25,94 +25,94 @@ import type { MarkzWarning } from './warnings.ts';
  * show.
  */
 export interface Built {
-	url: string;
-	file: string;
-	/** Time to render the page, layout included, in milliseconds. */
-	ms: number;
-	html: number;
-	js: number;
-	notes: string[];
+  url: string;
+  file: string;
+  /** Time to render the page, layout included, in milliseconds. */
+  ms: number;
+  html: number;
+  js: number;
+  notes: string[];
 }
 
 export interface BuildResult {
-	outDir: string;
-	/** In URL order. */
-	pages: Built[];
-	/** What every page shares, downloaded once: the stylesheet and `common.js`, gzipped. */
-	common: { css: number; js: number };
-	/** Every island a built page renders, by name. */
-	islands: string[];
-	/** Markz's, from `site.md` and every page built, in URL order. */
-	warnings: MarkzWarning[];
-	ms: number;
+  outDir: string;
+  /** In URL order. */
+  pages: Built[];
+  /** What every page shares, downloaded once: the stylesheet and `common.js`, gzipped. */
+  common: { css: number; js: number };
+  /** Every island a built page renders, by name. */
+  islands: string[];
+  /** Markz's, from `site.md` and every page built, in URL order. */
+  warnings: MarkzWarning[];
+  ms: number;
 }
 
 /** `outDir` is for tests; a site always builds to its own `dist/`. */
 export async function build(
-	root: string,
-	{ outDir = join(root, 'dist') } = {}
+  root: string,
+  { outDir = join(root, "dist") } = {},
 ): Promise<BuildResult> {
-	const start = performance.now();
-	const server = await siteServer(root);
-	let run: Run;
-	let rendered: Rendered[];
-	let components: string[];
-	try {
-		run = await readRun(server);
-		rendered = await Promise.all(run.pages.map((page) => renderPage(run, page)));
-		components = server.components();
-	} finally {
-		await server.close();
-	}
-	const { site, warnings } = run;
+  const start = performance.now();
+  const server = await siteServer(root);
+  let run: Run;
+  let rendered: Rendered[];
+  let components: string[];
+  try {
+    run = await readRun(server);
+    rendered = await Promise.all(run.pages.map((page) => renderPage(run, page)));
+    components = server.components();
+  } finally {
+    await server.close();
+  }
+  const { site, warnings } = run;
 
-	// A page's script imports exactly the islands it rendered; then every page gets the
-	// stylesheet and, if it has islands, its script.
-	const used = new Map(
-		rendered
-			.filter((page) => page.islands.length > 0)
-			.map((page) => [entryName(page.url), page.islands])
-	);
-	const css = await stylesheet(root, server.real, components);
-	const js = await scripts(root, server.real, used, server.islands);
-	const files: Files = new Map([...css.files, ...js.files]);
-	const pagesBuilt: Built[] = [];
-	for (const page of rendered) {
-		const { tags, head, body } = page.parts;
-		const assets = [`<link rel="stylesheet" href="${css.href}">`];
-		const script = js.pages.get(entryName(page.url));
-		if (script) assets.push(script.tags);
-		const html = document(site, [tags, ...assets].join('\n'), head, body);
-		files.set(outputFile(page.url), html);
-		pagesBuilt.push({
-			url: page.url,
-			file: page.file,
-			ms: page.ms,
-			html: gzipped(html),
-			js: (script?.own ?? []).reduce((sum, file) => sum + gzipped(files.get(file)!), 0),
-			notes: notes(head + body)
-		});
-	}
-	const all = rendered.map((page) => page.data);
-	files.set('sitemap.xml', sitemap(site.url, all));
-	const rss = feed(site, site.url, all);
-	if (rss) files.set('feed.xml', rss);
-	write(root, outDir, files);
-	return {
-		outDir,
-		pages: pagesBuilt.toSorted((a, b) => (a.url < b.url ? -1 : 1)),
-		common: {
-			css: gzipped(files.get(css.href.slice(1))!),
-			js: js.common ? gzipped(files.get(js.common)!) : 0
-		},
-		islands: [...new Set([...used.values()].flat())].sort(),
-		warnings,
-		ms: performance.now() - start
-	};
+  // A page's script imports exactly the islands it rendered; then every page gets the
+  // stylesheet and, if it has islands, its script.
+  const used = new Map(
+    rendered
+      .filter((page) => page.islands.length > 0)
+      .map((page) => [entryName(page.url), page.islands]),
+  );
+  const css = await stylesheet(root, server.real, components);
+  const js = await scripts(root, server.real, used, server.islands);
+  const files: Files = new Map([...css.files, ...js.files]);
+  const pagesBuilt: Built[] = [];
+  for (const page of rendered) {
+    const { tags, head, body } = page.parts;
+    const assets = [`<link rel="stylesheet" href="${css.href}">`];
+    const script = js.pages.get(entryName(page.url));
+    if (script) assets.push(script.tags);
+    const html = document(site, [tags, ...assets].join("\n"), head, body);
+    files.set(outputFile(page.url), html);
+    pagesBuilt.push({
+      url: page.url,
+      file: page.file,
+      ms: page.ms,
+      html: gzipped(html),
+      js: (script?.own ?? []).reduce((sum, file) => sum + gzipped(files.get(file)!), 0),
+      notes: notes(head + body),
+    });
+  }
+  const all = rendered.map((page) => page.data);
+  files.set("sitemap.xml", sitemap(site.url, all));
+  const rss = feed(site, site.url, all);
+  if (rss) files.set("feed.xml", rss);
+  write(root, outDir, files);
+  return {
+    outDir,
+    pages: pagesBuilt.toSorted((a, b) => (a.url < b.url ? -1 : 1)),
+    common: {
+      css: gzipped(files.get(css.href.slice(1))!),
+      js: js.common ? gzipped(files.get(js.common)!) : 0,
+    },
+    islands: [...new Set([...used.values()].flat())].sort(),
+    warnings,
+    ms: performance.now() - start,
+  };
 }
 
 function gzipped(content: string | Uint8Array): number {
-	return gzipSync(content).length;
+  return gzipSync(content).length;
 }
 
 /** @prose
@@ -120,7 +120,7 @@ function gzipped(content: string | Uint8Array): number {
  * pattern's markup, runs whatever it loads, which the build can't count.
  */
 function notes(html: string): string[] {
-	return /<script\b/i.test(html) ? ['raw <script>'] : [];
+  return /<script\b/i.test(html) ? ["raw <script>"] : [];
 }
 
 /** @prose
@@ -129,36 +129,36 @@ function notes(html: string): string[] {
  * it fails instead.
  */
 function write(root: string, outDir: string, files: Files): void {
-	const publicDir = join(root, 'public');
-	for (const path of files.keys()) {
-		const file = join(publicDir, path);
-		if (existsSync(file)) {
-			throw new SiteError(
-				file,
-				`Sitez writes ${path.split(sep).join('/')} itself, from ${source(path)}. Rename or remove this file.`
-			);
-		}
-	}
-	rmSync(outDir, { recursive: true, force: true });
-	mkdirSync(outDir, { recursive: true });
-	if (existsSync(publicDir)) cpSync(publicDir, outDir, { recursive: true });
-	for (const [path, content] of files) {
-		const file = join(outDir, path);
-		mkdirSync(dirname(file), { recursive: true });
-		writeFileSync(file, content);
-	}
+  const publicDir = join(root, "public");
+  for (const path of files.keys()) {
+    const file = join(publicDir, path);
+    if (existsSync(file)) {
+      throw new SiteError(
+        file,
+        `Sitez writes ${path.split(sep).join("/")} itself, from ${source(path)}. Rename or remove this file.`,
+      );
+    }
+  }
+  rmSync(outDir, { recursive: true, force: true });
+  mkdirSync(outDir, { recursive: true });
+  if (existsSync(publicDir)) cpSync(publicDir, outDir, { recursive: true });
+  for (const [path, content] of files) {
+    const file = join(outDir, path);
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, content);
+  }
 }
 
 /** A page's script is named for its HTML file: `blog/index` for `blog/index.html`. */
 function entryName(url: string): string {
-	return outputFile(url)
-		.split(sep)
-		.join('/')
-		.replace(/\.html$/, '');
+  return outputFile(url)
+    .split(sep)
+    .join("/")
+    .replace(/\.html$/, "");
 }
 
 function source(path: string): string {
-	if (path.endsWith('.html')) return 'a page';
-	if (path.endsWith('.xml')) return 'the metadata';
-	return 'pattern/';
+  if (path.endsWith(".html")) return "a page";
+  if (path.endsWith(".xml")) return "the metadata";
+  return "pattern/";
 }

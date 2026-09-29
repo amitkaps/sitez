@@ -3,89 +3,89 @@
 @layer reset;
 
 @view-transition {
-	navigation: auto;
+  navigation: auto;
 }
 
 @layer reset {
-	*,
-	*::before,
-	*::after {
-		box-sizing: border-box;
-	}
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
 
-	html {
-		-webkit-text-size-adjust: none;
-		text-size-adjust: none;
-	}
+  html {
+    -webkit-text-size-adjust: none;
+    text-size-adjust: none;
+  }
 
-	body {
-		font-family: system-ui, sans-serif;
-		line-height: 1.5;
-		-webkit-font-smoothing: antialiased;
-	}
+  body {
+    font-family: system-ui, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
 
-	h1,
-	h2,
-	h3,
-	h4,
-	h5,
-	h6 {
-		line-height: 1.2;
-		text-wrap: balance;
-	}
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    line-height: 1.2;
+    text-wrap: balance;
+  }
 
-	p,
-	li,
-	figcaption {
-		text-wrap: pretty;
-	}
+  p,
+  li,
+  figcaption {
+    text-wrap: pretty;
+  }
 
-	p,
-	li,
-	h1,
-	h2,
-	h3,
-	h4,
-	h5,
-	h6 {
-		overflow-wrap: break-word;
-	}
+  p,
+  li,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    overflow-wrap: break-word;
+  }
 
-	img,
-	picture,
-	video,
-	canvas,
-	svg {
-		max-width: 100%;
-		height: auto;
-	}
+  img,
+  picture,
+  video,
+  canvas,
+  svg {
+    max-width: 100%;
+    height: auto;
+  }
 
-	input,
-	button,
-	textarea,
-	select {
-		font: inherit;
-	}
+  input,
+  button,
+  textarea,
+  select {
+    font: inherit;
+  }
 
-	code,
-	kbd,
-	samp,
-	pre {
-		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-		font-size: 0.9em;
-	}
+  code,
+  kbd,
+  samp,
+  pre {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.9em;
+  }
 
-	pre {
-		overflow-x: auto;
-	}
+  pre {
+    overflow-x: auto;
+  }
 
-	pre code {
-		font-size: 1em;
-	}
+  pre code {
+    font-size: 1em;
+  }
 
-	/* An island's markers wrap its HTML without being part of the layout. */
-	sitez-island,
-	sitez-children {
-		display: contents;
-	}
+  /* An island's markers wrap its HTML without being part of the layout. */
+  sitez-island,
+  sitez-children {
+    display: contents;
+  }
 }

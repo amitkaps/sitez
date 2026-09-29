@@ -11,21 +11,21 @@
  * Every other key passes through unchecked, so a site can add its own (`tags`), and the pattern
  * that reads it is where it's checked.
  */
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { parse, textContent, type Document, type MetadataValue } from '@amitkaps/markz';
-import { SiteError } from './errors.ts';
-import { SITE_FILE } from './root.ts';
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { parse, textContent, type Document, type MetadataValue } from "@amitkaps/markz";
+import { SiteError } from "./errors.ts";
+import { SITE_FILE } from "./root.ts";
 
 export type Metadata = Record<string, MetadataValue | undefined>;
 
 /** A page as a pattern sees it: its URL and its metadata. */
 export interface PageData extends Metadata {
-	url: string;
-	title?: string;
-	summary?: string;
-	date?: string;
-	draft?: boolean;
+  url: string;
+  title?: string;
+  summary?: string;
+  date?: string;
+  draft?: boolean;
 }
 
 /** @prose
@@ -33,23 +33,23 @@ export interface PageData extends Metadata {
  * `lang` is the language every page is written in, English unless it says otherwise.
  */
 export function siteMetadata(root: string): Metadata {
-	const file = join(root, SITE_FILE);
-	const block: Metadata = { ...parse(readFileSync(file, 'utf8')).metadata };
-	check(file, block, siteKeys);
-	return { lang: 'en', ...block };
+  const file = join(root, SITE_FILE);
+  const block: Metadata = { ...parse(readFileSync(file, "utf8")).metadata };
+  check(file, block, siteKeys);
+  return { lang: "en", ...block };
 }
 
 export function proseMetadata(file: string, url: string, doc: Document): PageData {
-	const block: Metadata = { ...doc.metadata };
-	check(file, block, pageKeys);
-	const title = first(doc, 'heading');
-	const summary = first(doc, 'paragraph');
-	return {
-		...block,
-		url,
-		title: typeof block.title === 'string' ? block.title : title,
-		summary: typeof block.summary === 'string' ? block.summary : summary
-	};
+  const block: Metadata = { ...doc.metadata };
+  check(file, block, pageKeys);
+  const title = first(doc, "heading");
+  const summary = first(doc, "paragraph");
+  return {
+    ...block,
+    url,
+    title: typeof block.title === "string" ? block.title : title,
+    summary: typeof block.summary === "string" ? block.summary : summary,
+  };
 }
 
 /** @prose
@@ -58,23 +58,23 @@ export function proseMetadata(file: string, url: string, doc: Document): PageDat
  * it produces are all there is to decode.
  */
 export function patternMetadata(
-	file: string,
-	url: string,
-	exported: unknown,
-	body?: string
+  file: string,
+  url: string,
+  exported: unknown,
+  body?: string,
 ): PageData {
-	if (exported !== undefined && (typeof exported !== 'object' || exported === null)) {
-		throw new SiteError(file, 'metadata is exported but not an object: write { title: … }.');
-	}
-	const block = { ...(exported as Metadata | undefined) };
-	check(file, block, pageKeys);
-	const h1 = body?.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/)?.[1];
-	const title = typeof block.title === 'string' ? block.title : h1 && plain(h1);
-	return { ...block, url, title: title || undefined };
+  if (exported !== undefined && (typeof exported !== "object" || exported === null)) {
+    throw new SiteError(file, "metadata is exported but not an object: write { title: … }.");
+  }
+  const block = { ...(exported as Metadata | undefined) };
+  check(file, block, pageKeys);
+  const h1 = body?.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/)?.[1];
+  const title = typeof block.title === "string" ? block.title : h1 && plain(h1);
+  return { ...block, url, title: title || undefined };
 }
 
 export function isDraft(page: PageData): boolean {
-	return page.draft === true;
+  return page.draft === true;
 }
 
 /** @prose
@@ -84,65 +84,65 @@ export function isDraft(page: PageData): boolean {
  */
 type Rule = (value: MetadataValue | undefined) => string | undefined;
 
-const text: Rule = (value) => (typeof value === 'string' ? undefined : 'write it as text');
+const text: Rule = (value) => (typeof value === "string" ? undefined : "write it as text");
 
 const pageKeys: Record<string, Rule> = {
-	title: text,
-	summary: text,
-	date: (value) =>
-		typeof value === 'string' && isDate(value) ? undefined : 'write a date as 2026-09-29',
-	draft: (value) => (typeof value === 'boolean' ? undefined : 'write draft: true or draft: false'),
-	url: () => "a page's URL is its file's path: move the file instead, and remove url"
+  title: text,
+  summary: text,
+  date: (value) =>
+    typeof value === "string" && isDate(value) ? undefined : "write a date as 2026-09-29",
+  draft: (value) => (typeof value === "boolean" ? undefined : "write draft: true or draft: false"),
+  url: () => "a page's URL is its file's path: move the file instead, and remove url",
 };
 
 const absoluteUrl: Rule = (value) =>
-	typeof value === 'string' && /^https?:\/\/[^/\s]+/.test(value)
-		? undefined
-		: 'write the full address, starting https://';
+  typeof value === "string" && /^https?:\/\/[^/\s]+/.test(value)
+    ? undefined
+    : "write the full address, starting https://";
 
 const siteKeys: Record<string, Rule> = {
-	name: text,
-	url: absoluteUrl,
-	repo: absoluteUrl,
-	lang: text
+  name: text,
+  url: absoluteUrl,
+  repo: absoluteUrl,
+  lang: text,
 };
 
 function check(file: string, block: Metadata, rules: Record<string, Rule>): void {
-	for (const [key, rule] of Object.entries(rules)) {
-		if (!(key in block)) continue;
-		const value = block[key];
-		const problem = value === null ? 'leave the line out, or give it a value' : rule(value);
-		if (problem) {
-			throw new SiteError(file, `${key} is ${JSON.stringify(value)}: ${problem}.`);
-		}
-	}
+  for (const [key, rule] of Object.entries(rules)) {
+    if (!(key in block)) continue;
+    const value = block[key];
+    const problem = value === null ? "leave the line out, or give it a value" : rule(value);
+    if (problem) {
+      throw new SiteError(file, `${key} is ${JSON.stringify(value)}: ${problem}.`);
+    }
+  }
 }
 
 function isDate(value: string): boolean {
-	if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-	return new Date(`${value}T00:00:00Z`).toISOString().startsWith(value);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  return new Date(`${value}T00:00:00Z`).toISOString().startsWith(value);
 }
 
 /** @prose
  * The text of the first top-level node of `type`, which is what a reader sees first, on one line:
  * a paragraph's line breaks are the source's, not the reader's, and a description has none.
  */
-function first(doc: Document, type: 'heading' | 'paragraph'): string | undefined {
-	for (const node of doc.children(doc.root)) {
-		if (doc.type(node) === type)
-			return textContent(doc, node).replace(/\s+/g, ' ').trim() || undefined;
-	}
-	return undefined;
+function first(doc: Document, type: "heading" | "paragraph"): string | undefined {
+  for (const node of doc.children(doc.root)) {
+    if (doc.type(node) === type)
+      return textContent(doc, node).replace(/\s+/g, " ").trim() || undefined;
+  }
+  return undefined;
 }
 
 function plain(html: string): string {
-	return html
-		.replace(/<!--[\s\S]*?-->|<[^>]+>/g, '')
-		.replaceAll('&lt;', '<')
-		.replaceAll('&gt;', '>')
-		.replaceAll('&quot;', '"')
-		.replaceAll('&#39;', "'")
-		.replaceAll('&amp;', '&')
-		.replace(/\s+/g, ' ')
-		.trim();
+  return html
+    .replace(/<!--[\s\S]*?-->|<[^>]+>/g, "")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&quot;", '"')
+    .replaceAll("&#39;", "'")
+    .replaceAll("&amp;", "&")
+    .replace(/\s+/g, " ")
+    .trim();
 }
