@@ -12,6 +12,7 @@
  */
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, sep } from 'node:path';
+import { gzipSync } from 'node:zlib';
 import { parse } from '@amitkaps/markz';
 import { scripts, stylesheet, type Files } from './bundle.ts';
 import { discover, nearest, NOT_FOUND, outputFile, type Page } from './discover.ts';
@@ -32,16 +33,29 @@ import { feed, sitemap } from './sitemap.ts';
 import { siteServer } from './vite.ts';
 import { markzWarnings, type MarkzWarning } from './warnings.ts';
 
+/** @prose
+ * What a page costs, for the build report: bytes gzipped, as a browser receives them, and time to
+ * render. `js` is only what this page loads and no other does; `notes` is what the numbers can't
+ * show.
+ */
 export interface Built {
 	url: string;
 	file: string;
 	/** Time to render the page, layout included, in milliseconds. */
 	ms: number;
+	html: number;
+	js: number;
+	notes: string[];
 }
 
 export interface BuildResult {
 	outDir: string;
+	/** In URL order. */
 	pages: Built[];
+	/** What every page shares, downloaded once: the stylesheet and `common.js`, gzipped. */
+	common: { css: number; js: number };
+	/** Every island a built page renders, by name. */
+	islands: string[];
 	/** Markz's, from `site.md` and every page built, in URL order. */
 	warnings: MarkzWarning[];
 	ms: number;
@@ -166,12 +180,22 @@ export async function build(
 	const css = await stylesheet(root, server.real, components);
 	const js = await scripts(root, server.real, used, islands);
 	const files: Files = new Map([...css.files, ...js.files]);
+	const pagesBuilt: Built[] = [];
 	for (const page of rendered) {
 		const { tags, head, body } = page.parts;
 		const assets = [`<link rel="stylesheet" href="${css.href}">`];
-		const script = js.tags.get(entryName(page.url));
-		if (script) assets.push(script);
-		files.set(outputFile(page.url), document(site, [tags, ...assets].join('\n'), head, body));
+		const script = js.pages.get(entryName(page.url));
+		if (script) assets.push(script.tags);
+		const html = document(site, [tags, ...assets].join('\n'), head, body);
+		files.set(outputFile(page.url), html);
+		pagesBuilt.push({
+			url: page.url,
+			file: page.file,
+			ms: page.ms,
+			html: gzipped(html),
+			js: (script?.own ?? []).reduce((sum, file) => sum + gzipped(files.get(file)!), 0),
+			notes: notes(head + body)
+		});
 	}
 	const all = rendered.map((page) => page.data);
 	files.set('sitemap.xml', sitemap(site.url, all));
@@ -180,13 +204,36 @@ export async function build(
 	write(root, outDir, files);
 	return {
 		outDir,
-		pages: rendered.map(({ url, file, ms }) => ({ url, file, ms })),
+		pages: pagesBuilt.toSorted((a, b) => (a.url < b.url ? -1 : 1)),
+		common: {
+			css: gzipped(files.get(css.href.slice(1))!),
+			js: js.common ? gzipped(files.get(js.common)!) : 0
+		},
+		islands: [...new Set([...used.values()].flat())].sort(),
 		warnings,
 		ms: performance.now() - start
 	};
 }
 
-type Rendered = Built & { data: PageData; parts: { tags: string; head: string; body: string } };
+interface Rendered {
+	url: string;
+	file: string;
+	ms: number;
+	data: PageData;
+	parts: { tags: string; head: string; body: string };
+}
+
+function gzipped(content: string | Uint8Array): number {
+	return gzipSync(content).length;
+}
+
+/** @prose
+ * What a page's numbers leave out. A `<script>` Sitez didn't write, in a raw block or a
+ * pattern's markup, runs whatever it loads, which the build can't count.
+ */
+function notes(html: string): string[] {
+	return /<script\b/i.test(html) ? ['raw <script>'] : [];
+}
 
 /** @prose
  * `dist/` is Sitez's own, so it is emptied first. A file in `public/` where Sitez writes one of

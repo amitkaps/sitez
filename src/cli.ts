@@ -12,6 +12,7 @@ import { parseArgs } from 'node:util';
 import pkg from '../package.json' with { type: 'json' };
 import { build } from './build.ts';
 import { SiteError } from './errors.ts';
+import { report } from './report.ts';
 import { findRoot } from './root.ts';
 import { formatWarning } from './warnings.ts';
 
@@ -64,11 +65,7 @@ export async function run(argv: string[], cwd: string, out = console): Promise<n
 			for (const warning of result.warnings) {
 				out.error(formatWarning(warning, (file) => relative(cwd, file)));
 			}
-			const ms = Math.round(result.ms);
-			const n = result.pages.length;
-			out.log(
-				`${n} ${n === 1 ? 'page' : 'pages'} in ${ms} ms → ${relative(cwd, result.outDir) || '.'}`
-			);
+			out.log(report(result, relative(cwd, result.outDir) || '.'));
 			return 0;
 		}
 		out.error(`sitez: '${name}' isn't built yet`);

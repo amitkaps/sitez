@@ -188,16 +188,17 @@ sitez deploy   # publish dist/
 costs to send, gzipped, and to build:
 
 ```text
-page        html    css    js   time
-/           4 KB    —      —   12 ms
-/blog/      6 KB  1 KB  5 KB   20 ms
-/quality/  90 KB  2 KB 14 KB   1.2 s
-common            3 KB 12 KB
-42 pages in 1.8 s · islands: ThemeToggle, TagFilter, QualityReport
+page         html      js   time
+/          4.0 KB       —  12 ms
+/blog/     6.1 KB  5.0 KB  20 ms
+/quality/   90 KB   14 KB  1.2 s  raw <script>
+common     3.0 KB css, 12 KB js
+42 pages in 1.8 s → dist · islands: QualityReport, TagFilter, ThemeToggle
 ```
 
-`common` is what pages share and the browser downloads once. A page that grows heavy or slow is
-visible where the cost is.
+A page's `js` is what only it loads; `common` is the stylesheet and what pages share, which the
+browser downloads once. A page that grows heavy or slow is visible where the cost is, and a note
+says what the numbers can't: a raw `<script>` loads whatever it loads.
 
 `sitez deploy` publishes to GitHub Pages when the repo's remote is on GitHub. Cloudflare needs no
 Sitez command: connect the repo in Cloudflare and set the build command to `npx sitez build`.

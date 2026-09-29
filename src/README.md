@@ -22,5 +22,6 @@ stage gets a file here, or a folder once it needs more than one, as its step in
 - `bundle.ts` builds what the browser downloads besides the HTML: the site's one stylesheet, and
   the islands' JavaScript.
 - `build.ts` renders every page and writes `dist/`.
+- `report.ts` is what `build` prints: what each page costs to send and to build.
 - `runtime/` holds Sitez's files that a site's own build loads through Vite, such as the reset and the islands' runtime.
 - `errors.ts` is how a mistake in a site becomes a message naming the file and what to change.

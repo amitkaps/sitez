@@ -86,10 +86,10 @@ export async function scripts(
 	real: string,
 	pages: Map<string, string[]>,
 	islands: Islands
-): Promise<{ files: Files; tags: Map<string, string> }> {
+): Promise<Scripts> {
 	const files: Files = new Map();
-	const tags = new Map<string, string>();
-	if (pages.size === 0) return { files, tags };
+	const scripts: Scripts = { files, pages: new Map(), common: undefined };
+	if (pages.size === 0) return scripts;
 	const client = JSON.stringify(join(runtime, 'client.ts'));
 	const entries = Object.fromEntries(
 		[...pages].map(([name, used]) => [
@@ -122,14 +122,24 @@ export async function scripts(
 			continue;
 		}
 		files.set(item.fileName, item.code);
-		if (!item.isEntry) continue;
-		const preload = item.imports.map((file) => `<link rel="modulepreload" href="/${file}">`);
-		tags.set(
-			item.name,
-			[`<script type="module" src="/${item.fileName}"></script>`, ...preload].join('\n')
-		);
+		if (item.name === 'common' && !item.isEntry) scripts.common = item.fileName;
 	}
-	return { files, tags };
+	for (const item of output) {
+		if (item.type !== 'chunk' || !item.isEntry) continue;
+		const preload = item.imports.map((file) => `<link rel="modulepreload" href="/${file}">`);
+		scripts.pages.set(item.name, {
+			tags: [`<script type="module" src="/${item.fileName}"></script>`, ...preload].join('\n'),
+			own: [item.fileName, ...item.imports.filter((file) => file !== scripts.common)]
+		});
+	}
+	return scripts;
+}
+
+/** What `scripts` built: by page, the tags that load its script and the files only it loads. */
+export interface Scripts {
+	files: Files;
+	pages: Map<string, { tags: string; own: string[] }>;
+	common: string | undefined;
 }
 
 /** @prose

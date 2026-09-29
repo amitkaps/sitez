@@ -48,19 +48,15 @@ to one line each.
   handler through a spread, an island in an island's children and an island reading `prose`.
   Each page with islands gets its own entry, shared code goes in `common.js`, and
   `test/islands.test.ts` hydrates the built pages in happy-dom.
+- **8. Build report.** `report.ts`: per page html and its own js, gzipped, and render time; a
+  `common` row for the stylesheet and `common.js`; the total and the islands. The per-page css
+  column went with the per-page CSS. Its one note so far is a raw `<script>`.
 
 ## Open work, in order
 
 Each step ends in something a fixture site shows, so the step is done when its fixture builds and
 its tests pass, not when the code is written. Error cases are fixtures too: a site that must fail,
 with the message it must fail with.
-
-### 8. Build report
-
-- [ ] Per page: html, css, js gzipped, and build time; the `common` row; page count, total time
-      and the list of islands. Sorted by URL.
-- [ ] A notes column for what the numbers can't show, such as a raw `<script>` that may load
-      more JavaScript than the build can count. Design it here.
 
 ### 9. Dev server
 

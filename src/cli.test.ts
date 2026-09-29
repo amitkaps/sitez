@@ -48,7 +48,9 @@ describe('sitez', () => {
 		const { code, log, error } = await sitez(['build'], join(root, 'prose'));
 		expect(code).toBe(0);
 		expect(error).toBe('index.md:3:6: `*emphasis*`, write `_emphasis_` instead (star-emphasis)');
-		expect(log).toMatch(/^1 page in \d+ ms → \.\.\/dist$/);
+		expect(log).toMatch(
+			/^page +html +js +time\n\/ +[\d.]+ KB +— +\d+ ms\ncommon +[\d.]+ KB css\n1 page in \d+ ms → \.\.\/dist$/
+		);
 	});
 
 	test('fails outside a site', async () => {

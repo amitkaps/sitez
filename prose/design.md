@@ -210,8 +210,9 @@ carries no Wrangler.
   every page, not only in islands, where hydration needs them. Stripping them outside islands
   saves bytes; the build report will show whether it's worth doing.
 - **Raw HTML.** A ` ```=html ` block ships as written, `<script>` included: it is the author's
-  escape hatch, outside the islands and the JavaScript they account for. Whether to sanitize it,
-  or count it in the build report, waits until sites use it enough to say.
+  escape hatch, outside the islands and the JavaScript they account for. The build report notes
+  a page with a raw `<script>`; whether to sanitize raw HTML waits until sites use it enough to
+  say.
 - **A social image.** `og:image` is left out until Sitez can make one: each page's card drawn by
   a pattern (a `Card.svelte` given `page` and `site`, or an SVG template), rendered at build time.
   Social sites don't take SVG, so the card has to be rasterized to PNG, which means a renderer
