@@ -15,6 +15,7 @@ stage gets a file here, or a folder once it needs more than one, as its step in
 - `links.ts` is where a link in prose goes, and whether it's there.
 - `vite.ts` is the Vite server Sitez runs for a site, with the config nobody writes.
 - `render.ts` turns one page into a complete HTML document.
+- `site.ts` is what `build` and `dev` share: reading the site, and rendering one page.
 - `head.ts` is what a page's `<head>` says about it, from its metadata.
 - `sitemap.ts` writes `sitemap.xml` and `feed.xml`.
 - `islands.ts` decides which components are islands, from their source, and wraps each one the
@@ -23,5 +24,6 @@ stage gets a file here, or a folder once it needs more than one, as its step in
   the islands' JavaScript.
 - `build.ts` renders every page and writes `dist/`.
 - `report.ts` is what `build` prints: what each page costs to send and to build.
+- `dev.ts` serves the site while it's written, rendering each page as it's asked for.
 - `runtime/` holds Sitez's files that a site's own build loads through Vite, such as the reset and the islands' runtime.
 - `errors.ts` is how a mistake in a site becomes a message naming the file and what to change.

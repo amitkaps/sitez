@@ -14,7 +14,7 @@ import { join, sep } from 'node:path';
 import { build, type InlineConfig, type Logger, type Plugin, type Rolldown } from 'vite';
 import { SiteError } from './errors.ts';
 import type { Islands } from './islands.ts';
-import { fromSitez, noOptimizer, runtime, siteError, sveltePlugin } from './vite.ts';
+import { cacheDir, fromSitez, noOptimizer, runtime, siteError, sveltePlugin } from './vite.ts';
 
 /** Files to write into `dist/`, by path. */
 export type Files = Map<string, string | Uint8Array>;
@@ -162,6 +162,7 @@ async function bundle(
 	const config: InlineConfig = {
 		configFile: false,
 		root: real,
+		cacheDir: cacheDir(real),
 		logLevel: 'silent',
 		customLogger: logger,
 		plugins: [fromSitez(), entryModules(entries), sveltePlugin(real), noOptimizer()],

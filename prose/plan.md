@@ -51,19 +51,16 @@ to one line each.
 - **8. Build report.** `report.ts`: per page html and its own js, gzipped, and render time; a
   `common` row for the stylesheet and `common.js`; the total and the islands. The per-page css
   column went with the per-page CSS. Its one note so far is a raw `<script>`.
+- **9. Dev server.** `site.ts` holds what `build` and `dev` share; `dev.ts` renders on request,
+  drafts included, redirects `/about` to `/about/` and serves the 404 page, sitemap and feed.
+  CSS and islands hot-replace, anything else reloads, and a failure shows `build`'s message in
+  the page. `src/dev.test.ts` reads Vite's hot-update socket; no real browser runs in CI.
 
 ## Open work, in order
 
 Each step ends in something a fixture site shows, so the step is done when its fixture builds and
 its tests pass, not when the code is written. Error cases are fixtures too: a site that must fail,
 with the message it must fail with.
-
-### 9. Dev server
-
-- [ ] `sitez dev` serves every page, drafts included, rendered on request.
-- [ ] A page change reloads that page; CSS and islands hot-replace. A new or deleted file updates
-      the URL set without a restart.
-- [ ] Build errors show in the browser with the same message `build` prints.
 
 ### 10. The rest of the CLI
 

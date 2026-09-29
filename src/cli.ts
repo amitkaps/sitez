@@ -11,6 +11,7 @@ import { relative } from 'node:path';
 import { parseArgs } from 'node:util';
 import pkg from '../package.json' with { type: 'json' };
 import { build } from './build.ts';
+import { dev } from './dev.ts';
 import { SiteError } from './errors.ts';
 import { report } from './report.ts';
 import { findRoot } from './root.ts';
@@ -31,7 +32,8 @@ const usage = [
 	'',
 	...Object.entries(commands).map(([name, what]) => `  ${name.padEnd(8)} ${what}`),
 	'',
-	'Run it anywhere inside a site: the folder holding site.md.'
+	'Run it anywhere inside a site: the folder holding site.md.',
+	'`sitez dev --port 4000` serves on another port.'
 ].join('\n');
 
 /** @prose
@@ -41,7 +43,11 @@ const usage = [
 export async function run(argv: string[], cwd: string, out = console): Promise<number> {
 	const { values, positionals } = parseArgs({
 		args: argv,
-		options: { help: { type: 'boolean', short: 'h' }, version: { type: 'boolean', short: 'v' } },
+		options: {
+			help: { type: 'boolean', short: 'h' },
+			version: { type: 'boolean', short: 'v' },
+			port: { type: 'string', short: 'p' }
+		},
 		allowPositionals: true,
 		strict: false
 	});
@@ -66,6 +72,19 @@ export async function run(argv: string[], cwd: string, out = console): Promise<n
 				out.error(formatWarning(warning, (file) => relative(cwd, file)));
 			}
 			out.log(report(result, relative(cwd, result.outDir) || '.'));
+			return 0;
+		}
+		if (name === 'dev') {
+			const port = values.port === undefined ? undefined : Number(values.port);
+			const server = await dev(root, {
+				port,
+				cwd,
+				warn: (line) => out.error(line),
+				error: (line) => out.error(line)
+			});
+			out.log(`Serving at ${server.url}, drafts included. Ctrl-C stops it.`);
+			await new Promise((resolve) => process.once('SIGINT', resolve));
+			await server.close();
 			return 0;
 		}
 		out.error(`sitez: '${name}' isn't built yet`);

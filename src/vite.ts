@@ -6,7 +6,9 @@
  * and `import.meta.url` still points at them: the Markz site's Quality page reads its test cases
  * relative to its own file. A site has no `node_modules`, so its imports resolve from Sitez.
  */
+import { createHash } from 'node:crypto';
 import { readFileSync, realpathSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, relative, sep } from 'node:path';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { parse } from '@amitkaps/markz';
@@ -36,8 +38,10 @@ export interface SiteServer {
 }
 
 /** @prose
- * A server with no HTTP listener and no watcher, for rendering. `dev` (step 9) will add both.
- * Svelte's dev checks are off, as they cost time and don't change the HTML.
+ * For `build`, a server with no HTTP listener and no watcher, only for rendering. For `dev`, the
+ * same server listening on `port`, watching the site and hot-replacing what the browser loads,
+ * with `dev.ts`'s plugin serving the pages. Svelte's dev checks are off either way, as they cost
+ * time and don't change the HTML.
  *
  * Vite names modules by their real path, so a site reached through a symlink (macOS's `/var` is
  * `/private/var`) is served from its real path, and an error names the file by the path the
@@ -46,21 +50,27 @@ export interface SiteServer {
 export async function siteServer(
 	root: string,
 	links: LinkTargets,
-	islands: Islands
+	islands: Islands,
+	dev?: { port: number; plugin: Plugin }
 ): Promise<SiteServer> {
 	const real = realpathSync(root);
 	const vite = await createServer({
 		configFile: false,
 		root: real,
+		cacheDir: cacheDir(real),
 		logLevel: 'silent',
 		appType: 'custom',
-		server: { middlewareMode: true, hmr: false, watch: null },
+		// A site's modules import Sitez's runtime and Svelte from outside the site's folder.
+		server: dev
+			? { port: dev.port, host: 'localhost', fs: { strict: false } }
+			: { middlewareMode: true, hmr: false, watch: null },
 		plugins: [
 			fromSitez(),
 			proseModules(root, real, links),
 			islandModules(root, real, islands),
-			sveltePlugin(real),
-			noOptimizer()
+			sveltePlugin(real, { hmr: dev !== undefined }),
+			noOptimizer(),
+			...(dev ? [dev.plugin] : [])
 		]
 	});
 	return {
@@ -91,15 +101,25 @@ export async function siteServer(
 }
 
 /** @prose
+ * Vite and vite-plugin-svelte keep a cache in `node_modules/.vite` of the nearest package, which
+ * for a site with none may be a folder that isn't the site's. Sitez keeps it in the system's temp
+ * folder instead, one per site, so a site's folder only ever gets `dist/`.
+ */
+export function cacheDir(real: string): string {
+	return join(tmpdir(), 'sitez', createHash('sha256').update(real).digest('hex').slice(0, 12));
+}
+
+/** @prose
  * Svelte as every build of a site compiles it. A component's scoping class is hashed from its
  * path in the site, not on the disk, so the server render and the client build agree on it, and
  * a site builds to the same files wherever it is checked out.
  */
-export function sveltePlugin(real: string): Plugin[] {
+export function sveltePlugin(real: string, { hmr = false } = {}): Plugin[] {
 	return svelte({
 		configFile: false,
 		compilerOptions: {
 			dev: false,
+			hmr,
 			experimental: { async: true },
 			cssHash: ({ hash, filename }) =>
 				`svelte-${hash(
@@ -178,15 +198,20 @@ function proseModules(root: string, real: string, links: LinkTargets): Plugin {
 /** @prose
  * Vite's dependency optimizer resolves from the site root, where there are no packages, and
  * vite-plugin-svelte adds `svelte/*` to its list in a config hook. Svelte and Sitez's other
- * dependencies are ESM and need no pre-bundling, so the lists are cleared once resolved.
+ * dependencies are ESM and need no pre-bundling, so the lists are cleared once resolved, and
+ * `dev` doesn't discover more: it would write its cache into a `node_modules` the site doesn't
+ * have.
  */
 export function noOptimizer(): Plugin {
 	return {
 		name: 'sitez:no-optimizer',
 		configResolved(config) {
-			config.optimizeDeps.include = [];
-			for (const environment of Object.values(config.environments)) {
-				environment.optimizeDeps.include = [];
+			for (const options of [
+				config.optimizeDeps,
+				...Object.values(config.environments).map((environment) => environment.optimizeDeps)
+			]) {
+				options.include = [];
+				options.noDiscovery = true;
 			}
 		}
 	};

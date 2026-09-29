@@ -29,9 +29,22 @@ Sitez's other dependencies are ESM and need no pre-bundling.
 
 ## Dev server
 
-A change to a page reloads that page. A change to CSS or an island is hot-replaced without a
-reload. Server-rendered pages have no client state to keep, so a reload is the whole of HMR for
-them.
+`sitez dev` is the same Vite server `build` renders through, listening and watching (`dev.ts`).
+It renders a page when it's asked for, with the code `build` uses (`site.ts`), so the two can't
+disagree; drafts are pages like any other. The site is read again for every page, which is what
+makes a new or deleted file a new or missing URL without a restart.
+
+A page's script in dev is a module that imports the stylesheet as modules (the reset,
+`pattern/style.css`, and each component's style module, never the component itself, which may
+import what only runs on the server) and then hydrates the page's islands. So a change to CSS or
+an island is hot-replaced by Vite and Svelte. Anything else can change any page's HTML, even
+whether a link on another page is broken, so the server's modules are all invalidated and the
+page reloads: server-rendered pages have no client state to keep, so a reload is the whole of
+HMR for them. A failure renders as a page holding `build`'s message, with Vite's client on it,
+so fixing the file reloads it.
+
+Vite's dependency optimizer doesn't run, and its cache lives in the system's temp folder, so
+`dev` writes nothing into the site.
 
 ## Build
 
