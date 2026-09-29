@@ -47,8 +47,8 @@ with the message it must fail with.
       URL set, after rendering). Promise 4 says prose; leave a `@note` if it should say more.
 - [ ] Site links (`[workshops](/workshops)`), Markz's form for a link within the site: checked
       against the built URLs and `public/`, and written with the page's trailing slash
-      (`/workshops/`). A path this site doesn't build (`/stories`, a separate site on the same
-      domain) fails like any missing page; the author writes it in full, and full URLs are never
+      (`/workshops/`). A path this site doesn't build, such as a separate site on the same
+      domain, fails like any missing page; the author writes it in full, and full URLs are never
       checked.
 
 ### 5. The site's own files (metadata)
@@ -121,22 +121,14 @@ idea.md's third test, run for real, on a branch of markz.
 - [ ] Compare with today's site page by page: same content, less JavaScript. Whatever Sitez
       couldn't do goes back into idea.md or "Not in v1".
 
-### 11b. amitkaps.github.io
+### 11b. A personal site
 
-A second real site, on a branch of amitkaps.github.io: flat, content-heavy, with data grids, a
-404 page and old `.html` URLs, where the Markz site is docs. Today it is SvelteKit with its own
-`marked` + `js-yaml` + zod pipeline, live at next.amitkaps.com.
+A second real site, kept in its own private repo: flat, content-heavy, with data grids, a 404 page
+and old `.html` URLs, where the Markz site is docs. Its notes stay in that repo.
 
-- [ ] Flatten `content/` into `prose/`, since the URL is the path; the 10 files whose `permalink`
-      differs from their name are renamed, and the essays list picks essays by `date`.
-- [ ] Rewrite the 667 raw HTML tags Markz reads as text (34 files, mostly `dvbootcamp.md` and
-      `djembe.md`): iframes, SVGs and forms into ` ```=html ` blocks, the rest into Markz
-      syntax. Then the 107 trailing-space breaks and the other warnings.
-- [ ] The `<!--@data-->` pages become elements (`{@workshop-grid /}`); the three with filters
-      are islands. `content/data/*.yml` becomes JSON beside the patterns that import it.
-- [ ] The old `.html` URLs redirect from `public/_redirects`; `/stories` and the other sub-sites
-      stay the Worker's business, outside Sitez.
-- [ ] Compare with next.amitkaps.com page by page, as for the Markz site.
+- [ ] Port it on a branch: URLs from paths, raw HTML rewritten as Markz, data grids as element
+      components (the filterable ones islands), its data as JSON beside the patterns.
+- [ ] Compare with the current site page by page, as for the Markz site.
 
 ### 12. Release
 
