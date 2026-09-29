@@ -180,9 +180,25 @@ elements are `display: contents` in the reset, so neither affects layout.
 
 ## Check
 
-`sitez check` runs oxfmt and oxlint over `prose/` and `pattern/`, `svelte-check` for types, and
-reports Markz's warnings. oxfmt formats `.svelte` files, and it is the formatter whose output is
-Markz's canonical form, so one tool formats both folders.
+`sitez check` runs oxfmt over `prose/` and `pattern/`, oxlint over `pattern/`, `svelte-check`
+for types, and reports Markz's warnings, which `build` prints but never fails on (`check.ts`).
+oxfmt formats `.svelte` files, and it is the formatter whose output is Markz's canonical form, so
+one tool formats both folders. Every problem is one `file:line:col: message` line and any problem
+fails; `--fix` formats and applies oxlint's safe fixes first. The style is Sitez's, not
+configured (`runtime/oxfmtrc.json`).
+
+The tools are Sitez's own dependencies, run with the Node running Sitez. svelte-check looks for a
+Svelte config up the tree from each file, so a site inside a larger repo, as the Markz site is,
+would be checked by the repo's `vite.config.ts`; Sitez runs it in a folder of its own in the
+cache folder instead, with a link to `pattern/`, a `tsconfig` and a Svelte config that compiles
+as Sitez does. Svelte's `state_referenced_locally` warning is off: a page renders once and an
+island's props are set once, so reading a prop at the top of a script is always what's meant.
+
+## Preview
+
+`sitez preview` serves `dist/` as a static host does (`preview.ts`): a folder's URL serves its
+`index.html`, a folder without its slash redirects to it, and what isn't there gets `404.html`
+with a 404. It renders nothing, so it shows exactly what will deploy.
 
 ## Install
 
@@ -195,9 +211,12 @@ rules out Node's single executable applications; `bun build --compile` is the li
 
 ## Deploy
 
-`sitez deploy` pushes `dist/` to the `gh-pages` branch with the user's own git, when the remote
-is on GitHub. Cloudflare builds from its own git integration with `npx sitez build`, so Sitez
-carries no Wrangler.
+`sitez deploy` builds, then pushes `dist/` to the `gh-pages` branch with the user's own git and
+credentials, when the remote is on GitHub (`deploy.ts`). It clones the branch into a temp folder,
+so the author's checkout is never touched, replaces its files with `dist/`'s and a `.nojekyll`,
+and commits `Deploy <source sha>`: the branch keeps its history, so a bad deploy can be found and
+reverted, and a build that changed nothing pushes nothing. Cloudflare builds from its own git
+integration with `npx sitez build`, so Sitez carries no Wrangler.
 
 ## Why not SvelteKit, Astro or Ogygia
 

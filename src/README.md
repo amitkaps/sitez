@@ -25,5 +25,8 @@ stage gets a file here, or a folder once it needs more than one, as its step in
 - `build.ts` renders every page and writes `dist/`.
 - `report.ts` is what `build` prints: what each page costs to send and to build.
 - `dev.ts` serves the site while it's written, rendering each page as it's asked for.
+- `preview.ts` serves `dist/` as a static host would.
+- `check.ts` formats, lints and type-checks the site's files, and reports Markz's warnings.
+- `deploy.ts` builds and publishes `dist/` to GitHub Pages.
 - `runtime/` holds Sitez's files that a site's own build loads through Vite, such as the reset and the islands' runtime.
 - `errors.ts` is how a mistake in a site becomes a message naming the file and what to change.

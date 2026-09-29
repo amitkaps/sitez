@@ -55,20 +55,15 @@ to one line each.
   drafts included, redirects `/about` to `/about/` and serves the 404 page, sitemap and feed.
   CSS and islands hot-replace, anything else reloads, and a failure shows `build`'s message in
   the page. `src/dev.test.ts` reads Vite's hot-update socket; no real browser runs in CI.
+- **10. The rest of the CLI.** `preview.ts` serves `dist/` as a host does; `check.ts` runs oxfmt,
+  oxlint, svelte-check and Markz's warnings, one line a problem, with `--fix`; `deploy.ts` builds
+  and pushes to `gh-pages` with the author's git, keeping the branch's history.
 
 ## Open work, in order
 
 Each step ends in something a fixture site shows, so the step is done when its fixture builds and
 its tests pass, not when the code is written. Error cases are fixtures too: a site that must fail,
 with the message it must fail with.
-
-### 10. The rest of the CLI
-
-- [ ] `sitez preview`: serve `dist/` with the same URLs a static host gives.
-- [ ] `sitez check`: oxfmt and oxlint over `prose/` and `pattern/`, `svelte-check`, Markz
-      warnings. Exits non-zero on any problem.
-- [ ] `sitez deploy`: push `dist/` to `gh-pages` with the user's git when the remote is GitHub;
-      anything else says how to deploy instead.
 
 ### 11. The Markz site
 

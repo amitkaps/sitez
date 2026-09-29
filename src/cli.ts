@@ -11,7 +11,10 @@ import { relative } from 'node:path';
 import { parseArgs } from 'node:util';
 import pkg from '../package.json' with { type: 'json' };
 import { build } from './build.ts';
+import { check } from './check.ts';
+import { deploy } from './deploy.ts';
 import { dev } from './dev.ts';
+import { preview } from './preview.ts';
 import { SiteError } from './errors.ts';
 import { report } from './report.ts';
 import { findRoot } from './root.ts';
@@ -33,12 +36,12 @@ const usage = [
 	...Object.entries(commands).map(([name, what]) => `  ${name.padEnd(8)} ${what}`),
 	'',
 	'Run it anywhere inside a site: the folder holding site.md.',
-	'`sitez dev --port 4000` serves on another port.'
+	'`--port 4000` serves dev or preview on another port; `check --fix` formats and fixes first.'
 ].join('\n');
 
 /** @prose
- * Runs one command line and returns the exit code, so tests can call it without a process. Each
- * command lands with its step in `prose/plan.md`; until then it says it isn't built.
+ * Runs one command line and returns the exit code, so tests can call it without a process. `dev`
+ * and `preview` run until Ctrl-C.
  */
 export async function run(argv: string[], cwd: string, out = console): Promise<number> {
 	const { values, positionals } = parseArgs({
@@ -46,7 +49,8 @@ export async function run(argv: string[], cwd: string, out = console): Promise<n
 		options: {
 			help: { type: 'boolean', short: 'h' },
 			version: { type: 'boolean', short: 'v' },
-			port: { type: 'string', short: 'p' }
+			port: { type: 'string', short: 'p' },
+			fix: { type: 'boolean' }
 		},
 		allowPositionals: true,
 		strict: false
@@ -87,8 +91,32 @@ export async function run(argv: string[], cwd: string, out = console): Promise<n
 			await server.close();
 			return 0;
 		}
-		out.error(`sitez: '${name}' isn't built yet`);
-		return 1;
+		if (name === 'preview') {
+			const port = values.port === undefined ? undefined : Number(values.port);
+			const server = await preview(root, { port });
+			out.log(`Serving dist/ at ${server.url}, as a host would. Ctrl-C stops it.`);
+			await new Promise((resolve) => process.once('SIGINT', resolve));
+			await server.close();
+			return 0;
+		}
+		if (name === 'check') {
+			const { problems } = await check(root, { cwd, fix: values.fix === true });
+			for (const problem of problems) out.error(problem);
+			const n = problems.length;
+			out.log(n === 0 ? 'No problems.' : `${n} ${n === 1 ? 'problem' : 'problems'}.`);
+			return n === 0 ? 0 : 1;
+		}
+		const deployed = await deploy(root);
+		for (const warning of deployed.build.warnings) {
+			out.error(formatWarning(warning, (file) => relative(cwd, file)));
+		}
+		out.log(report(deployed.build, relative(cwd, deployed.build.outDir) || '.'));
+		out.log(
+			deployed.changed
+				? `Published to gh-pages on ${deployed.remote}. GitHub Pages serves it when the repo's Pages source is that branch.`
+				: 'Nothing to publish: gh-pages already holds this build.'
+		);
+		return 0;
 	} catch (error) {
 		if (!(error instanceof SiteError)) throw error;
 		// An error about the folder sitez ran in, such as there being no site, is sitez's own.
