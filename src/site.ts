@@ -23,7 +23,7 @@ import {
 	type Metadata,
 	type PageData
 } from './metadata.ts';
-import { document, renderBody, renderLayout, svelteOf } from './render.ts';
+import { document, missingImport, renderBody, renderLayout, svelteOf } from './render.ts';
 import { SITE_FILE } from './root.ts';
 import type { SiteServer } from './vite.ts';
 import { markzWarnings, type MarkzWarning } from './warnings.ts';
@@ -151,12 +151,12 @@ export async function renderPage(run: Run, page: Page): Promise<Rendered> {
 	const module = run.modules.get(page) ?? (await server.load(page.file));
 	let pageData = run.data.get(page)!;
 	const islands = new Set<string>();
-	const body = await renderBody(
-		svelte,
-		page.file,
-		module.default as never,
-		{ page: pageData, prose, site },
-		islands
+	const rendering = <T>(work: Promise<T>) =>
+		work.catch((error: unknown) => {
+			throw missingImport(error, root, server.real) ?? error;
+		});
+	const body = await rendering(
+		renderBody(svelte, page.file, module.default as never, { page: pageData, prose, site }, islands)
 	);
 	if (page.kind === 'pattern' && pageData.title === undefined) {
 		pageData = patternMetadata(page.file, page.url, module.metadata, body.body);
@@ -165,7 +165,9 @@ export async function renderPage(run: Run, page: Page): Promise<Rendered> {
 	const layout = layoutFile
 		? { file: layoutFile, component: (await server.load(layoutFile)).default as never }
 		: undefined;
-	const out = await renderLayout(svelte, layout, { page: pageData, prose, site }, body, islands);
+	const out = await rendering(
+		renderLayout(svelte, layout, { page: pageData, prose, site }, body, islands)
+	);
 	const tags = headTags(pageData, site, run.hasFeed);
 	const problem = renderedLinkProblem(
 		run.links,
