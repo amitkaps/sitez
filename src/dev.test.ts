@@ -17,19 +17,26 @@ afterAll(() => server.close());
 const get = (path: string) => fetch(new URL(path, server.url), { redirect: 'manual' });
 
 describe('pages', () => {
-	test('a page is rendered with Vite and its own script', async () => {
+	test('a page is rendered with Vite and its own scripts, hidden until styled', async () => {
 		const response = await get('/blog/');
 		expect(response.status).toBe(200);
 		const html = await response.text();
 		expect(html).toContain('<sitez-island c="TagFilter"');
+		expect(html).toContain('<style id="sitez-hidden">html{visibility:hidden;');
 		expect(html).toContain('<script type="module" src="/@vite/client"></script>');
+		expect(html).toContain(
+			'<script type="module" src="/@sitez/styles.js?url=%2Fblog%2F"></script>'
+		);
 		expect(html).toContain('<script type="module" src="/@sitez/page.js?url=%2Fblog%2F"></script>');
 	});
 
-	test("the page's script loads the stylesheet and hydrates its islands", async () => {
-		const script = await (await get('/@sitez/page.js?url=%2Fblog%2F')).text();
-		expect(script).toContain('/pattern/style.css');
-		expect(script).toContain('hydrateIslands({ "TagFilter": I0 })');
+	test("the page's scripts load the stylesheet, show the page and hydrate its islands", async () => {
+		const styles = await (await get('/@sitez/styles.js?url=%2Fblog%2F')).text();
+		expect(styles).toContain('/pattern/style.css');
+		expect(styles).toContain('TagFilter.svelte?svelte&type=style&lang.css');
+		expect(styles).toContain("document.getElementById('sitez-hidden')?.remove();");
+		const page = await (await get('/@sitez/page.js?url=%2Fblog%2F')).text();
+		expect(page).toContain('hydrateIslands({ "TagFilter": I0 })');
 	});
 
 	test('a draft is served', async () => {
@@ -76,6 +83,7 @@ describe('changes', () => {
 			});
 		});
 		// The browser has loaded the page, so its modules are in Vite's graph.
+		await (await get('/@sitez/styles.js?url=%2Fblog%2F')).text();
 		await (await get('/@sitez/page.js?url=%2Fblog%2F')).text();
 		await (await get('/pattern/TagFilter.svelte')).text();
 		await (await get('/pattern/style.css')).text();

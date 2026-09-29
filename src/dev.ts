@@ -89,28 +89,36 @@ export async function dev(
 		if (!found) return undefined;
 		const out = await renderPage(run, found);
 		rendered.set(url, out.islands);
+		const query = `?url=${encodeURIComponent(url)}`;
 		const assets = [
+			HIDDEN,
 			'<script type="module" src="/@vite/client"></script>',
-			`<script type="module" src="${ENTRY}?url=${encodeURIComponent(url)}"></script>`
+			`<script type="module" src="${SCRIPTS}styles.js${query}"></script>`,
+			`<script type="module" src="${SCRIPTS}page.js${query}"></script>`
 		];
 		const { tags, head, body } = out.parts;
 		return document(run.site, [tags, ...assets].join('\n'), head, body);
 	};
 
 	/** @prose
-	 * A page's script in dev: the stylesheet as modules, so Vite replaces them as they change,
-	 * then the page's islands, hydrated as in `build`. A component's styles come from the module
-	 * Svelte compiled them into, never from the component itself, which may import what only runs
-	 * on the server.
+	 * A page's two scripts in dev. `styles.js` imports the stylesheet as modules, so Vite replaces
+	 * them as they change, then shows the page, which stays hidden until then so it never flashes
+	 * unstyled. A component's styles come from the module Svelte compiled them into, never from the
+	 * component itself, which may import what only runs on the server. `page.js` hydrates the
+	 * page's islands, as in `build`; it is a script of its own, so a broken island can't keep the
+	 * styles from loading.
 	 */
-	const entry = (url: string): string =>
-		[
+	const script = (name: string, url: string): string | undefined => {
+		if (name === 'page.js') return hydrateEntry(rendered.get(url) ?? [], server.islands);
+		if (name !== 'styles.js') return undefined;
+		return [
 			...styleImports(server.real, join(server.real, 'pattern', 'style.css')),
 			...server
 				.components()
 				.map((file) => `import ${JSON.stringify(`${file}?svelte&type=style&lang.css`)};`),
-			hydrateEntry(rendered.get(url) ?? [], server.islands)
+			`document.getElementById('sitez-hidden')?.remove();`
 		].join('\n');
+	};
 
 	/** @prose
 	 * Pages first, before Vite's own middleware. `/about` redirects to `/about/`, as a static host
@@ -157,17 +165,18 @@ export async function dev(
 		vite.environments.ssr.moduleGraph.invalidateAll();
 		const client = vite.environments.client.moduleGraph;
 		for (const [id, module] of client.idToModuleMap) {
-			if (id.startsWith(`\0${ENTRY}`)) client.invalidateModule(module);
+			if (id.startsWith(`\0${SCRIPTS}`)) client.invalidateModule(module);
 		}
 		vite.ws.send({ type: 'full-reload' });
 	};
 
 	const plugin: Plugin = {
 		name: 'sitez:dev',
-		resolveId: (id) => (id.startsWith(ENTRY) ? `\0${id}` : null),
+		resolveId: (id) => (id.startsWith(SCRIPTS) ? `\0${id}` : null),
 		load(id) {
-			if (!id.startsWith(`\0${ENTRY}`)) return null;
-			return entry(new URLSearchParams(id.split('?')[1]).get('url') ?? '/');
+			if (!id.startsWith(`\0${SCRIPTS}`)) return null;
+			const [name = '', query] = id.slice(SCRIPTS.length + 1).split('?');
+			return script(name, new URLSearchParams(query).get('url') ?? '/');
 		},
 		configureServer(vite) {
 			vite.middlewares.use((request, response, next) => void serve(request, response, next));
@@ -192,8 +201,13 @@ export async function dev(
 	return { url: address, close: () => server.close() };
 }
 
-// The URL of a page's script, served by the plugin above.
-const ENTRY = '/@sitez/page.js';
+// Where a page's scripts are served, by the plugin above.
+const SCRIPTS = '/@sitez/';
+
+// Hides a page until `styles.js` has loaded its styles, or for a second at most, so a script that
+// fails can't leave it blank.
+const HIDDEN =
+	'<style id="sitez-hidden">html{visibility:hidden;animation:sitez-show 0s 1s forwards}@keyframes sitez-show{to{visibility:visible}}</style>';
 
 /** A page's URL ends in `/` or `.html`, or has no extension: `/about` redirects. */
 function looksLikePage(path: string): boolean {

@@ -34,10 +34,12 @@ It renders a page when it's asked for, with the code `build` uses (`site.ts`), s
 disagree; drafts are pages like any other. The site is read again for every page, which is what
 makes a new or deleted file a new or missing URL without a restart.
 
-A page's script in dev is a module that imports the stylesheet as modules (the reset,
+A page in dev has two scripts. One imports the stylesheet as modules (the reset,
 `pattern/style.css`, and each component's style module, never the component itself, which may
-import what only runs on the server) and then hydrates the page's islands. So a change to CSS or
-an island is hot-replaced by Vite and Svelte. Anything else can change any page's HTML, even
+import what only runs on the server), then shows the page, which a small `<style>` keeps hidden
+until then, or for a second at most, so it never flashes unstyled. The other hydrates the
+page's islands, apart, so a broken island can't hold back the styles. So a change to CSS or an
+island is hot-replaced by Vite and Svelte. Anything else can change any page's HTML, even
 whether a link on another page is broken, so the server's modules are all invalidated, and so
 are the pages' scripts, since a page may now use a different island, and the page reloads: server-rendered pages have no client state to keep, so a reload is the whole of
 HMR for them. A failure renders as a page holding `build`'s message, with Vite's client on it,
