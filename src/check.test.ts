@@ -33,6 +33,18 @@ describe("sitez check", { timeout: 60_000 }, () => {
     );
     expect(problems.some((line) => line.includes("about.md"))).toBe(false);
   });
+
+  test("checks plain JS as TypeScript would, without asking for types", async () => {
+    const site = copy("landing");
+    writeFileSync(
+      join(site, "pattern", "Plain.svelte"),
+      "<script>\n  const n = 1;\n  n.toUpperCase();\n  const pick = function (event) {\n    return event.target.value;\n  };\n</script>\n\n<input oninput={pick} />\n",
+    );
+    const { problems } = await check(site);
+    expect(problems).toEqual([
+      "pattern/Plain.svelte:3:5: Property 'toUpperCase' does not exist on type '1'.",
+    ]);
+  });
 });
 
 function copy(name: string): string {

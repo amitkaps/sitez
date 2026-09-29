@@ -78,7 +78,10 @@ export async function check(root: string, { cwd = root } = {}): Promise<CheckRes
  * itself. It runs in a folder of Sitez's, in the cache folder, holding a link to `pattern/`, a
  * `tsconfig` and a Svelte config that compiles as Sitez does: svelte-check looks for a config up
  * the tree from each file, so a site inside a larger repo would otherwise be checked by that
- * repo's. Svelte's `state_referenced_locally` is ignored, since a page renders once and an
+ * repo's. It is strict, and plain-JS scripts are checked too, as strictly, except that nothing
+ * has to be given a type: a parameter without one is left alone, in `lang="ts"` as in JS, so a
+ * site written without types is checked for what is wrong, not for what is missing.
+ * Svelte's `state_referenced_locally` is ignored, since a page renders once and an
  * island's props are set once, from the server, so reading one at the top of a script is always
  * what's meant.
  */
@@ -97,6 +100,8 @@ async function svelteCheck(root: string, shown: (file: string) => string): Promi
         moduleResolution: "bundler",
         strict: true,
         allowJs: true,
+        checkJs: true,
+        noImplicitAny: false,
         skipLibCheck: true,
         noEmit: true,
         allowImportingTsExtensions: true,

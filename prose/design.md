@@ -201,7 +201,10 @@ The tools are Sitez's own dependencies, run with the Node running Sitez. svelte-
 Svelte config up the tree from each file, so a site inside a larger repo, as the Markz site is,
 would be checked by the repo's `vite.config.ts`; Sitez runs it in a folder of its own in the
 cache folder instead, with a link to `pattern/`, a `tsconfig` and a Svelte config that compiles
-as Sitez does. Svelte's `state_referenced_locally` warning is off: a page renders once and an
+as Sitez does. That `tsconfig` is strict and checks plain-JS scripts as well as `lang="ts"`
+ones, but asks for no types: an untyped parameter isn't a problem, so a site written in plain JS
+is checked for mistakes (a name that isn't defined, a method a value doesn't have), not for
+missing annotations. Svelte's `state_referenced_locally` warning is off: a page renders once and an
 island's props are set once, so reading a prop at the top of a script is always what's meant.
 
 ## Preview
