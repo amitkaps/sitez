@@ -17,7 +17,10 @@ stage gets a file here, or a folder once it needs more than one, as its step in
 - `render.ts` turns one page into a complete HTML document.
 - `head.ts` is what a page's `<head>` says about it, from its metadata.
 - `sitemap.ts` writes `sitemap.xml` and `feed.xml`.
-- `bundle.ts` builds what the browser downloads besides the HTML: the site's one stylesheet.
+- `islands.ts` decides which components are islands, from their source, and wraps each one the
+  server render imports.
+- `bundle.ts` builds what the browser downloads besides the HTML: the site's one stylesheet, and
+  the islands' JavaScript.
 - `build.ts` renders every page and writes `dist/`.
-- `runtime/` holds Sitez's files that a site's own build loads through Vite, such as the reset.
+- `runtime/` holds Sitez's files that a site's own build loads through Vite, such as the reset and the islands' runtime.
 - `errors.ts` is how a mistake in a site becomes a message naming the file and what to change.

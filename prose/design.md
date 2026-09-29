@@ -133,19 +133,33 @@ to a component (`<Button {...props}>`) can't be seen statically, so the server b
 a component that isn't an island and receives an `on…` function fails the build, naming the
 component and the prop.
 
-The island is the outermost component with browser behavior below a page or layout. In the
-server build, Sitez renders it through a wrapper that writes the marker, the component, and its
-children inside one `<sitez-children>` element:
+The island is the outermost component with browser behavior below a page or layout, which only
+the render knows: the same component can be an island on one page and part of another island on
+the next. So in the server render every `.svelte` a site's module imports resolves to a small
+generated module (`islands.ts`) that calls the real component through `runtime/server.ts`, with
+what the AST said about it. Svelte's context tells it where it is: inside an island it renders the
+component as it is, since the browser runs all of it; outside, a component with behavior becomes
+the island, written with its marker, and its children inside one `<sitez-children>` element:
 
 ```html
 <sitez-island c="TagFilter" p="…devalue…">…server-rendered HTML…</sitez-island>
 ```
 
+Calling the component directly is what compiled Svelte does for a child, so the wrapper adds no
+markup and the island's HTML is exactly what the component renders, as hydration needs. The
+island sets a context its children's components read, so an island in another's children fails.
+The client build doesn't wrap anything: there an island is just its component.
+
 Props are serialized with `devalue`, which keeps dates, maps, sets and URLs typed and already
 ships with Svelte. It throws on a function with the path to it (`.nested.fmt`), and Sitez turns
-that into the build error that names the island and the prop.
+that into the build error that names the island and the prop. Of `page`, `prose` and `site`, which
+an element's component always gets, only the ones its `$props()` names are serialized, and naming
+`prose` fails: every page's metadata would ship to the browser. A component with a scoping class
+hashed from its path renders the same class on the server and in the browser.
 
-The page's script finds each marker and calls `hydrate(Component, { target, props })`. Children
+The build reads each page's markers from its HTML and gives the page an entry that imports those
+islands and `runtime/client.ts`, which finds each marker and calls
+`hydrate(Component, { target, props })`. Children
 aren't in the JavaScript: they're already in the page, so the script passes back the
 `<sitez-children>` element's own HTML through `createRawSnippet`, and hydration reuses the
 existing nodes. Children from prose and from a pattern's markup hydrate the same way. Both

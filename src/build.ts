@@ -13,10 +13,11 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, sep } from 'node:path';
 import { parse } from '@amitkaps/markz';
-import { stylesheet, type Files } from './bundle.ts';
+import { scripts, stylesheet, type Files } from './bundle.ts';
 import { discover, nearest, NOT_FOUND, outputFile, type Page } from './discover.ts';
 import { SiteError } from './errors.ts';
 import { headTags } from './head.ts';
+import { checkNotIsland, type Islands } from './islands.ts';
 import { renderedLinkProblem, type LinkTargets } from './links.ts';
 import { SITE_FILE } from './root.ts';
 import {
@@ -78,7 +79,8 @@ export async function build(
 		pages: new Map(),
 		generated: new Set(['/sitemap.xml'])
 	};
-	const server = await siteServer(root, links);
+	const islands: Islands = new Map();
+	const server = await siteServer(root, links, islands);
 	let rendered: Rendered[];
 	let components: string[];
 	try {
@@ -89,6 +91,7 @@ export async function build(
 		const modules = new Map<Page, Record<string, unknown>>();
 		for (const page of pages) {
 			if (page.kind !== 'pattern') continue;
+			checkNotIsland(page.file, 'page');
 			const module = await server.load(page.file);
 			modules.set(page, module);
 			data.set(page, patternMetadata(page.file, page.url, module.metadata));
@@ -119,6 +122,7 @@ export async function build(
 				pageData = patternMetadata(page.file, page.url, module.metadata, body.body);
 			}
 			const layoutFile = nearest(root, page.url, 'Layout');
+			if (layoutFile) checkNotIsland(layoutFile, 'layout');
 			const layout = layoutFile
 				? { file: layoutFile, component: (await server.load(layoutFile)).default as never }
 				: undefined;
@@ -150,12 +154,24 @@ export async function build(
 		await server.close();
 	}
 
+	/** @prose
+	 * The islands a page rendered are the markers in its HTML, so a page's script imports exactly
+	 * those. Then every page gets the stylesheet and, if it has islands, its script.
+	 */
+	const used = new Map<string, string[]>();
+	for (const page of rendered) {
+		const names = [...page.parts.body.matchAll(/<sitez-island c="([^"]+)"/g)].map((m) => m[1]!);
+		if (names.length > 0) used.set(entryName(page.url), [...new Set(names)].sort());
+	}
 	const css = await stylesheet(root, server.real, components);
-	const files: Files = new Map(css.files);
+	const js = await scripts(root, server.real, used, islands);
+	const files: Files = new Map([...css.files, ...js.files]);
 	for (const page of rendered) {
 		const { tags, head, body } = page.parts;
-		const assets = `<link rel="stylesheet" href="${css.href}">`;
-		files.set(outputFile(page.url), document(site, `${tags}\n${assets}`, head, body));
+		const assets = [`<link rel="stylesheet" href="${css.href}">`];
+		const script = js.tags.get(entryName(page.url));
+		if (script) assets.push(script);
+		files.set(outputFile(page.url), document(site, [tags, ...assets].join('\n'), head, body));
 	}
 	const all = rendered.map((page) => page.data);
 	files.set('sitemap.xml', sitemap(site.url, all));
@@ -196,6 +212,14 @@ function write(root: string, outDir: string, files: Files): void {
 		mkdirSync(dirname(file), { recursive: true });
 		writeFileSync(file, content);
 	}
+}
+
+/** A page's script is named for its HTML file: `blog/index` for `blog/index.html`. */
+function entryName(url: string): string {
+	return outputFile(url)
+		.split(sep)
+		.join('/')
+		.replace(/\.html$/, '');
 }
 
 function source(path: string): string {

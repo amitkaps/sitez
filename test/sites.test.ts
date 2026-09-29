@@ -19,8 +19,9 @@ const names = readdirSync(sites, { withFileTypes: true })
 	.filter((entry) => entry.isDirectory())
 	.map((entry) => entry.name);
 
-// Snapshots are text; other files are listed by name only.
-const text = /\.(html|css|js|xml|svg|txt|json)$/;
+// Snapshots are what a person reviews; other files, bundled JavaScript among them, are listed by
+// name only. `islands.test.ts` runs the JavaScript instead.
+const text = /\.(html|css|xml|svg|txt|json)$/;
 
 describe.each(names.filter((name) => !name.startsWith('error-')))('%s', (name) => {
 	test('builds to its snapshot', async () => {

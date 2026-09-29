@@ -32,6 +32,7 @@
 	"devDependencies": {
 		"@amitkaps/prose": "https://github.com/amitkaps/prose/releases/download/v0.1.0/amitkaps-prose-0.1.0.tgz",
 		"@types/node": "^26.0.0",
+		"happy-dom": "20.14.5",
 		"typescript": "^6.0.3",
 		"vite-plus": "1.0.0"
 	},

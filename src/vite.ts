@@ -14,6 +14,7 @@ import { compile } from 'svelte/compiler';
 import { createServer, type Plugin, type ViteDevServer } from 'vite';
 import { SiteError } from './errors.ts';
 import { nearest, urlOf } from './discover.ts';
+import { islandModules, type Islands } from './islands.ts';
 import { linkTarget, type LinkTargets } from './links.ts';
 import { componentName, proseComponent } from './prose.ts';
 
@@ -42,7 +43,11 @@ export interface SiteServer {
  * `/private/var`) is served from its real path, and an error names the file by the path the
  * site was given, as every other message does.
  */
-export async function siteServer(root: string, links: LinkTargets): Promise<SiteServer> {
+export async function siteServer(
+	root: string,
+	links: LinkTargets,
+	islands: Islands
+): Promise<SiteServer> {
 	const real = realpathSync(root);
 	const vite = await createServer({
 		configFile: false,
@@ -50,7 +55,13 @@ export async function siteServer(root: string, links: LinkTargets): Promise<Site
 		logLevel: 'silent',
 		appType: 'custom',
 		server: { middlewareMode: true, hmr: false, watch: null },
-		plugins: [fromSitez(), proseModules(root, real, links), sveltePlugin(real), noOptimizer()]
+		plugins: [
+			fromSitez(),
+			proseModules(root, real, links),
+			islandModules(root, real, islands),
+			sveltePlugin(real),
+			noOptimizer()
+		]
 	});
 	return {
 		vite,

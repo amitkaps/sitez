@@ -6,13 +6,14 @@
  * reset, then `pattern/style.css`, then every component's scoped styles. CSS is small and needed
  * before anything paints, so one file, cached by the first page and reused by every other, is
  * cheaper than a split that saves a few bytes per page. Everything it references (a font, an
- * image) is bundled beside it, and every file's name carries a content hash, so a new deploy is
- * never served from a stale cache.
+ * image) is bundled beside it. JavaScript is only the islands', only on the pages that have them.
+ * Every file's name carries a content hash, so a new deploy is never served from a stale cache.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join, sep } from 'node:path';
 import { build, type InlineConfig, type Logger, type Plugin, type Rolldown } from 'vite';
 import { SiteError } from './errors.ts';
+import type { Islands } from './islands.ts';
 import { fromSitez, noOptimizer, runtime, siteError, sveltePlugin } from './vite.ts';
 
 /** Files to write into `dist/`, by path. */
@@ -36,12 +37,17 @@ export async function stylesheet(
 		// Only a component's module brings its styles, so each is kept by exporting it.
 		...components.map((file, i) => `export { default as c${i} } from ${JSON.stringify(file)};`)
 	];
-	const { output, unresolved } = await bundle(root, real, imports.join('\n'), {
-		assetFileNames: (asset) =>
-			asset.names.some((name) => name.endsWith('.css'))
-				? 'style.[hash].css'
-				: 'assets/[name].[hash][extname]'
-	});
+	const { output, unresolved } = await bundle(
+		root,
+		real,
+		{ style: imports.join('\n') },
+		{
+			assetFileNames: (asset) =>
+				asset.names.some((name) => name.endsWith('.css'))
+					? 'style.[hash].css'
+					: 'assets/[name].[hash][extname]'
+		}
+	);
 	if (unresolved.length > 0) {
 		const [url] = unresolved;
 		const file = [style, ...components.map((file) => root + file.slice(real.length))].find(
@@ -68,7 +74,66 @@ export async function stylesheet(
 }
 
 /** @prose
- * One client build from a generated entry, written to memory: nothing reaches `dist/` until
+ * The islands' JavaScript, for the pages that have any: each gets an entry that imports its
+ * islands and hydrates them, named for the page (`blog/index.[hash].js` beside
+ * `blog/index.html`). What more than one page uses, the Svelte runtime first, goes in
+ * `common.[hash].js`. The build is in production mode whatever the process says, since a dev
+ * server earlier in the same process leaves `NODE_ENV` at `development`, and Svelte's dev code is
+ * larger. The islands' styles are already in the stylesheet, so this build's CSS is dropped.
+ */
+export async function scripts(
+	root: string,
+	real: string,
+	pages: Map<string, string[]>,
+	islands: Islands
+): Promise<{ files: Files; tags: Map<string, string> }> {
+	const files: Files = new Map();
+	const tags = new Map<string, string>();
+	if (pages.size === 0) return { files, tags };
+	const client = JSON.stringify(join(runtime, 'client.ts'));
+	const entries = Object.fromEntries(
+		[...pages].map(([name, used]) => [
+			name,
+			[
+				`import { hydrateIslands } from ${client};`,
+				...used.map((island, i) => `import I${i} from ${JSON.stringify(islands.get(island))};`),
+				`hydrateIslands({ ${used.map((island, i) => `${JSON.stringify(island)}: I${i}`).join(', ')} });`
+			].join('\n')
+		])
+	);
+	const mode = process.env.NODE_ENV;
+	process.env.NODE_ENV = 'production';
+	let output: Rolldown.RolldownOutput['output'];
+	try {
+		({ output } = await bundle(root, real, entries, {
+			entryFileNames: '[name].[hash].js',
+			chunkFileNames: (chunk) =>
+				chunk.name === 'common' ? 'common.[hash].js' : 'assets/[name].[hash].js',
+			assetFileNames: 'assets/[name].[hash][extname]',
+			codeSplitting: { groups: [{ name: 'common', minShareCount: 2 }] }
+		}));
+	} finally {
+		if (mode === undefined) delete process.env.NODE_ENV;
+		else process.env.NODE_ENV = mode;
+	}
+	for (const item of output) {
+		if (item.type === 'asset') {
+			if (!item.fileName.endsWith('.css')) files.set(item.fileName, item.source);
+			continue;
+		}
+		files.set(item.fileName, item.code);
+		if (!item.isEntry) continue;
+		const preload = item.imports.map((file) => `<link rel="modulepreload" href="/${file}">`);
+		tags.set(
+			item.name,
+			[`<script type="module" src="/${item.fileName}"></script>`, ...preload].join('\n')
+		);
+	}
+	return { files, tags };
+}
+
+/** @prose
+ * One client build from generated entries, written to memory: nothing reaches `dist/` until
  * every page has built. Vite reports a `url()` it can't find as a warning and leaves it in the
  * CSS, so warnings are read here instead of printed, and a file that doesn't compile fails naming
  * it, as it would while rendering.
@@ -76,7 +141,7 @@ export async function stylesheet(
 async function bundle(
 	root: string,
 	real: string,
-	entry: string,
+	entries: Record<string, string>,
 	output: Rolldown.OutputOptions
 ): Promise<{ output: Rolldown.RolldownOutput['output']; unresolved: string[] }> {
 	const unresolved: string[] = [];
@@ -89,14 +154,14 @@ async function bundle(
 		root: real,
 		logLevel: 'silent',
 		customLogger: logger,
-		plugins: [fromSitez(), entryModule(entry), sveltePlugin(real), noOptimizer()],
+		plugins: [fromSitez(), entryModules(entries), sveltePlugin(real), noOptimizer()],
 		build: {
 			write: false,
 			assetsInlineLimit: 0,
 			cssCodeSplit: false,
 			modulePreload: { polyfill: false },
 			rolldownOptions: {
-				input: { entry: ENTRY },
+				input: Object.fromEntries(Object.keys(entries).map((name) => [name, ENTRY + name])),
 				// Vite drops an app entry's exports, and with them the modules only exported.
 				preserveEntrySignatures: 'exports-only',
 				output
@@ -115,13 +180,13 @@ async function bundle(
 	}
 }
 
-const ENTRY = 'sitez:entry';
+const ENTRY = 'sitez:entry/';
 
-function entryModule(code: string): Plugin {
+function entryModules(entries: Record<string, string>): Plugin {
 	return {
 		name: 'sitez:entry',
-		resolveId: (id) => (id === ENTRY ? `\0${ENTRY}` : null),
-		load: (id) => (id === `\0${ENTRY}` ? code : null)
+		resolveId: (id) => (id.startsWith(ENTRY) ? `\0${id}` : null),
+		load: (id) => (id.startsWith(`\0${ENTRY}`) ? entries[id.slice(ENTRY.length + 1)] : null)
 	};
 }
 

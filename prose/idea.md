@@ -96,7 +96,9 @@ site/
    - **Pages and layouts are never islands.** Browser behavior in one fails the build, naming
      the component to move it into.
    - **Props are data.** Strings, numbers, objects, arrays and dates cross into the browser. A
-     function doesn't, and passing one fails the build, naming the prop.
+     function doesn't, and passing one fails the build, naming the prop. An island gets `page` or
+     `site` only if it reads them, and reading `prose` fails, since every page's metadata would
+     ship with it: compute what it needs outside it and pass that in.
    - **Children are HTML.** An island's children are rendered at build time and handed to it
      finished, so an interactive wrapper can hold prose: `{@tab-set}` … `{/tab-set}`. An island
      inside another island's children fails the build.

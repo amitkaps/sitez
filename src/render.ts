@@ -104,7 +104,7 @@ ${body}
 
 /** @prose
  * A pattern that throws while rendering is a mistake in the site, not in Sitez: the build fails
- * naming the file that was rendering, since the error's own stack names the module it came from
+ * naming the file that was rendering, or the one an island's check names, since the error's own stack names the module it came from
  * (the data module, for a failed `await`), not the page.
  */
 async function guard<T>(file: string, fn: () => PromiseLike<T>): Promise<T> {
@@ -112,6 +112,11 @@ async function guard<T>(file: string, fn: () => PromiseLike<T>): Promise<T> {
 		return await fn();
 	} catch (error) {
 		if (error instanceof SiteError) throw error;
+		// Sitez's runtime runs beside the site's modules, where Sitez's own class isn't.
+		const { name, file: named, message: text } = error as Record<string, unknown>;
+		if (name === 'SiteError' && typeof named === 'string') {
+			throw new SiteError(named, String(text), { cause: error });
+		}
 		const message = error instanceof Error ? error.message : String(error);
 		throw new SiteError(file, `failed to render: ${message}`, { cause: error });
 	}

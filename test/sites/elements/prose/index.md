@@ -8,6 +8,10 @@ Rendered by `pattern/CallOut.svelte`, holding a [term]{@key-word} of its own.
 
 {@chart-view data=sales.csv /}
 
+{@fold-out label=Details}
+Folded prose, an island's children, with a [term]{@key-word} rendered at build time.
+{/fold-out}
+
 Every other page, listed by `pattern/PageList.svelte` from `prose`:
 
 {@page-list /}

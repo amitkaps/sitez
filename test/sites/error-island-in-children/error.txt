@@ -1,0 +1,1 @@
+pattern/LikeButton.svelte: LikeButton is an island inside FoldOut's children, which are rendered to HTML before FoldOut hydrates. Move it out of the children, or into FoldOut itself.

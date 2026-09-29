@@ -1,0 +1,3 @@
+# Posts
+
+{@post-picker /}

@@ -1,0 +1,1 @@
+pattern/Button.svelte: Button gets onclick, a function, but has no browser behavior of its own, so it renders as HTML and the function would never run. Write onclick={…} where the function is made: that component becomes the island.

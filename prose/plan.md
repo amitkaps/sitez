@@ -42,28 +42,18 @@ to one line each.
   (`src/runtime/reset.css`), `pattern/style.css`, then every rendered component's styles,
   content-hashed with the fonts and images it names; a `url()` that isn't there fails. The
   per-page CSS split was dropped: CSS is small, and one file is cached once.
+- **7. Islands.** `islands.ts` reads browser behavior from the AST and wraps every imported
+  component in the server render; `runtime/server.ts` decides per render what it is, writes the
+  marker with `devalue` props, and fails a page or layout with behavior, a function prop, a
+  handler through a spread, an island in an island's children and an island reading `prose`.
+  Each page with islands gets its own entry, shared code goes in `common.js`, and
+  `test/islands.test.ts` hydrates the built pages in happy-dom.
 
 ## Open work, in order
 
 Each step ends in something a fixture site shows, so the step is done when its fixture builds and
 its tests pass, not when the code is written. Error cases are fixtures too: a site that must fail,
 with the message it must fail with.
-
-### 7. Islands (rule 6)
-
-The `blog` fixture's `TagFilter` hydrates; the error fixtures fail with their messages.
-
-- [ ] Detection from step 0's signal; the island is the outermost interactive component below a
-      page or layout.
-- [ ] Fails: browser behavior in a page or layout (naming the component to move it into), a
-      function prop (naming it), an island inside an island's children.
-- [ ] An element's component gets `page`, `prose` and `site` (rule 5); as an island, only the
-      ones its `$props()` reads are serialized, and reading `prose` fails, since every page's
-      metadata would ship to the browser: compute the list outside the island and pass it in.
-- [ ] Output: the `<sitez-island>` marker with `devalue` props and server-rendered HTML; children
-      passed back through `createRawSnippet`.
-- [ ] Client: one small entry that hydrates every marker on the page; `common.js` and the page's
-      `index.js`, content-hashed. A page with no islands loads no JavaScript.
 
 ### 8. Build report
 
