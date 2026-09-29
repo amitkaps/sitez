@@ -156,11 +156,12 @@ of those tags itself fails, naming the metadata key that sets it.
 
 ## Styling
 
-A site has one stylesheet, and every page links it. It starts with Sitez's reset, a typographic
-starting point for plain HTML: `system-ui` text, readable line heights, `box-sizing`, images that
-fit their column, form controls in the page's font, and code in a monospace one. It has no
-colors, no theme and no design of its own. It is `@layer reset`, so any rule a site writes
-overrides it.
+A site has one stylesheet, and every page links it. It starts with Sitez's reset, a quiet look
+for plain HTML, so a page with no CSS of its own already reads well: one centered column about
+sixty characters wide in `system-ui`, a type scale with balanced headings and pretty paragraphs,
+soft ink on off-white paper that follows the reader's light or dark setting, and tables, forms,
+code, quotes and figures that look finished. It is `@layer reset`, so any rule a site writes
+overrides it, however specific; a full-width layout starts with `body { width: auto }`.
 
 `pattern/style.css`, if there is one, is the site's own design and follows the reset, then each
 component's scoped `<style>`. There is no other styling mechanism. Like everything in `pattern/`,
