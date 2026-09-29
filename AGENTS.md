@@ -1,6 +1,7 @@
 # Working on this repo
 
 Read **`prose/idea.md`** and **`prose/design.md`** first: what Sitez promises, and how it is built.
+**`prose/plan.md`** is the order the work happens in.
 
 - `idea.md` is the spec. Its promises and rules are what users rely on; `design.md` can change
   underneath them. A change that breaks a promise, or builds something listed in "Not in v1",
