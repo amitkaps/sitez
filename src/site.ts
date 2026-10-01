@@ -139,12 +139,6 @@ export async function readRun(server: SiteServer, { dev = false } = {}): Promise
  * One page: its component, then the page and its layout, then every link in the result checked.
  * A Svelte page's title is known only once it has rendered, when its `<h1>` can supply it.
  */
-/** @note
- * A broken link in the rendered HTML is named against the page (`prose/index.md: href="/about"`)
- * even when the layout wrote it, since the check reads the finished document. Cheap improvement:
- * look for the `href`/`src` in the layout's source (and the page's, for a pattern page) and name
- * that file when it's found there, falling back to "this page, its layout or a component".
- */
 export async function renderPage(run: Run, page: Page): Promise<Rendered> {
   const { root, site, server, prose, svelte } = run;
   const t = performance.now();
@@ -195,3 +189,12 @@ export async function renderPage(run: Run, page: Page): Promise<Rendered> {
     ms: performance.now() - t,
   };
 }
+
+/** @prose
+ * # Naming the file behind a broken link
+ *
+ * A broken link in the rendered HTML is named against the page (`prose/index.md: href="/about"`)
+ * even when the layout wrote it, since the check reads the finished document. Look for the
+ * `href`/`src` in the layout's source (and the page's, for a pattern page) and name that file when
+ * it's found there, falling back to "this page, its layout or a component".
+ */

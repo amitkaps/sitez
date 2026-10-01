@@ -19,11 +19,12 @@
     "check": "vp check",
     "dev": "vp pack --watch",
     "prepack": "vp pack",
+    "prose": "prose",
     "sitez": "node src/cli.ts",
     "test": "vp test --run"
   },
   "dependencies": {
-    "@amitkaps/markz": "^0.1.1-rc.0",
+    "@amitkaps/markz": "^0.1.1",
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "devalue": "^6.0.2",
     "svelte": "^5.57.1",
@@ -32,13 +33,24 @@
     "vite-plus": "1.0.0"
   },
   "devDependencies": {
-    "@amitkaps/prose": "https://github.com/amitkaps/prose/releases/download/v0.1.0/amitkaps-prose-0.1.0.tgz",
-    "@types/node": "^26.0.0",
+    "@amitkaps/prose": "^0.3.0",
+    "@types/node": "^24.0.0",
     "happy-dom": "20.14.5",
     "typescript": "^6.0.3"
   },
-  "engines": {
-    "node": ">=26"
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.8.1",
+      "onFail": "error"
+    },
+    "runtime": {
+      "name": "node",
+      "version": ">=26",
+      "onFail": "error"
+    }
   },
-  "packageManager": "pnpm@12.6.0"
+  "engines": {
+    "node": ">=24"
+  }
 }
