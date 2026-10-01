@@ -11,7 +11,8 @@ to one line each.
 - **Idea and design.** `prose/idea.md` (promises, rules, not in v1, three test sites),
   `prose/design.md` (toolchain, build, islands, bundling), `AGENTS.md`.
 - **1. Skeleton.** The `sitez` package on Vite+ (`vp check`, `vp test`, `vp pack` to
-  `dist/cli.js`), Node 26 and pnpm through `mise.toml`, CI on every PR; the CLI with its five
+  `dist/cli.js`), Node 26 to develop (the package runs on 24 and up) and pnpm pinned in
+  `package.json` (`devEngines`), CI on every PR; the CLI with its five
   commands, root finding from `site.md` and `SiteError` for the messages; the `blog`, `landing` and
   `error-reserved-site-md` sites in `test/sites/`. Each stage gets its file in `src/` as its step
   starts, not before. Markz comes from npm as `@amitkaps/markz`.
