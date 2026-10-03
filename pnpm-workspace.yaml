@@ -1,10 +1,14 @@
 # pnpm 12 reads project settings from here (moved out of .npmrc).
+minimumReleaseAgeExclude:
+  - "@amitkaps/markz@0.2.0"
 
-# Supply-chain cooldown, in minutes. 0 tracks the newest releases; a real
-# project wants 1440+.
-minimumReleaseAge: 0
-
-# Collapse every `vite` in the tree onto Vite+'s core build.
-# Bump this alongside the `vite-plus` devDependency.
+# Use Vite+'s bundled Vite implementation for every `vite` consumer.
+# Bump this alongside the `vite-plus` dependency.
 overrides:
   "vite@*": "npm:@voidzero-dev/vite-plus-core@1.0.0"
+
+# Vite+'s Vite implementation is exposed through an npm alias, so
+# pnpm cannot validate it against normal `vite` peer ranges.
+peerDependencyRules:
+  allowAny:
+    - vite

@@ -170,8 +170,8 @@ importers:
   .:
     dependencies:
       '@amitkaps/markz':
-        specifier: ^0.1.1
-        version: 0.1.1
+        specifier: ^0.2.0
+        version: 0.2.0
       '@sveltejs/vite-plugin-svelte':
         specifier: ^7.3.1
         version: 7.3.1(@voidzero-dev/vite-plus-core@1.0.0(@types/node@24.19.0)(typescript@6.0.3))(svelte@5.57.1)
@@ -209,6 +209,10 @@ packages:
   '@amitkaps/markz@0.1.1':
     resolution: {integrity: sha512-GASy2n4uTfuDiI+QOMT9JudpWTUhc7lG/NVhj+7t6EQTlYJ+dPWKZ6fbNvPn+4fCpCNmJQ6tS6Dnb8s5e/YW1Q==}
     engines: {node: '>=26'}
+
+  '@amitkaps/markz@0.2.0':
+    resolution: {integrity: sha512-guOqm9IPO8US79VRswxu5zpkbR8y6G9pb77AO45fXbfgRYC6HBa/LZZOXr0PpIuvqKG1xPhZI6ZYsApGBfN5wQ==}
+    engines: {node: '>=24'}
 
   '@amitkaps/prose@0.3.0':
     resolution: {integrity: sha512-ZQZY6gc22E9ye7HVbggRu6Pvvh2Bd4b6b2nwvUChfOVC14RRlf3AxTnEm6bAs+uTcefNOPpGoUk6YTRIirotyg==}
@@ -1588,6 +1592,8 @@ packages:
 snapshots:
 
   '@amitkaps/markz@0.1.1': {}
+
+  '@amitkaps/markz@0.2.0': {}
 
   '@amitkaps/prose@0.3.0':
     dependencies:
