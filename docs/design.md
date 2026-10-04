@@ -137,9 +137,12 @@ A text page is Markz's HTML with each element that has a component replaced by i
 `=html` block is. So the only tags in its output are Markz's own, and replacing one is exact. A
 component is found up the tree, as a layout is. It's called with three kinds of props.
 
-- Its attributes, as strings.
+- Its attributes, as strings. Classes accumulate, and any other key's last value wins.
 - Its content, rendered first, as `children`.
-- The page's `page`, `pages` and `site`. An attribute of one of those names fails.
+- The page's `page`, `pages` and `site`. An attribute named `children` or one of those fails.
+
+A component is a module like a page. Its default export returns a template, and the build renders
+it. Its output is trimmed, so a template written across lines can sit inside a paragraph.
 
 A raw block is written as it is. `build` prints Markz's warnings, and they never fail it.
 
@@ -331,9 +334,9 @@ templates. The spike that decided it is in [spike/](../spike/README.md).
 
 ## Open questions
 
-- **Types.** `sitez check` has no type checker once svelte-check goes. The likely one is `tsc`
-  with `checkJs` over `code/`, strict but asking for no annotations. It comes once a site's
-  mistakes call for it.
+- **Types.** `sitez check` has had no type checker since svelte-check went with Svelte. The likely
+  one is `tsc` with `checkJs` over `code/`, strict but asking for no annotations. It comes once a
+  site's mistakes call for it.
 - **Misspelled elements.** An element with no component and no island is a plain HTML element,
   which is legitimate. So a misspelled island name silently does nothing. A warning could catch
   it, for an element with no component, no island and no selector in `style.css`. That's worth

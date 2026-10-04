@@ -1,1 +1,0 @@
-code/PostPicker.svelte: PostPicker is an island and reads pages, which would ship every page's metadata to the browser. Compute what it needs in a page, a layout or a component without browser behavior, and pass that to PostPicker as a prop.

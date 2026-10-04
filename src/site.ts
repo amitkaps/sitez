@@ -16,8 +16,8 @@ import { parse } from "@amitkaps/markz";
 import { discover, nearest, NOT_FOUND, type Page } from "./discover.ts";
 import { SiteError } from "./errors.ts";
 import { headTags } from "./head.ts";
-import { checkNotIsland } from "./islands.ts";
-import { renderedLinkProblem, type LinkTargets } from "./links.ts";
+import { raw } from "./runtime/html.ts";
+import { linkTarget, renderedLinkProblem, type LinkTargets } from "./links.ts";
 import {
   isDraft,
   codeMetadata,
@@ -26,9 +26,10 @@ import {
   type Metadata,
   type PageData,
 } from "./metadata.ts";
-import { document, missingImport, renderBody, renderLayout, svelteOf } from "./render.ts";
+import { document, renderHead, renderLayout, renderModule, type Props } from "./render.ts";
 import { SITE_FILE } from "./root.ts";
-import type { SiteServer } from "./vite.ts";
+import { componentName, textHtml } from "./text.ts";
+import { asGiven, type SiteServer } from "./vite.ts";
 import { markzWarnings, type MarkzWarning } from "./warnings.ts";
 
 export interface Run {
@@ -45,7 +46,6 @@ export interface Run {
   /** Markz's, from `site.md` and every page this run renders. */
   warnings: MarkzWarning[];
   modules: Map<Page, Record<string, unknown>>;
-  svelte: Awaited<ReturnType<typeof svelteOf>>;
 }
 
 /** One page, rendered: its document's parts, before the stylesheet and scripts are known. */
@@ -55,7 +55,7 @@ export interface Rendered {
   ms: number;
   data: PageData;
   parts: { tags: string; head: string; body: string };
-  /** The islands the page and its layout rendered, by name, sorted. */
+  /** The islands the page and its layout rendered, by name, sorted. None until islands return. */
   islands: string[];
 }
 
@@ -75,15 +75,14 @@ export function readSite(root: string): Metadata & { url: string } {
 }
 
 /** @prose
- * Every page's metadata, read before anything renders. A Svelte page is a draft only once its
- * module says so, and a text page's links are checked as it loads. So every Svelte page's
- * metadata is read before any text page loads. The link targets are built whole, and only then
- * become the server's, which its text plugin checks against.
+ * Every page's metadata, read before anything renders. A JS page is a draft only once its module
+ * says so, and a text page's links are checked as it renders. So every JS page's module is loaded
+ * for its metadata before any page renders, and the link targets are built whole.
  *
  * `build` leaves drafts out, and so do `pages` and what links can reach, so no page lists or links
- * to what isn't built. A Svelte page whose title comes from its `<h1>` has none in `pages`, since
- * its title is known only once it renders. A page that's listed elsewhere states its title in
- * `metadata`. Pages and layouts are checked for browser behavior here, each file once.
+ * to what isn't built. A JS page whose title comes from its `<h1>` has none in `pages`, since its
+ * title is known only once it renders. A page that's listed elsewhere states its title in
+ * `metadata`.
  */
 export async function readRun(server: SiteServer, { dev = false } = {}): Promise<Run> {
   const { root } = server;
@@ -111,7 +110,6 @@ export async function readRun(server: SiteServer, { dev = false } = {}): Promise
   const modules = new Map<Page, Record<string, unknown>>();
   for (const page of pages) {
     if (page.kind !== "code") continue;
-    checkNotIsland(page.file, "page");
     const module = await server.load(page.file);
     modules.set(page, module);
     data.set(page, codeMetadata(page.file, page.url, module.metadata));
@@ -121,10 +119,6 @@ export async function readRun(server: SiteServer, { dev = false } = {}): Promise
   const listed = built.filter((page) => page.url !== NOT_FOUND).map((page) => data.get(page)!);
   const hasFeed = built.some((page) => page.url !== NOT_FOUND && data.get(page)!.date);
   if (hasFeed) links.generated.add("/feed.xml");
-  const layouts = new Set(built.map((page) => nearest(root, page.url, "Layout")));
-  for (const layout of layouts) if (layout) checkNotIsland(layout, "layout");
-  server.links = links;
-  const svelte = await svelteOf(server);
   return {
     root,
     site,
@@ -136,49 +130,44 @@ export async function readRun(server: SiteServer, { dev = false } = {}): Promise
     hasFeed,
     warnings,
     modules,
-    svelte,
   };
 }
 
 /** @prose
- * One page: its component, then the page and its layout, then every link in the result checked.
- * A Svelte page's title is known only once it has rendered, when its `<h1>` can supply it.
+ * One page: its body, then its layout around it, then `Head.js`, then every link in the result
+ * checked. A JS page's title is known only once it has rendered, when its `<h1>` can supply it.
  */
 export async function renderPage(run: Run, page: Page): Promise<Rendered> {
-  const { root, site, server, listed, svelte } = run;
+  try {
+    return await renderOne(run, page);
+  } catch (error) {
+    throw notDefined(error, run.root, run.server.real) ?? error;
+  }
+}
+
+async function renderOne(run: Run, page: Page): Promise<Rendered> {
+  const { root, site, server, listed } = run;
   const t = performance.now();
-  const module = run.modules.get(page) ?? (await server.load(page.file));
   let pageData = run.data.get(page)!;
-  const islands = new Set<string>();
-  const rendering = <T>(work: Promise<T>) =>
-    work.catch((error: unknown) => {
-      throw missingImport(error, root, server.real) ?? error;
-    });
-  const body = await rendering(
-    renderBody(
-      svelte,
-      page.file,
-      module.default as never,
-      { page: pageData, pages: listed, site },
-      islands,
-    ),
-  );
-  if (page.kind === "code" && pageData.title === undefined) {
-    pageData = codeMetadata(page.file, page.url, module.metadata, body.body);
+  const props = (): Props => ({ page: pageData, pages: listed, site });
+  let body: string;
+  if (page.kind === "text") {
+    body = await renderText(run, page, props());
+  } else {
+    const module = run.modules.get(page) ?? (await server.load(page.file));
+    body = await renderModule(page.file, module, props());
+    if (pageData.title === undefined) {
+      pageData = codeMetadata(page.file, page.url, module.metadata, body);
+    }
   }
   const layoutFile = nearest(root, page.url, "Layout");
-  const layout = layoutFile
-    ? { file: layoutFile, component: (await server.load(layoutFile)).default as never }
-    : undefined;
-  const out = await rendering(
-    renderLayout(svelte, layout, { page: pageData, pages: listed, site }, body, islands),
-  );
+  if (layoutFile) {
+    body = await renderLayout(layoutFile, await server.load(layoutFile), props(), body);
+  }
+  const headFile = nearest(root, page.url, "Head");
+  const head = headFile ? await renderHead(headFile, await server.load(headFile), props()) : "";
   const tags = headTags(pageData, site, run.hasFeed);
-  const problem = renderedLinkProblem(
-    run.links,
-    page.url,
-    document(site, tags, out.head, out.body),
-  );
+  const problem = renderedLinkProblem(run.links, page.url, document(site, tags, head, body));
   if (problem) {
     throw new SiteError(
       page.file,
@@ -189,17 +178,64 @@ export async function renderPage(run: Run, page: Page): Promise<Rendered> {
     url: page.url,
     file: page.file,
     data: pageData,
-    parts: { tags, ...out },
-    islands: [...islands].sort(),
+    parts: { tags, head, body },
+    islands: [],
     ms: performance.now() - t,
   };
 }
+
+/** @prose
+ * A text page's HTML (`text.ts`). Each component is found up the tree from the page's URL, as its
+ * layout is, and gets the element's attributes, its content as `children`, and the page's props.
+ */
+async function renderText(run: Run, page: Page, props: Props): Promise<string> {
+  const { root, server } = run;
+  const doc = parse(readFileSync(page.file, "utf8"));
+  return textHtml(page.file, doc, {
+    component: (name) => nearest(root, page.url, componentName(name)),
+    link: (destination, kind) => linkTarget(run.links, page.file, destination, kind),
+    render: async (file, attributes, children) =>
+      renderModule(
+        file,
+        await server.load(file),
+        { ...attributes, children: children === undefined ? undefined : raw(children), ...props },
+        "component",
+      ),
+  });
+}
+
+/** @prose
+ * A name used without an import, such as a component, fails only as it renders. The file that
+ * rendered may not be the one that used it, so the error's stack names the file. Its line numbers
+ * are Vite's, after the transform, so the line is found in the source.
+ */
+function notDefined(error: unknown, root: string, real: string): SiteError | undefined {
+  const cause = error instanceof SiteError ? error.cause : error;
+  if (!(cause instanceof ReferenceError)) return undefined;
+  const name = /^(\S+) is not defined$/.exec(cause.message)?.[1];
+  const frame = new RegExp(`\\(?(${escapeRegExp(real)}/[^():]+):\\d+:\\d+`).exec(
+    cause.stack ?? "",
+  )?.[1];
+  if (!name || !frame) return undefined;
+  const file = asGiven(root, real, frame);
+  const line =
+    readFileSync(file, "utf8")
+      .split("\n")
+      .findIndex((text) => text.includes(name)) + 1;
+  return new SiteError(
+    file,
+    `${line > 0 ? `line ${line}: ` : ""}${name} is used here, but isn't defined. Import it at the top of this file.`,
+    { cause },
+  );
+}
+
+const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** @prose
  * # Naming the file behind a broken link
  *
  * A broken link in the rendered HTML is named against the page (`text/index.md: href="/about"`)
  * even when the layout wrote it, since the check reads the finished document. Look for the
- * `href`/`src` in the layout's source (and the page's, for a Svelte page) and name that file when
+ * `href`/`src` in the layout's source (and the page's, for a JS page) and name that file when
  * it's found there, falling back to "this page, its layout or a component".
  */

@@ -25,6 +25,8 @@ line here. Finished steps shrink to one line each.
   `text/` follow rule 1. Sitez's own tests moved to `tests/`.
 - **12. The runtime.** `src/runtime/` holds `html`, the renderer and `define`, and `sitez`'s
   exports pick its build or browser half. `render.test.ts` covers each place a value can go.
+- **13. Pages, layouts and components in JavaScript.** The build renders them through the
+  runtime, and text through markers. The fixtures are JS, and `check` dropped svelte-check.
 
 ## Open work, in order
 
@@ -35,17 +37,6 @@ fail with the message it must fail with.
 The order keeps the tests green throughout. The mechanical changes came while Svelte still
 rendered. Next the renderer is swapped, then Svelte is deleted.
 
-### 13. Pages, layouts and components in JavaScript
-
-- [ ] Lowercase `.js` and `.ts` files in `code/` are pages, and capitalized ones are layouts and
-      components. `Head.js` adds to the head, and writing a tag Sitez writes fails.
-- [ ] A text page is Markz's HTML with each element that has a component replaced by its output.
-      That goes through markers in the view `html()` renders, as raw blocks do today.
-- [ ] A layout gets the page's finished HTML as `children`, and fails if it drops or repeats it.
-      A JS page without `metadata` gets its title from its `<h1>`.
-- [ ] The `blog`, `landing` and `elements` fixtures are rewritten in JS. Their snapshots match
-      what they rendered on Svelte, scoping classes and hydration comments aside.
-
 ### 14. Islands as custom elements
 
 - [ ] `name.island.js` (or `.ts`) defines `<name>`. A page's islands are found by scanning its
@@ -53,13 +44,14 @@ rendered. Next the renderer is swapped, then Svelte is deleted.
 - [ ] Three things fail. Build-time code importing an island, an island importing a page, layout
       or component, and a component dropping its own tag when an island of that name exists.
 - [ ] `tests/islands.test.ts` runs the built pages in happy-dom. It checks that `define` sets up
-      once, and that the `tag-filter` and `fold-out` islands work.
+      once, and that the `tag-filter` and `fold-out` islands work. The fixtures' `TagFilter.js` and
+      `FoldOut.js` already write their markup.
 
 ### 15. Svelte goes
 
 - [ ] Delete `islands.ts`, `runtime/server.ts`, `runtime/client.ts` and the `Island*.svelte`
       files. Drop `svelte`, its Vite plugin, `svelte-check` and `devalue`.
-- [ ] `check.ts` runs oxfmt, oxlint and Markz's warnings, and the report lists islands by tag.
+- [ ] The report lists islands by tag.
 - [ ] `dev` hot-replaces CSS and reloads for anything else.
 - [ ] `spike/` goes, its findings already in design.md.
 

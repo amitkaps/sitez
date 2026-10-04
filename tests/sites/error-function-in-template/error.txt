@@ -1,0 +1,1 @@
+code/index.js: a template holds a function, which can't run at build time. An event handler belongs in an island (code/name.island.js).

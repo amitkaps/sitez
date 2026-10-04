@@ -1,7 +1,7 @@
 # Docs
 
 {@call-out type=tip}
-Rendered by `code/docs/CallOut.svelte`, the nearer one.
+Rendered by `code/docs/CallOut.js`, the nearer one.
 {/call-out}
 
 {@fold-out}

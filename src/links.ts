@@ -17,7 +17,7 @@ import { NOT_FOUND, posix, urlOf } from "./discover.ts";
 
 /** @prose
  * What a link can point at. `pages` holds every page by URL, with whether this run leaves it out:
- * `build` fills it before any text page loads, since a Svelte page is a draft only once its module
+ * `build` fills it before any text page renders, since a JS page is a draft only once its module
  * has said so. `generated` is what Sitez writes beside the pages (`/sitemap.xml`, `/feed.xml`).
  */
 export interface LinkTargets {

@@ -3,7 +3,7 @@
  *
  * What pages and layouts know about a page, the site and every page (rule 5). A text page's
  * metadata is its Markz block, with `title` defaulting to the first heading and `summary` to the
- * first paragraph, so most pages need no block. A Svelte page's is its exported `metadata`, with
+ * first paragraph, so most pages need no block. A JS page's is its exported `metadata`, with
  * `title` defaulting to its first `<h1>` once it has rendered.
  *
  * Sitez checks only the keys it reads itself, and a wrong one fails the build naming the file and
@@ -53,9 +53,9 @@ export function textMetadata(file: string, url: string, doc: Document): PageData
 }
 
 /** @prose
- * A Svelte page's metadata, from its module's `metadata` export, and its title from the first
- * `<h1>` of its HTML when the export has none. Svelte writes text escaped, so the few entities
- * it produces are all there is to decode.
+ * A JS page's metadata, from its module's `metadata` export, and its title from the first `<h1>`
+ * of its HTML when the export has none. The renderer writes text escaped, so the few entities it
+ * produces are all there is to decode.
  */
 export function codeMetadata(
   file: string,

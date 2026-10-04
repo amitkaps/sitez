@@ -93,7 +93,7 @@ describe("the keys Sitez reads", () => {
     expect(problem(() => textMetadata(file, "/x/", block(line)))).toBe(message);
   });
 
-  test("fail when wrong in a Svelte page", () => {
+  test("fail when wrong in a JS page", () => {
     expect(problem(() => codeMetadata(file, "/x/", { draft: "no" }))).toBe(
       'draft is "no": write draft: true or draft: false.',
     );

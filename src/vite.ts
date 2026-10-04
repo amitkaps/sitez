@@ -7,18 +7,14 @@
  * relative to its own file. A site has no `node_modules`, so its imports resolve from Sitez.
  */
 import { createHash } from "node:crypto";
-import { readFileSync, realpathSync } from "node:fs";
+import { realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { extname, join, sep } from "node:path";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
-import { parse } from "@amitkaps/markz";
-import { compile } from "svelte/compiler";
 import { createServer, type Plugin, type ViteDevServer } from "vite";
 import { SiteError } from "./errors.ts";
-import { nearest, posix, urlOf } from "./discover.ts";
+import { posix } from "./discover.ts";
 import { islandModules, type Islands } from "./islands.ts";
-import { linkTarget, type LinkTargets } from "./links.ts";
-import { componentName, textComponent } from "./text.ts";
 
 /** Sitez's own files a site's pages and bundles load: the reset, and the islands' runtime. */
 export const runtime = join(import.meta.dirname, "runtime");
@@ -29,11 +25,6 @@ export interface SiteServer {
   root: string;
   /** The site's root as Vite names its modules: its real path. */
   real: string;
-  /** @prose
-   * What text links are checked against as text pages load: the last run's, replaced whole by the
-   * next once it is complete, so a page loading meanwhile never sees half of one.
-   */
-  links: LinkTargets;
   /** The site's islands, found as the server loads components. */
   islands: Islands;
   /** @prose
@@ -67,7 +58,6 @@ export async function siteServer(
 ): Promise<SiteServer> {
   const real = realpathSync(root);
   const islands: Islands = new Map();
-  let site: SiteServer | undefined;
   const vite = await createServer({
     configFile: false,
     root: real,
@@ -82,18 +72,16 @@ export async function siteServer(
     ssr: { noExternal: ["sitez"] },
     plugins: [
       fromSitez(),
-      textModules(root, real, () => site!.links),
       islandModules(root, real, islands),
       sveltePlugin(real, { hmr: dev !== undefined }),
       noOptimizer(),
       ...(dev ? [dev.plugin] : []),
     ],
   });
-  site = {
+  return {
     vite,
     root,
     real,
-    links: { root, repo: undefined, pages: new Map(), generated: new Set() },
     islands,
     components: () =>
       [...vite.environments.ssr.moduleGraph.idToModuleMap.keys()]
@@ -108,7 +96,6 @@ export async function siteServer(
     },
     close: () => vite.close(),
   };
-  return site;
 }
 
 /** @prose
@@ -184,37 +171,6 @@ export function fromSitez(): Plugin {
       if (!/^[@a-z]/.test(id)) return null;
       const own = await this.resolve(id, importer, { ...options, skipSelf: true });
       return own ?? this.resolve(id, inside, { ...options, skipSelf: true });
-    },
-  };
-}
-
-/** @prose
- * Each `.md` in `text/` loads as the Svelte component `text.ts` writes for it, with the
- * components its elements render found up the tree from the page's URL, as its layout is, and
- * its links checked against the server's current `links`. Vite hands over the real path; links and components are
- * looked up from the root the site was given, as every message names it.
- */
-function textModules(root: string, real: string, links: () => LinkTargets): Plugin {
-  const folder = join(real, "text") + sep;
-  return {
-    name: "sitez:text",
-    enforce: "pre",
-    load(id) {
-      const file = id.split("?")[0]!;
-      if (!file.startsWith(folder) || !file.endsWith(".md")) return null;
-      const doc = parse(readFileSync(file, "utf8"));
-      const page = asGiven(root, real, file);
-      const url = urlOf(join(root, "text"), page);
-      const source = textComponent(page, doc, {
-        component: (name) => nearest(root, url, componentName(name)),
-        link: (destination, kind) => linkTarget(links(), page, destination, kind),
-      });
-      const { js } = compile(source, {
-        filename: file,
-        generate: this.environment.config.consumer,
-        ...svelteOptions,
-      });
-      return { code: js.code, map: js.map };
     },
   };
 }

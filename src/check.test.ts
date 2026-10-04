@@ -1,10 +1,15 @@
+/** @prose
+ * # Checking a site
+ *
+ * `sitez check` on copies of the example sites: what it fixes, what it reports, and how it names
+ * each file.
+ */
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "vite-plus/test";
 import { check } from "./check.ts";
 
-// svelte-check starts TypeScript, which takes seconds.
 describe("sitez check", { timeout: 60_000 }, () => {
   test("a second run finds nothing to fix and nothing wrong", async () => {
     const site = copy("landing");
@@ -20,32 +25,14 @@ describe("sitez check", { timeout: 60_000 }, () => {
     const site = copy("landing");
     mkdirSync(join(site, "text"));
     writeFileSync(join(site, "text", "about.md"), "# About\n\nSome *stars*.\n");
-    writeFileSync(
-      join(site, "code", "Count.svelte"),
-      '<script lang="ts">\n\tconst label: string = 1;\n\tdebugger;\n</script>\n\n<p>{label}</p>\n',
-    );
-    writeFileSync(join(site, "code", "Messy.svelte"), '<p   class="x">Messy</p>\n');
+    writeFileSync(join(site, "code", "_count.js"), "export const count = 1;\ndebugger;\n");
+    writeFileSync(join(site, "code", "_messy.js"), "export const messy   =  1\n");
     const { formatted, problems } = await check(site, { cwd: join(site, "code") });
-    expect(formatted).toEqual(expect.arrayContaining(["Messy.svelte", "../text/about.md"]));
+    expect(formatted).toEqual(expect.arrayContaining(["_messy.js", "../text/about.md"]));
     // Formatting writes Markz's canonical `_emphasis_`, so that warning is fixed too.
     expect(readFileSync(join(site, "text", "about.md"), "utf8")).toBe("# About\n\nSome _stars_.\n");
-    expect(problems.some((line) => /^Count\.svelte:3:\d+: .*debugger/i.test(line))).toBe(true);
-    expect(problems).toContain(
-      "Count.svelte:2:9: Type 'number' is not assignable to type 'string'.",
-    );
+    expect(problems.some((line) => /^_count\.js:2:\d+: .*debugger/i.test(line))).toBe(true);
     expect(problems.some((line) => line.includes("about.md"))).toBe(false);
-  });
-
-  test("checks plain JS as TypeScript would, without asking for types", async () => {
-    const site = copy("landing");
-    writeFileSync(
-      join(site, "code", "Plain.svelte"),
-      "<script>\n  const n = 1;\n  n.toUpperCase();\n  const pick = function (event) {\n    return event.target.value;\n  };\n</script>\n\n<input oninput={pick} />\n",
-    );
-    const { problems } = await check(site);
-    expect(problems).toEqual([
-      "code/Plain.svelte:3:5: Property 'toUpperCase' does not exist on type '1'.",
-    ]);
   });
 });
 

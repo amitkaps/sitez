@@ -1,3 +1,9 @@
+/** @prose
+ * # The dev server
+ *
+ * `sitez dev` on a copy of the blog: how it serves pages, and what the browser is told when a
+ * file changes.
+ */
 import { cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -21,7 +27,7 @@ describe("pages", () => {
     const response = await get("/blog/");
     expect(response.status).toBe(200);
     const html = await response.text();
-    expect(html).toContain('<sitez-island c="TagFilter"');
+    expect(html).toContain("<tag-filter>");
     expect(html).toContain('<style id="sitez-hidden">@view-transition{navigation:auto}html{');
     expect(html).toContain('<script type="module" src="/@vite/client"></script>');
     expect(html).toContain(
@@ -30,13 +36,10 @@ describe("pages", () => {
     expect(html).toContain('<script type="module" src="/@sitez/page.js?url=%2Fblog%2F"></script>');
   });
 
-  test("the page's scripts load the stylesheet, show the page and hydrate its islands", async () => {
+  test("the page's styles script loads the stylesheet and shows the page", async () => {
     const styles = await (await get("/@sitez/styles.js?url=%2Fblog%2F")).text();
     expect(styles).toContain("/code/style.css");
-    expect(styles).toContain("TagFilter.svelte?svelte&type=style&lang.css");
     expect(styles).toContain("document.getElementById('sitez-hidden')?.remove();");
-    const page = await (await get("/@sitez/page.js?url=%2Fblog%2F")).text();
-    expect(page).toContain('hydrateIslands({ "TagFilter": I0 })');
   });
 
   test("a draft is served", async () => {
@@ -85,7 +88,6 @@ describe("changes", () => {
     // The browser has loaded the page, so its modules are in Vite's graph.
     await (await get("/@sitez/styles.js?url=%2Fblog%2F")).text();
     await (await get("/@sitez/page.js?url=%2Fblog%2F")).text();
-    await (await get("/code/TagFilter.svelte")).text();
     await (await get("/code/style.css")).text();
     // Only what this change causes: a reload from an earlier change may still be arriving.
     await new Promise((resolve) => setTimeout(resolve, 100));
@@ -109,9 +111,10 @@ describe("changes", () => {
     expect(message.type).toBe("update");
   });
 
-  test("an island is replaced in place", async () => {
-    const message = await afterChange(edit("code/TagFilter.svelte", ">All<", ">Every<"));
-    expect(message.type).toBe("update");
+  test("code reloads the page, which shows the change", async () => {
+    const message = await afterChange(edit("code/TagFilter.js", ">All<", ">Every<"));
+    expect(message.type).toBe("full-reload");
+    expect(await (await get("/blog/")).text()).toContain(">Every</button>");
   });
 
   test("text reloads the page, which shows the change", async () => {
@@ -130,14 +133,6 @@ describe("changes", () => {
     const response = await get("/博客");
     expect(response.status).toBe(301);
     expect(response.headers.get("location")).toBe("/%E5%8D%9A%E5%AE%A2/");
-  });
-
-  test("a page's script follows the islands it uses", async () => {
-    const message = await afterChange(edit("code/blog/index.svelte", "<TagFilter {posts} />", ""));
-    expect(message.type).toBe("full-reload");
-    await (await get("/blog/")).text();
-    const script = await (await get("/@sitez/page.js?url=%2Fblog%2F")).text();
-    expect(script).not.toContain('"TagFilter": I0');
   });
 
   test("a url() in the CSS that isn't there shows, and fixing it reloads", async () => {

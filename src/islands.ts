@@ -1,6 +1,9 @@
 /** @prose
  * # Islands
  *
+ * Sitez 0.1's Svelte islands. Nothing renders through them since pages became JS, and the file
+ * goes with Svelte (plan step 15). Islands as custom elements replace them (plan step 14).
+ *
  * Which components are islands (rule 6), read from each component's source: one with browser
  * behavior of its own ships its JavaScript and hydrates, and nothing marks it. What an island is
  * on a given page, the outermost one or a part of another, is only known as the page renders, so

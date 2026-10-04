@@ -116,7 +116,7 @@ describe("renderedLinkProblem", () => {
   });
 
   test("reads links from tags only, not from text or code that shows one", () => {
-    // As Svelte renders <code>{'<a href="guide">'}</code>: text escapes only `<` and `&`.
+    // HTML shown as text, with only `<` and `&` escaped.
     expect(check('<p>Write <code>&lt;a href="guide"></code>.</p>')).toBeUndefined();
     expect(check("<script>const a = '<a href=\"guide\">';</script>")).toBeUndefined();
     expect(check('<p title="a > b"><a href="/posts/">Posts</a></p>')).toMatch(/^href="\/posts\/"/);

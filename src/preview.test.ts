@@ -24,7 +24,7 @@ test("a folder's URL serves its index.html", async () => {
   const response = await get("/blog/");
   expect(response.status).toBe(200);
   expect(response.headers.get("content-type")).toBe("text/html; charset=utf-8");
-  expect(await response.text()).toContain('<sitez-island c="TagFilter"');
+  expect(await response.text()).toContain("<tag-filter>");
 });
 
 test("a folder without its slash redirects, as a host would", async () => {

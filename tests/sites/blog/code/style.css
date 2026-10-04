@@ -8,3 +8,8 @@ body {
 	margin-inline: auto;
 	font-family: 'Blog Serif', serif;
 }
+
+.call-out {
+	border-inline-start: 4px solid currentColor;
+	padding-inline-start: 1rem;
+}

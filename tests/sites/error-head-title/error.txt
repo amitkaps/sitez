@@ -1,1 +1,1 @@
-code/index.svelte: this writes a <title> in <svelte:head>, but Sitez writes it from metadata. Remove it, and set title in the page's metadata.
+code/Head.js: this writes a <title>, but Sitez writes it from metadata. Remove it, and set title in the page's metadata.

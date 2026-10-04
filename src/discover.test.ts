@@ -20,37 +20,40 @@ function urls(root: string) {
 }
 
 describe("discover", () => {
-  test("gives every text file and lowercase Svelte file a URL from its path", () => {
+  test("gives every text file and lowercase JS or TS file a URL from its path", () => {
     const root = site(
       "text/index.md",
       "text/about.md",
       "text/blog/index.md",
       "text/blog/hello.md",
-      "code/tags.svelte",
-      "code/blog/archive.svelte",
+      "code/tags.js",
+      "code/blog/archive.ts",
     );
     expect(urls(root)).toEqual([
       "/ text/index.md",
       "/about/ text/about.md",
       "/blog/ text/blog/index.md",
-      "/blog/archive/ code/blog/archive.svelte",
+      "/blog/archive/ code/blog/archive.ts",
       "/blog/hello/ text/blog/hello.md",
-      "/tags/ code/tags.svelte",
+      "/tags/ code/tags.js",
     ]);
   });
 
-  test("skips layouts, components, modules, other files and anything under a dot", () => {
+  test("skips layouts, components, modules, islands, other files and anything under a dot", () => {
     const root = site(
       "text/index.md",
       "text/.drafts/idea.md",
       "text/.DS_Store",
-      "code/Layout.svelte",
-      "code/CallOut.svelte",
-      "code/data.ts",
-      "code/_card.svelte",
-      "code/blog/_list.svelte",
+      "code/Layout.js",
+      "code/CallOut.ts",
+      "code/_data.ts",
+      "code/_card.js",
+      "code/blog/_list.js",
+      "code/tag-filter.island.js",
+      "code/types.d.ts",
       "code/style.css",
-      "code/.cache/page.svelte",
+      "code/page.svelte",
+      "code/.cache/page.js",
       "data/talks.json",
     );
     expect(urls(root)).toEqual(["/ text/index.md"]);
@@ -66,14 +69,14 @@ describe("discover", () => {
   });
 
   test("works with no text/ or no code/", () => {
-    expect(urls(site("code/index.svelte"))).toEqual(["/ code/index.svelte"]);
+    expect(urls(site("code/index.js"))).toEqual(["/ code/index.js"]);
     expect(urls(site())).toEqual([]);
   });
 
   test.each([
-    ["text/about.md", "code/about.svelte", "/about/"],
+    ["text/about.md", "code/about.js", "/about/"],
     ["text/blog.md", "text/blog/index.md", "/blog/"],
-    ["text/index.md", "code/index.svelte", "/"],
+    ["text/index.md", "code/index.ts", "/"],
   ])("fails on two files for one URL: %s and %s", (first, second, url) => {
     const root = site(first, second);
     const error = catchError(() => discover(root));
@@ -91,15 +94,22 @@ describe("discover", () => {
 });
 
 describe("nearest", () => {
-  const root = site("code/Layout.svelte", "code/blog/Layout.svelte");
+  const root = site("code/Layout.js", "code/blog/Layout.ts");
   const layout = (url: string) => relative(root, nearest(root, url, "Layout") ?? root);
 
-  test("is the nearest Layout.svelte up the tree from the URL", () => {
-    expect(layout("/")).toBe("code/Layout.svelte");
-    expect(layout("/about/")).toBe("code/Layout.svelte");
-    expect(layout("/blog/")).toBe("code/blog/Layout.svelte");
-    expect(layout("/blog/2026/hello/")).toBe("code/blog/Layout.svelte");
-    expect(layout("/blogroll/")).toBe("code/Layout.svelte");
+  test("is the nearest Layout.js or Layout.ts up the tree from the URL", () => {
+    expect(layout("/")).toBe("code/Layout.js");
+    expect(layout("/about/")).toBe("code/Layout.js");
+    expect(layout("/blog/")).toBe("code/blog/Layout.ts");
+    expect(layout("/blog/2026/hello/")).toBe("code/blog/Layout.ts");
+    expect(layout("/blogroll/")).toBe("code/Layout.js");
+  });
+
+  test("fails on a .js and a .ts of one name", () => {
+    const both = site("code/Layout.js", "code/Layout.ts");
+    const error = catchError(() => nearest(both, "/", "Layout"));
+    expect(relative(both, error.file)).toBe("code/Layout.ts");
+    expect(error.message).toBe("Layout.js is beside it, and a name has one file. Remove one.");
   });
 
   test("is none when the site has no layout", () => {

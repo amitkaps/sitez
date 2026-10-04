@@ -8,7 +8,7 @@ tags: [sitez, start]
 The first post. A page is a file, and this file is `text/blog/hello.md`.
 
 {@call-out type=note}
-A call-out is a Markz element rendered by `code/CallOut.svelte`.
+A call-out is a Markz element rendered by `code/CallOut.js`.
 {/call-out}
 
 The next post is [again](again.md).

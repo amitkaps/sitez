@@ -5,4 +5,3 @@ Sitez's tests that build whole sites. Each source file's unit tests sit beside i
 - `sites/` holds the example sites, one folder each, including the ones that must fail.
 - `snapshots/` holds what each site builds to, reviewed as it changes.
 - `sites.test.ts` builds every site and compares it with its snapshot or its `error.txt`.
-- `islands.test.ts` runs the built islands in happy-dom.

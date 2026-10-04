@@ -2,12 +2,12 @@
  * # Pages
  *
  * Which files are pages, and at which URL (rules 1 and 2). Every `.md` in `text/` is a page, and
- * so is every `.svelte` in `code/` whose name doesn't start with a capital or `_`. A page's path, less
- * the extension, is its URL, and `index` is its folder's own.
+ * so is every lowercase `.js` or `.ts` in `code/`. A page's path, less the extension, is its URL,
+ * and `index` is its folder's own.
  *
- * A capitalized `.svelte` is a layout or component, a `_` prefix marks a module, and `.js` and
- * `.ts` files are modules too. None of them is a page. Folders and files starting with `.` are
- * skipped, since a site's tools leave them there.
+ * A capitalized file is a layout or component, a `_` prefix marks a module, and `.island.js` is an
+ * island. None of them is a page, and neither is a `.d.ts` or anything that isn't code. Folders
+ * and files starting with `.` are skipped, since a site's tools leave them there.
  */
 import { readdirSync, statSync } from "node:fs";
 import { basename, extname, join, relative, sep } from "node:path";
@@ -23,7 +23,7 @@ export interface Page {
 
 /** @prose
  * Finds every page, sorted by URL. It fails on `text/site.md`, which would otherwise be a page.
- * It fails on two files for one URL, naming both (`text/about.md` and `code/about.svelte`, or
+ * It fails on two files for one URL, naming both (`text/about.md` and `code/about.js`, or
  * `text/blog.md` and `text/blog/index.md`).
  *
  * It also fails on any file in `text/` that isn't `.md`. `text/` holds what is read as it is, and
@@ -44,7 +44,7 @@ export function discover(root: string): Page[] {
   }
   const code = join(root, "code");
   for (const file of files(code)) {
-    if (extname(file) !== ".svelte" || /^[A-Z_]/.test(basename(file))) continue;
+    if (!isPage(basename(file))) continue;
     pages.push({ url: urlOf(code, file), file, kind: "code" });
   }
 
@@ -62,6 +62,9 @@ export function discover(root: string): Page[] {
   return pages.toSorted((a, b) => (a.url < b.url ? -1 : 1));
 }
 
+/** A page in `code/` is lowercase with one extension, so `x.island.js` and `x.d.ts` aren't. */
+const isPage = (name: string): boolean => /^[a-z0-9][^.]*\.[jt]s$/.test(name);
+
 /** @prose
  * The nearest file of a name up the tree from a page's URL (rule 2). For `/blog/hello/`, that's
  * `code/blog/hello/`, then `code/blog/`, then `code/`. Layouts and the components that render text
@@ -71,14 +74,20 @@ export function discover(root: string): Page[] {
 export function nearest(root: string, url: string, name: string): string | undefined {
   const segments = url.split("/").filter(Boolean);
   for (let n = segments.length; n >= 0; n--) {
-    const file = join(root, "code", ...segments.slice(0, n), `${name}.svelte`);
-    if (statSync(file, { throwIfNoEntry: false })?.isFile()) return file;
+    const [js, ts] = [".js", ".ts"].map((extension) =>
+      join(root, "code", ...segments.slice(0, n), name + extension),
+    ) as [string, string];
+    const found = [js, ts].filter((file) => statSync(file, { throwIfNoEntry: false })?.isFile());
+    if (found.length === 2) {
+      throw new SiteError(ts, `${name}.js is beside it, and a name has one file. Remove one.`);
+    }
+    if (found[0]) return found[0];
   }
   return undefined;
 }
 
 /** @prose
- * The page at `/404/`, `text/404.md` or `code/404.svelte`, is what a host serves for a URL that
+ * The page at `/404/`, `text/404.md` or `code/404.js`, is what a host serves for a URL that
  * doesn't exist. Hosts look for it at `404.html` (rule 1). Every other page is its folder's
  * `index.html`, so its URL needs no extension.
  */

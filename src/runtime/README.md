@@ -15,8 +15,7 @@ The other files are copied into the package as they are.
 
 - `reset.css` is the quiet, readable look every site's stylesheet begins with, for the site to
   override.
-- `oxfmtrc.json` is the style `sitez check` formats a site's files in. That's oxfmt's defaults,
-  with Svelte formatting turned on.
-- `server.ts`, `client.ts` and the `.svelte` files are Sitez 0.1's islands. `server.ts` decides
-  in the server render whether a component is an island, and the `.svelte` files write the marker
-  around one. `client.ts` hydrates them. They go with Svelte (plan step 15).
+- `oxfmtrc.json` is the style `sitez check` formats a site's files in, which is oxfmt's defaults.
+  Naming it keeps a config further up the tree from applying.
+- `server.ts`, `client.ts` and the `.svelte` files are Sitez 0.1's islands. Nothing renders
+  through them since pages became JS, and they go with Svelte (plan step 15).
