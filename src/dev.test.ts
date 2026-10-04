@@ -42,6 +42,12 @@ describe("pages", () => {
     expect(styles).toContain("document.getElementById('sitez-hidden')?.remove();");
   });
 
+  test("the page's own script loads the live files it uses, and a page with none loads none", async () => {
+    const page = await (await get("/@sitez/page.js?url=%2Fblog%2F")).text();
+    expect(page).toContain("code/blog/@tag-filter.live.js");
+    expect(await (await get("/@sitez/page.js?url=%2Fabout%2F")).text()).not.toContain(".live.js");
+  });
+
   test("a draft is served", async () => {
     expect((await get("/blog/draft/")).status).toBe(200);
   });

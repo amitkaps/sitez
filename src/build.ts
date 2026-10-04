@@ -3,7 +3,8 @@
  *
  * `sitez build`: every page rendered to complete HTML in `dist/`, with the sitemap and feed, and
  * `public/` copied beside them. The site is read once (`site.ts`), then pages render
- * concurrently, each awaiting its own data, and the stylesheet and the islands' scripts are built
+ * concurrently, each awaiting its own data, and the stylesheet and the live elements' scripts are
+ * built
  * from what they rendered. Nothing is written until everything has built. Markz's warnings are
  * returned for the command to print, with what each page costs for the report.
  */
@@ -16,7 +17,7 @@ import { SiteError } from "./errors.ts";
 import { document } from "./render.ts";
 import { readRun, renderPage, type Rendered, type Run } from "./site.ts";
 import { feed, sitemap } from "./sitemap.ts";
-import { siteServer } from "./vite.ts";
+import { inReal, siteServer } from "./vite.ts";
 import type { MarkzWarning } from "./warnings.ts";
 
 /** @prose
@@ -40,8 +41,8 @@ export interface BuildResult {
   pages: Built[];
   /** What every page shares, downloaded once: the stylesheet and `common.js`, gzipped. */
   common: { css: number; js: number };
-  /** Every island a built page renders, by name. */
-  islands: string[];
+  /** Every live element a built page uses, by tag. */
+  live: string[];
   /** Markz's, from `site.md` and every page built, in URL order. */
   warnings: MarkzWarning[];
   ms: number;
@@ -66,13 +67,18 @@ export async function build(
   }
   const { site, warnings } = run;
 
-  // A page's script imports exactly the islands it rendered; then every page gets the
-  // stylesheet and, if it has islands, its script.
+  // A page's script imports exactly the live files it uses; then every page gets the
+  // stylesheet and, if it has any, its script.
   const used = new Map(
-    rendered.filter((page) => page.live.length > 0).map((page) => [entryName(page.url), page.live]),
+    rendered
+      .filter((page) => page.live.length > 0)
+      .map((page) => [
+        entryName(page.url),
+        page.live.map((live) => inReal(root, server.real, live.file)),
+      ]),
   );
   const css = await stylesheet(root, server.real, components);
-  const js = await scripts(root, server.real, used, server.islands);
+  const js = await scripts(root, server.real, used);
   const files: Files = new Map([...css.files, ...js.files]);
   const pagesBuilt: Built[] = [];
   for (const page of rendered) {
@@ -103,7 +109,7 @@ export async function build(
       css: gzipped(files.get(css.href.slice(1))!),
       js: js.common ? gzipped(files.get(js.common)!) : 0,
     },
-    islands: [...new Set([...used.values()].flat())].sort(),
+    live: [...new Set(rendered.flatMap((page) => page.live.map((live) => live.tag)))].sort(),
     warnings,
     ms: performance.now() - start,
   };

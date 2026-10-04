@@ -33,6 +33,9 @@ line here. Finished steps shrink to one line each.
   element and Sitez writes the element around it, and `+layout.js` exports `head`. `data` feeds a
   component from `data/`. `checkCode` fails on an unknown `+` file, a bad `@` name and a second
   stylesheet.
+- **15. Live elements.** A page's HTML is scanned for tags with an `@name.live.js` file, and each
+  page loads its own, split with `common.js`. Build code importing a live file fails, and so does
+  a live file importing a component or layout. `live.test.ts` runs the pages in happy-dom.
 
 ## Open work, in order
 
@@ -42,16 +45,6 @@ fail with the message it must fail with.
 
 The order keeps the tests green throughout. The mechanical changes came while Svelte still
 rendered. Next the renderer is swapped, then Svelte is deleted.
-
-### 15. Live elements
-
-- [ ] `@name.live.js` (or `.ts`) defines `<name>`. A page's `.live` files are found by scanning
-      its HTML, and bundled per page with the `common.js` split.
-- [ ] Build-time code importing a `.live` file fails, and so does a `.live` file importing a
-      component or layout.
-- [ ] `tests/live.test.ts` runs the built pages in happy-dom. It checks that `define` sets up
-      once, and that the `tag-filter` and `fold-out` elements work. The fixtures' components
-      already write their markup.
 
 ### 16. Svelte goes
 

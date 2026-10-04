@@ -21,6 +21,7 @@ import { raw } from "./runtime/html.ts";
 import { linkTarget, renderedLinkProblem, type LinkTargets } from "./links.ts";
 import { isDraft, textMetadata, siteMetadata, type Metadata, type PageData } from "./metadata.ts";
 import { document, renderHead, renderLayout, renderModule, type Props } from "./render.ts";
+import { findLive, type Live } from "./live.ts";
 import { SITE_FILE } from "./root.ts";
 import { textHtml } from "./text.ts";
 import { asGiven, type SiteServer } from "./vite.ts";
@@ -48,8 +49,8 @@ export interface Rendered {
   ms: number;
   data: PageData;
   parts: { tags: string; head: string; body: string };
-  /** The live elements the page's HTML uses, by tag, sorted. None until step 15. */
-  live: string[];
+  /** The live elements the page's HTML uses, sorted by tag. */
+  live: Live[];
 }
 
 /** @prose
@@ -141,7 +142,7 @@ async function renderOne(run: Run, page: Page): Promise<Rendered> {
     file: page.file,
     data: pageData,
     parts: { tags, head, body },
-    live: [],
+    live: findLive(root, page.url, head + body),
     ms: performance.now() - t,
   };
 }

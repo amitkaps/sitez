@@ -6,18 +6,19 @@
  * reset, then `code/+style.css`, then every component's scoped styles. CSS is small and needed
  * before anything paints, so one file, cached by the first page and reused by every other, is
  * cheaper than a split that saves a few bytes per page. Everything it references (a font, an
- * image) is bundled beside it. JavaScript is only the islands', only on the pages that have them.
+ * image) is bundled beside it. JavaScript is only the live elements', only on the pages that have
+ * them.
  * Every file's name carries a content hash, so a new deploy is never served from a stale cache.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { build, type InlineConfig, type Logger, type Plugin, type Rolldown } from "vite";
 import { SiteError } from "./errors.ts";
-import type { Islands } from "./islands.ts";
 import {
   asGiven,
   cacheDir,
   fromSitez,
+  liveBoundary,
   noOptimizer,
   runtime,
   siteError,
@@ -118,33 +119,25 @@ export function styleImports(real: string, style: string): string[] {
   ];
 }
 
-/** A page's script: its islands imported, then hydrated by name. */
-export function hydrateEntry(used: string[], islands: Islands): string {
-  return [
-    `import { hydrateIslands } from ${JSON.stringify(join(runtime, "client.ts"))};`,
-    ...used.map((island, i) => `import I${i} from ${JSON.stringify(islands.get(island))};`),
-    `hydrateIslands({ ${used.map((island, i) => `${JSON.stringify(island)}: I${i}`).join(", ")} });`,
-  ].join("\n");
+/** A page's script: each live file it uses, imported, since each calls `define` as it loads. */
+export function liveEntry(files: string[]): string {
+  return files.map((file) => `import ${JSON.stringify(file)};`).join("\n");
 }
 
 /** @prose
- * The islands' JavaScript, for the pages that have any: each gets an entry that imports its
- * islands and hydrates them, named for the page (`blog/index.[hash].js` beside
- * `blog/index.html`). What more than one page uses, the Svelte runtime first, goes in
- * `common.[hash].js`. The build is in production mode whatever the process says, since a dev
- * server earlier in the same process leaves `NODE_ENV` at `development`, and Svelte's dev code is
- * larger. The islands' styles are already in the stylesheet, so Svelte emits none here.
+ * The live elements' JavaScript, for the pages that have any: each gets an entry that imports its
+ * `.live` files, named for the page (`blog/index.[hash].js` beside `blog/index.html`). What more
+ * than one page uses, the signals core first, goes in `common.[hash].js`. The build is in
+ * production mode whatever the process says, since a dev server earlier in the same process
+ * leaves `NODE_ENV` at `development`.
  */
 export async function scripts(
   root: string,
   real: string,
   pages: Map<string, string[]>,
-  islands: Islands,
 ): Promise<Scripts> {
   if (pages.size === 0) return { files: new Map(), pages: new Map(), common: undefined };
-  const entries = Object.fromEntries(
-    [...pages].map(([name, used]) => [name, hydrateEntry(used, islands)]),
-  );
+  const entries = Object.fromEntries([...pages].map(([name, files]) => [name, liveEntry(files)]));
   const mode = process.env.NODE_ENV;
   process.env.NODE_ENV = "production";
   let output: Rolldown.RolldownOutput["output"];
@@ -218,7 +211,13 @@ async function bundle(
     cacheDir: cacheDir(real),
     logLevel: "silent",
     customLogger: logger,
-    plugins: [fromSitez(), entryModules(entries), sveltePlugin(real, { css }), noOptimizer()],
+    plugins: [
+      fromSitez(),
+      liveBoundary(root, real),
+      entryModules(entries),
+      sveltePlugin(real, { css }),
+      noOptimizer(),
+    ],
     build: {
       write: false,
       assetsInlineLimit: 0,

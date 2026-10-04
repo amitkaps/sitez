@@ -4,7 +4,7 @@
  * What `build` prints when it's done (promise 5): each page's cost to send, gzipped, and to
  * build, so a page that grows heavy or slow is visible where the cost is. A page's `js` is only
  * its own; what pages share is one `common` row, since the browser downloads it once. The last
- * line is the whole build and its islands.
+ * line is the whole build and its live elements.
  *
  * ```text
  * page         html      js   time
@@ -12,7 +12,7 @@
  * /blog/     6.1 KB  5.0 KB  20 ms
  * /quality/   90 KB   14 KB  1.2 s  raw <script>
  * common     3.0 KB css, 12 KB js
- * 42 pages in 1.8 s → dist · islands: QualityReport, TagFilter
+ * 42 pages in 1.8 s → dist · live: quality-report, tag-filter
  * ```
  */
 import type { BuildResult } from "./build.ts";
@@ -45,7 +45,7 @@ export function report(result: BuildResult, outDir: string): string {
   lines.push(`${"common".padEnd(widths[0]!)}  ${common.join(", ")}`);
   const n = result.pages.length;
   const total = [`${n} ${n === 1 ? "page" : "pages"} in ${time(result.ms)} → ${outDir}`];
-  if (result.islands.length > 0) total.push(`islands: ${result.islands.join(", ")}`);
+  if (result.live.length > 0) total.push(`live: ${result.live.join(", ")}`);
   lines.push(total.join(" · "));
   return lines.join("\n");
 }

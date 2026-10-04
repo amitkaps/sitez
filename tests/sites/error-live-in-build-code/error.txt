@@ -1,0 +1,6 @@
+code/@call-out.js: this imports ./@call-out.live.js, a live file, which runs only in the browser and would crash the build. Move what both need into a module in code/.
+
+1  |  import "./@call-out.live.js";
+   |          ^
+2  |  
+3  |  export default ({ children }) => children;

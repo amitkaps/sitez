@@ -72,6 +72,7 @@ export async function siteServer(
     ssr: { noExternal: ["sitez"] },
     plugins: [
       fromSitez(),
+      liveBoundary(root, real),
       islandModules(root, real, islands),
       sveltePlugin(real, { hmr: dev !== undefined }),
       noOptimizer(),
@@ -132,9 +133,14 @@ export function sveltePlugin(real: string, { hmr = false, css = true } = {}): Pl
 /** @prose
  * A file that doesn't compile, or a module that throws as it loads, is a mistake in the site.
  * Vite's error says which file (`id`) and shows the lines around it (`frame`); without an `id`,
- * it's the file being loaded.
+ * it's the file being loaded. An import `liveBoundary` refuses is already a `SiteError`.
  */
 export function siteError(error: unknown, file: string, root: string, real: string): SiteError {
+  // A plugin's own SiteError, which Vite hands on as it is and Rolldown wraps in a list.
+  const own = [error, ...((error as { errors?: unknown[] }).errors ?? [])].find(
+    (item) => item instanceof SiteError,
+  );
+  if (own) return own;
   const { message, id, frame } = error as { message?: string; id?: string; frame?: string };
   return new SiteError(
     asGiven(root, real, id?.split("?")[0] ?? file),
@@ -195,4 +201,47 @@ export function noOptimizer(): Plugin {
       }
     },
   };
+}
+
+const LIVE = /\.live\.[jt]s$/;
+const COMPONENT = /(?:^|\/)@[^/]+\.[jt]s$/;
+const LAYOUT = /(?:^|\/)\+layout\.[jt]s$/;
+
+/** @prose
+ * Fails an import that crosses the line, in whichever environment makes it. In the server render,
+ * that's an import of a `.live` file. In what the browser loads, it's an import of a component or
+ * a layout, from a `.live` file or from anything it imports. The specifier is read as written,
+ * which is how the site names its own files.
+ */
+export function liveBoundary(root: string, real: string): Plugin {
+  return {
+    name: "sitez:live-boundary",
+    enforce: "pre",
+    resolveId(id, importer) {
+      if (!importer || importer.startsWith("\0")) return null;
+      const path = id.split("?")[0]!;
+      const from = asGiven(root, real, importer.split("?")[0]!);
+      if (this.environment.name === "ssr" && LIVE.test(path)) {
+        throw new SiteError(
+          from,
+          `this imports ${id}, a live file, which runs only in the browser and would crash the build. Move what both need into a module in code/.`,
+        );
+      }
+      if (this.environment.name === "client" && !LIVE.test(path)) {
+        const what = COMPONENT.test(path) ? "component" : LAYOUT.test(path) ? "layout" : undefined;
+        if (what) {
+          throw new SiteError(
+            from,
+            `this imports ${id}, a ${what}, which renders at build time. A live file enhances HTML the build wrote, so it can't use one. Move what both need into a module in code/.`,
+          );
+        }
+      }
+      return null;
+    },
+  };
+}
+
+/** A path in the site's real folder, which is how Vite names the site's modules. */
+export function inReal(root: string, real: string, file: string): string {
+  return join(real, file.slice(root.length));
 }

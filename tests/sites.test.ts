@@ -20,7 +20,7 @@ const names = readdirSync(sites, { withFileTypes: true })
   .map((entry) => entry.name);
 
 // Snapshots are what a person reviews; other files, bundled JavaScript among them, are listed by
-// name only. `islands.test.ts` runs the JavaScript instead.
+// name only. `live.test.ts` runs the JavaScript instead.
 const text = /\.(html|css|xml|svg|txt|json)$/;
 
 describe.each(names.filter((name) => !name.startsWith("error-")))("%s", (name) => {

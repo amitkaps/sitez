@@ -4,14 +4,13 @@
  * `sitez dev`: every page, drafts included, rendered when it's asked for, by the same code as
  * `build` (`site.ts`), so a page can't look one way here and another in `dist/`. The site is read
  * again for every page, so a new or deleted file is a new or missing URL at once, with nothing to
- * restart. A change reloads the page, except to CSS and to an island, which Vite and Svelte
- * replace in place. A mistake shows in the browser as the message `build` would print, and the
+ * restart. A change reloads the page, except to CSS, which Vite replaces in place. A mistake shows in the browser as the message `build` would print, and the
  * page reloads when it's fixed.
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { join } from "node:path";
 import type { Plugin, ViteDevServer } from "vite";
-import { hydrateEntry, missingUrl, styleImports } from "./bundle.ts";
+import { liveEntry, missingUrl, styleImports } from "./bundle.ts";
 import { NOT_FOUND } from "./discover.ts";
 import { SiteError, shownFrom, siteErrorText } from "./errors.ts";
 import { escape } from "./head.ts";
@@ -19,7 +18,7 @@ import { document } from "./render.ts";
 import { pathOf } from "./preview.ts";
 import { readRun, renderPage, type Run } from "./site.ts";
 import { feed, sitemap } from "./sitemap.ts";
-import { asGiven, siteServer, type SiteServer } from "./vite.ts";
+import { asGiven, inReal, siteServer, type SiteServer } from "./vite.ts";
 import { formatWarning, type MarkzWarning } from "./warnings.ts";
 
 export interface Dev {
@@ -42,7 +41,7 @@ export async function dev(
   root: string,
   { port = 5173, cwd = root, warn = () => {}, error: report = () => {} }: DevOptions = {},
 ): Promise<Dev> {
-  // What each page's script loads: its islands, from its last render.
+  // What each page's script loads: its live files, from its last render.
   const rendered = new Map<string, string[]>();
   const warned = new Set<string>();
   // A request that isn't a page after all reaches `notFound` with the site already read.
@@ -86,7 +85,7 @@ export async function dev(
 
   /** @prose
    * A page's document: rendered as `build` renders it, with Vite's client and the page's own
-   * script in place of the built stylesheet and islands.
+   * script in place of the built stylesheet and live files.
    */
   const page = async (run: Run, url: string): Promise<string | undefined> => {
     const found = run.pages.find((page) => page.url === url);
@@ -98,7 +97,10 @@ export async function dev(
       styles.map((file) => asGiven(root, server.real, file)),
     );
     if (missing) throw missing;
-    rendered.set(url, out.live);
+    rendered.set(
+      url,
+      out.live.map((live) => inReal(root, server.real, live.file)),
+    );
     const query = `?url=${encodeURIComponent(url)}`;
     const assets = [
       HIDDEN,
@@ -114,12 +116,12 @@ export async function dev(
    * A page's two scripts in dev. `styles.js` imports the stylesheet as modules, so Vite replaces
    * them as they change, then shows the page, which stays hidden until then so it never flashes
    * unstyled. A component's styles come from the module Svelte compiled them into, never from the
-   * component itself, which may import what only runs on the server. `page.js` hydrates the
-   * page's islands, as in `build`; it is a script of its own, so a broken island can't keep the
+   * component itself, which may import what only runs on the server. `page.js` loads the
+   * page's live files, as in `build`; it is a script of its own, so a broken one can't keep the
    * styles from loading.
    */
   const script = (name: string, url: string): string | undefined => {
-    if (name === "page.js") return hydrateEntry(rendered.get(url) ?? [], server.islands);
+    if (name === "page.js") return liveEntry(rendered.get(url) ?? []);
     if (name !== "styles.js") return undefined;
     return [
       ...styleImports(server.real, join(server.real, "code", "+style.css")),
@@ -168,9 +170,9 @@ export async function dev(
     });
 
   /** @prose
-   * A change that isn't CSS or an island's own code reloads the page. Every server module is
-   * dropped, since any of them can change any page's HTML, and so are the pages' scripts, since
-   * a page may now use an island or a component it didn't.
+   * A change that isn't CSS reloads the page. Every server module is dropped, since any of them
+   * can change any page's HTML, and so are the pages' scripts, since a page may now use a live
+   * element it didn't.
    */
   const reload = (vite: ViteDevServer) => {
     vite.environments.ssr.moduleGraph.invalidateAll();
@@ -197,11 +199,11 @@ export async function dev(
         vite.middlewares.use((request, response) => void notFound(request, response));
       };
     },
-    // CSS is Vite's to replace, and an island's component Svelte's, unless a page is failing.
+    // CSS is Vite's to replace, unless a page is failing. A custom element can't be defined twice,
+    // so a live file reloads the page.
     hotUpdate({ file, server: vite }) {
       if (this.environment.name !== "client") return;
-      const hot = file.endsWith(".css") || [...server.islands.values()].includes(file);
-      if (hot && !failing) return;
+      if (file.endsWith(".css") && !failing) return;
       reload(vite);
       return [];
     },

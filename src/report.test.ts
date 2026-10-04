@@ -13,7 +13,7 @@ test("a page per row, sorted as given, then common and the total", () => {
       { ...page, url: "/quality/", html: 92_000, js: 14_500, ms: 1234, notes: ["raw <script>"] },
     ],
     common: { css: 3072, js: 12_400 },
-    islands: ["QualityReport", "TagFilter"],
+    live: ["quality-report", "tag-filter"],
     warnings: [],
     ms: 1812,
   };
@@ -24,17 +24,17 @@ test("a page per row, sorted as given, then common and the total", () => {
       "/blog/     6.1 KB  5.0 KB  20 ms",
       "/quality/   90 KB   14 KB  1.2 s  raw <script>",
       "common     3.0 KB css, 12 KB js",
-      "3 pages in 1.8 s → dist · islands: QualityReport, TagFilter",
+      "3 pages in 1.8 s → dist · live: quality-report, tag-filter",
     ].join("\n"),
   );
 });
 
-test("a site with no islands has no common js and no islands", () => {
+test("a site with no live elements has no common js and none listed", () => {
   const result: BuildResult = {
     outDir: "/site/dist",
     pages: [{ ...page, url: "/", html: 900, js: 0, ms: 3 }],
     common: { css: 700, js: 0 },
-    islands: [],
+    live: [],
     warnings: [],
     ms: 40,
   };

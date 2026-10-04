@@ -15,6 +15,7 @@ stage gets a file here, or a folder once it needs more than one, as its step in
 - `warnings.ts` is how Markz's warnings reach the author, with the file, the line, and what to
   write instead.
 - `links.ts` is where a link in text goes, and whether it's there.
+- `live.ts` finds the live elements a page uses, from its HTML, and the `.live` file of each.
 - `vite.ts` is the Vite server Sitez runs for a site, with the config nobody writes.
 - `render.ts` renders a layout or component module, a layout's `head`, and the document around
   them.
@@ -23,7 +24,7 @@ stage gets a file here, or a folder once it needs more than one, as its step in
 - `sitemap.ts` writes `sitemap.xml` and `feed.xml`.
 - `islands.ts` is Sitez 0.1's Svelte islands, unused since pages became JS. It goes in step 15.
 - `bundle.ts` builds what the browser downloads besides the HTML: the site's one stylesheet, and
-  the islands' JavaScript.
+  the live elements' JavaScript.
 - `build.ts` renders every page and writes `dist/`.
 - `report.ts` is what `build` prints: what each page costs to send and to build.
 - `dev.ts` serves the site while it's written, rendering each page as it's asked for.

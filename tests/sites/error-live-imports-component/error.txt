@@ -1,0 +1,1 @@
+code/@tag-box.live.js: this imports ./@tag-box.js, a component, which renders at build time. A live file enhances HTML the build wrote, so it can't use one. Move what both need into a module in code/.
