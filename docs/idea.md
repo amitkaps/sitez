@@ -313,7 +313,8 @@ lockfile beside it pins the rest.
 Nothing is installed globally, so your machine and the host always build with the same Sitez. A
 site whose `package.json` doesn't name `sitez` fails every command, naming the line to add. The
 report's last line names the version that ran. An npm library the site's code imports goes in the
-same `package.json`.
+same `package.json`. A site in a folder of a larger repo can use the repo's `package.json`, the nearest
+one above it.
 
 `sitez deploy` publishes to GitHub Pages when the repo's remote is on GitHub. Cloudflare needs no
 Sitez command. Connect the repo in Cloudflare and set the build command to `npx sitez build`. It

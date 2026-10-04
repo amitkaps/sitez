@@ -61,7 +61,7 @@ describe("sitez", () => {
     const missing = await sitez(["build"], root);
     expect(missing.code).toBe(1);
     expect(missing.error).toContain(
-      `sitez: no package.json beside site.md. Add one naming the Sitez that builds this site:\n\n{ "devDependencies": { "sitez": "${pkg.version}" } }`,
+      `sitez: no package.json beside site.md or in any folder above. Add one naming the Sitez that builds this site:\n\n{ "devDependencies": { "sitez": "${pkg.version}" } }`,
     );
     writeFileSync(join(root, "package.json"), '{ "devDependencies": { "lodash": "4.0.0" } }\n');
     const unnamed = await sitez(["check"], root);
@@ -69,6 +69,15 @@ describe("sitez", () => {
     expect(unnamed.error).toContain(
       `package.json: doesn't name sitez. Add this line to its "devDependencies":\n\n"sitez": "${pkg.version}"`,
     );
+  });
+
+  test("reads the nearest package.json above a site in a folder", async () => {
+    const repo = mkdtempSync(join(tmpdir(), "sitez-"));
+    mkdirSync(join(repo, "site/text"), { recursive: true });
+    writeFileSync(join(repo, "package.json"), '{ "devDependencies": { "sitez": "0.2.0" } }\n');
+    writeFileSync(join(repo, "site/site.md"), "---\nname: Test\nurl: https://example.com\n---\n");
+    writeFileSync(join(repo, "site/text/index.md"), "# Home\n");
+    expect((await sitez(["build"], join(repo, "site"))).code).toBe(0);
   });
 
   test("fails outside a site", async () => {

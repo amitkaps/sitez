@@ -392,6 +392,10 @@ fails there, naming the line to add. It never compares versions. Keeping `node_m
 with `package.json` is the package manager's job. The report's last line names the version that
 ran.
 
+The site's `package.json` is the nearest one at or above `site.md`, as Node finds packages. So a
+site in a folder of a larger repo, or several sites in one repo, share the repo's. Sitez still
+finds the site by walking up from where it runs, so its commands run inside the site's folder.
+
 Ruled out:
 
 - **A global install.** It was the first design, with no `package.json`, and nothing in the repo
