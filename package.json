@@ -1,5 +1,5 @@
 {
-  "name": "sitez",
+  "name": "@amitkaps/sitez",
   "version": "0.2.0",
   "description": "A zero-config static site generator: Markz in text/, JavaScript in code/, JSON in data/, files in public/.",
   "license": "MIT",

@@ -11,7 +11,7 @@ nothing in a site names Vite. So the toolchain is Sitez's to swap. Vite+ may giv
 oxfmt and oxlint as separate packages, or to something else, and a site doesn't change.
 
 ```text
-sitez (npm)
+@amitkaps/sitez (npm)
 ├── vite                  Vite+'s core (@voidzero-dev/vite-plus-core): dev server, Rolldown
 ├── vite-plus             oxfmt, oxlint
 ├── @amitkaps/markz       parser
@@ -23,7 +23,7 @@ Sitez calls `createServer` and `build` itself, with `configFile: false`.
 
 A site's `package.json` names its version of Sitez, and any npm library its code imports. A
 resolver plugin resolves a bare import from the site first, then as if imported from inside Sitez.
-`sitez` itself resolves to the running Sitez's runtime, so its templates go to the renderer that
+`@amitkaps/sitez` itself resolves to the running Sitez's runtime, so its templates go to the renderer that
 has to agree with them. Since `npx` and `pnpm` run the site's copy ([Install](#install)), the
 running Sitez and the site's are one.
 
@@ -390,7 +390,7 @@ So the author's machine and the host build with the same Sitez by construction. 
 version, a release of Sitez could change a live site on its next deploy with nothing in the repo
 changed.
 
-Sitez checks one thing, that the site's `package.json` names `sitez`. Run in a site that doesn't,
+Sitez checks one thing, that the site's `package.json` names `@amitkaps/sitez`. Run in a site that doesn't,
 `npx` downloads the newest release, and nothing in the repo would record it. So every command
 fails there, naming the line to add. It never compares versions. Keeping `node_modules` in step
 with `package.json` is the package manager's job. The report's last line names the version that
@@ -430,7 +430,8 @@ Wrangler.
 
 ## Release
 
-Sitez is published to npm as `sitez`, the name a site's code imports. A release tags a version,
+Sitez is published to npm as `@amitkaps/sitez`, the name a site's code imports, and its command
+is `sitez`. A release tags a version,
 and the `release` workflow does the rest (`.github/workflows/release.yml`). It runs the checks,
 packs the tarball, stages it on npm, and attaches it to a GitHub Release.
 
@@ -451,14 +452,15 @@ the first version by hand, outside the repository, because `npm` refuses to run 
 `devEngines` names pnpm.
 
 ```sh
-pnpm pack && cd /tmp && npm login && npm publish ~/code/sitez/sitez-<version>.tgz --access public
+pnpm pack && cd /tmp && npm login && npm publish ~/code/sitez/amitkaps-sitez-<version>.tgz --access public
 ```
 
 Ruled out:
 
-- **A scoped name** (`@amitkaps/sitez`, as prose and markz are). Every component would import
-  from it, and idea.md promises `from "sitez"`. A scoped package would also leave `npx sitez` to
-  whoever took the plain name.
+- **The plain name `sitez`.** npm refuses it as too similar to `vite`, which also keeps anyone
+  else from taking it, so `npx sitez` can't reach someone else's package. Publishing the scoped
+  package for sites to install as `"sitez": "npm:@amitkaps/sitez"` was ruled out too. Every site
+  would need that line, and the error naming it would have to explain it.
 - **Installing from GitHub** (`github:amitkaps/sitez#v0.2.0`). `dist/` isn't committed, so each
   install would build Sitez, and pnpm runs no dependency's build scripts unless the site allows
   them.

@@ -1,5 +1,5 @@
 // Wires the button @fold-out.js wrote: it shows and hides the text beside it.
-import { define } from "sitez";
+import { define } from "@amitkaps/sitez";
 
 define("fold-out", (el) => {
   const button = el.querySelector("button");

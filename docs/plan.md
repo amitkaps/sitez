@@ -65,7 +65,7 @@ there.
 
 ### 19. Release
 
-- [x] Sitez is 0.2.0, published as `sitez`. A `v*` tag runs the release workflow, which stages
+- [x] Sitez is 0.2.0, published as `@amitkaps/sitez` with the command `sitez`. A `v*` tag runs the release workflow, which stages
       the version on npm and attaches the tarball to a GitHub Release. The packed tarball,
       installed with `npm install` in a fresh copy of amitkaps.github.io, builds the same `dist/`.
 - [ ] Publish 0.2.0 to npm by hand, then set up the trusted publisher

@@ -1,5 +1,5 @@
 // Writes what tag-filter's live file will wire: a button per tag, and each post with its tags.
-import { html } from "sitez";
+import { html } from "@amitkaps/sitez";
 
 export default ({ pages }) => {
   const posts = pages

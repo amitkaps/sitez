@@ -1,5 +1,5 @@
 // Wires the buttons and posts @tag-filter.js wrote: a click shows the posts with that tag.
-import { define, effect, signal } from "sitez";
+import { define, effect, signal } from "@amitkaps/sitez";
 
 define("tag-filter", (el) => {
   const active = signal("");

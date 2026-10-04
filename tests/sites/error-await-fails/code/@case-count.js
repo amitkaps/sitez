@@ -1,4 +1,4 @@
-import { html } from "sitez";
+import { html } from "@amitkaps/sitez";
 import { cases } from "./cases.ts";
 
 export default async () => {

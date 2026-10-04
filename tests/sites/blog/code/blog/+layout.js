@@ -1,5 +1,5 @@
 // Only the nearest layout wraps a page, so this one puts itself inside the site's, head included.
-import { html } from "sitez";
+import { html } from "@amitkaps/sitez";
 import layout from "../+layout.js";
 
 export { head } from "../+layout.js";

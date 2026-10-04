@@ -1,4 +1,4 @@
-import { html } from "sitez";
+import { html } from "@amitkaps/sitez";
 
 export default ({ pages, page }) => html`
   <ul>

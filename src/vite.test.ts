@@ -1,7 +1,7 @@
 /** @prose
  * # Resolving `sitez`
  *
- * A site's `import "sitez"` gets the running Sitez's runtime, the build-time half on the server and
+ * A site's `import "@amitkaps/sitez"` gets the running Sitez's runtime, the build-time half on the server and
  * the browser half in the client, even when the site installs its own copy.
  */
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
@@ -15,9 +15,10 @@ const root = mkdtempSync(join(tmpdir(), "sitez-"));
 for (const [file, content] of Object.entries({
   "site.md": "---\nurl: https://example.com\n---\n",
   "code/card.js":
-    'import { html } from "sitez";\nexport default (title) => html`<li>${title}</li>`;\n',
-  "node_modules/sitez/package.json": '{ "name": "sitez", "type": "module", "main": "index.js" }',
-  "node_modules/sitez/index.js": "export const html = () => 'the site’s own copy';\n",
+    'import { html } from "@amitkaps/sitez";\nexport default (title) => html`<li>${title}</li>`;\n',
+  "node_modules/@amitkaps/sitez/package.json":
+    '{ "name": "@amitkaps/sitez", "type": "module", "main": "index.js" }',
+  "node_modules/@amitkaps/sitez/index.js": "export const html = () => 'the site’s own copy';\n",
 })) {
   mkdirSync(dirname(join(root, file)), { recursive: true });
   writeFileSync(join(root, file), content);
@@ -33,10 +34,10 @@ test("build code gets the build-time runtime, whose templates the build renders"
 test("the browser gets the browser runtime", async () => {
   const { client, ssr } = site.vite.environments;
   const importer = join(site.real, "code/@tag-filter.live.js");
-  expect((await client!.pluginContainer.resolveId("sitez", importer))?.id).toBe(
+  expect((await client!.pluginContainer.resolveId("@amitkaps/sitez", importer))?.id).toBe(
     join(runtime, "browser.ts"),
   );
-  expect((await ssr!.pluginContainer.resolveId("sitez", importer))?.id).toBe(
+  expect((await ssr!.pluginContainer.resolveId("@amitkaps/sitez", importer))?.id).toBe(
     join(runtime, "index.ts"),
   );
 });

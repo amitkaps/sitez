@@ -1,4 +1,4 @@
-import { html } from "sitez";
+import { html } from "@amitkaps/sitez";
 
 let count = 0;
 

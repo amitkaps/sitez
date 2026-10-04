@@ -13,6 +13,9 @@ import { SiteError } from "./errors.ts";
 
 export const SITE_FILE = "site.md";
 
+/** The name Sitez is published under, which a site's `package.json` names and its code imports. */
+export const PACKAGE = pkg.name;
+
 /** @prose
  * Walks up from `from` to the first folder with a `site.md`. `text/site.md` is reserved. Found
  * from inside `text/`, with a `site.md` one level up, it would otherwise make `text/` a site of
@@ -37,7 +40,7 @@ export function findRoot(from: string): string {
 }
 
 /** @prose
- * Fails unless the site's `package.json` names `sitez`, so the repo records which Sitez builds it
+ * Fails unless the site's `package.json` names `@amitkaps/sitez`, so the repo records which Sitez builds it
  * ([docs/design.md#install](docs/design.md#install)). It never compares versions, since keeping
  * `node_modules` in step is the package manager's job. Either kind of dependency counts.
  *
@@ -46,7 +49,7 @@ export function findRoot(from: string): string {
  */
 export function namesSitez(root: string): void {
   const file = nearestPackage(root);
-  const line = `"sitez": "${pkg.version}"`;
+  const line = `"${PACKAGE}": "${pkg.version}"`;
   const add = `Then run npm install, so this site always builds with the same Sitez.`;
   if (file === undefined) {
     throw new SiteError(
@@ -61,12 +64,12 @@ export function namesSitez(root: string): void {
     throw new SiteError(file, `isn't valid JSON: ${(error as Error).message}`);
   }
   if (
-    !Object.hasOwn(manifest.devDependencies ?? {}, "sitez") &&
-    !Object.hasOwn(manifest.dependencies ?? {}, "sitez")
+    !Object.hasOwn(manifest.devDependencies ?? {}, PACKAGE) &&
+    !Object.hasOwn(manifest.dependencies ?? {}, PACKAGE)
   ) {
     throw new SiteError(
       file,
-      `doesn't name sitez. Add this line to its "devDependencies":\n\n${line}\n\n${add}`,
+      `doesn't name ${PACKAGE}. Add this line to its "devDependencies":\n\n${line}\n\n${add}`,
     );
   }
 }

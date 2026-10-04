@@ -1,3 +1,3 @@
-import { define } from "sitez";
+import { define } from "@amitkaps/sitez";
 
 define("call-out", () => {});

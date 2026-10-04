@@ -1,4 +1,4 @@
-import { html } from "sitez";
+import { html } from "@amitkaps/sitez";
 import plan from "./plan.js";
 
 export default ({ data }) => html`

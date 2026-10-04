@@ -43,10 +43,10 @@ jobs:
         run: |
           npm install -g npm@latest
           v="$(node -p 'require(process.env.GITHUB_WORKSPACE + "/package.json").version')"
-          if npm view "sitez@$v" version >/dev/null 2>&1; then
-            echo "sitez@$v is already on npm"
+          if npm view "@amitkaps/sitez@$v" version >/dev/null 2>&1; then
+            echo "@amitkaps/sitez@$v is already on npm"
           else
-            npm stage publish "$GITHUB_WORKSPACE"/sitez-*.tgz --provenance --access public
+            npm stage publish "$GITHUB_WORKSPACE"/amitkaps-sitez-*.tgz --provenance --access public
           fi
       - name: Publish release
         env:

@@ -88,7 +88,7 @@ hyphen, which no element could use.
 
    ```js
    // code/+layout.js
-   import { html } from "sitez";
+   import { html } from "@amitkaps/sitez";
 
    export const head = () => html`<link rel="icon" href="/favicon.svg" />`;
 
@@ -136,7 +136,7 @@ hyphen, which no element could use.
 
    ```js
    // code/blog/@post-list.js renders {@post-list} under /blog/
-   import { html } from "sitez";
+   import { html } from "@amitkaps/sitez";
 
    export default ({ pages }) => html`
      <ul>
@@ -166,7 +166,7 @@ hyphen, which no element could use.
 
    ```js
    // code/@tag-filter.live.js
-   import { define, effect, signal } from "sitez";
+   import { define, effect, signal } from "@amitkaps/sitez";
 
    define("tag-filter", (el) => {
      const active = signal("");
@@ -306,12 +306,13 @@ what the numbers can't, such as a raw `<script>` that loads whatever it loads.
 lockfile beside it pins the rest.
 
 ```json
-{ "devDependencies": { "sitez": "0.2.0" } }
+{ "devDependencies": { "@amitkaps/sitez": "0.2.0" } }
 ```
 
-`npm install` puts that version in the site, and `npx sitez build` or `pnpm sitez build` runs it.
+`npm install` puts that version in the site. Its command is `sitez`, so `npx sitez build` or
+`pnpm sitez build` runs it.
 Nothing is installed globally, so your machine and the host always build with the same Sitez. A
-site whose `package.json` doesn't name `sitez` fails every command, naming the line to add. The
+site whose `package.json` doesn't name `@amitkaps/sitez` fails every command, naming the line to add. The
 report's last line names the version that ran. An npm library the site's code imports goes in the
 same `package.json`. A site in a folder of a larger repo can use the repo's `package.json`, the nearest
 one above it.

@@ -1,4 +1,4 @@
-import { html } from "sitez";
+import { html } from "@amitkaps/sitez";
 
 export const head = () => html`<link rel="icon" href="/favicon.svg" type="image/svg+xml" />`;
 

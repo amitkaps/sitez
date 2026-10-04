@@ -13,8 +13,9 @@ import { extname, join, sep } from "node:path";
 import { createServer, type Plugin, type ViteDevServer } from "vite";
 import { SiteError } from "./errors.ts";
 import { posix } from "./discover.ts";
+import { PACKAGE } from "./root.ts";
 
-/** Sitez's own files a site's pages and bundles load: the reset, and the `sitez` import. */
+/** Sitez's own files a site's pages and bundles load: the reset, and the `@amitkaps/sitez` import. */
 export const runtime = join(import.meta.dirname, "runtime");
 
 export interface SiteServer {
@@ -57,8 +58,8 @@ export async function siteServer(
     server: dev
       ? { port: dev.port, host: "localhost", fs: { strict: false } }
       : { middlewareMode: true, hmr: false, watch: null },
-    // A site that installs `sitez` would otherwise load its own copy, past `fromSitez`.
-    ssr: { noExternal: ["sitez"] },
+    // A site that installs Sitez would otherwise load its own copy, past `fromSitez`.
+    ssr: { noExternal: [PACKAGE] },
     plugins: [fromSitez(), liveBoundary(root, real), noOptimizer(), ...(dev ? [dev.plugin] : [])],
   });
   return {
@@ -114,7 +115,7 @@ export function asGiven(root: string, real: string, file: string): string {
  * `package.json` gets its own libraries, then as if imported from inside Sitez, which is where
  * Sitez's own dependencies are for a site without one.
  *
- * `sitez` itself is the one exception. It is always the runtime of the Sitez that is running, even
+ * `@amitkaps/sitez` itself is the one exception. It is always the runtime of the Sitez that is running, even
  * when the site installs another version. Its templates go to this Sitez's renderer, which
  * has to agree with them. The browser gets `browser`, as the package's `browser` condition picks
  * it, and Sitez runs from `src/` in development, so the extension is this file's own.
@@ -125,7 +126,7 @@ export function fromSitez(): Plugin {
     name: "sitez:resolve",
     enforce: "pre",
     async resolveId(id, importer, options) {
-      if (id === "sitez") {
+      if (id === PACKAGE) {
         const entry = this.environment.config.consumer === "client" ? "browser" : "index";
         return join(runtime, entry + extname(inside));
       }
