@@ -58,15 +58,18 @@ there.
 
 - [ ] Pages go to `text/`, YAML becomes JSON in `data/`, and the card grids become components
       given `data`. The workshops, talks and teaching grids are each a `filter-grid` with a
-      `.live` file. Pages keep their folders, and each lists its old URLs under `redirects`,
-      `.html` ones included.
+      `.live` file. Pages keep their folders, and each one that moved lists its old URLs under
+      `redirects`.
 - [ ] Compare with the SvelteKit site page by page, for the same content with less JavaScript.
       Whatever Sitez couldn't do goes back into idea.md or "Not in v1".
 
 ### 19. Release
 
-- [ ] Publish `sitez` 0.2.0 to npm. On a clean machine, `npm install` in a site and check
-      `npx sitez build`.
+- [x] Sitez is 0.2.0, published as `sitez`. A `v*` tag runs the release workflow, which stages
+      the version on npm and attaches the tarball to a GitHub Release. The packed tarball,
+      installed with `npm install` in a fresh copy of amitkaps.github.io, builds the same `dist/`.
+- [ ] Publish 0.2.0 to npm by hand, then set up the trusted publisher
+      ([docs/design.md#release](design.md#release)), and tag `v0.2.0`.
 - [ ] Build amitkaps.github.io on Cloudflare with `npx sitez build`, from its git integration.
 
 ## Open questions

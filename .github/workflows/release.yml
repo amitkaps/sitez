@@ -1,0 +1,54 @@
+# @prose
+# # Release
+#
+# Pushing a `vX.Y.Z` tag runs the same checks as CI, then packs the tarball. It attaches the
+# tarball to a GitHub Release and stages it on npm. The tag must match `package.json`'s version.
+#
+# npm uses trusted publishing, with OIDC and provenance, so there's no token to store. The
+# publisher may only stage. The new version waits on npmjs.com until a maintainer approves it
+# with 2FA. A version already on the registry is skipped. The steps are in docs/design.md#release.
+
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: package.json
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Tag must match package.json version
+        run: |
+          v="$(node -p 'require("./package.json").version')"
+          test "v$v" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME != package.json v$v"; exit 1; }
+      - run: pnpm run check
+      - run: pnpm test
+      # `pnpm pack` runs `prepack` (the build) first.
+      - run: pnpm pack
+      # From a folder outside the repository: npm refuses to run in it, since `devEngines` names pnpm.
+      - name: Stage on npm
+        working-directory: ${{ runner.temp }}
+        run: |
+          npm install -g npm@latest
+          v="$(node -p 'require(process.env.GITHUB_WORKSPACE + "/package.json").version')"
+          if npm view "sitez@$v" version >/dev/null 2>&1; then
+            echo "sitez@$v is already on npm"
+          else
+            npm stage publish "$GITHUB_WORKSPACE"/sitez-*.tgz --provenance --access public
+          fi
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" ./*.tgz --title "$GITHUB_REF_NAME" --generate-notes

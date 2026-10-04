@@ -428,6 +428,41 @@ nothing.
 Cloudflare builds from its own git integration with `npx sitez build`, so Sitez carries no
 Wrangler.
 
+## Release
+
+Sitez is published to npm as `sitez`, the name a site's code imports. A release tags a version,
+and the `release` workflow does the rest (`.github/workflows/release.yml`). It runs the checks,
+packs the tarball, stages it on npm, and attaches it to a GitHub Release.
+
+Bump `version` in `package.json` and push to `main`. Then tag the release and push the tag.
+
+```sh
+git tag v0.2.0 && git push origin v0.2.0
+```
+
+The workflow stages each version with npm's trusted publishing, which uses OIDC and adds
+provenance. There's no token, and CI can't release on its own. A maintainer approves each version
+with 2FA, in the **Staged Packages** tab on npmjs.com or with `npm stage approve <id>`.
+
+Set the trusted publisher up once, in the package's settings on npmjs.com. Name the repository
+`amitkaps/sitez` and the workflow `release.yml`. Leave direct publishing and dist-tags unchecked,
+so staging is all it can do. npm may not take the setting before the package exists. Then publish
+the first version by hand, outside the repository, because `npm` refuses to run where
+`devEngines` names pnpm.
+
+```sh
+pnpm pack && cd /tmp && npm login && npm publish ~/code/sitez/sitez-<version>.tgz --access public
+```
+
+Ruled out:
+
+- **A scoped name** (`@amitkaps/sitez`, as prose and markz are). Every component would import
+  from it, and idea.md promises `from "sitez"`. A scoped package would also leave `npx sitez` to
+  whoever took the plain name.
+- **Installing from GitHub** (`github:amitkaps/sitez#v0.2.0`). `dist/` isn't committed, so each
+  install would build Sitez, and pnpm runs no dependency's build scripts unless the site allows
+  them.
+
 ## Why not Svelte
 
 Sitez 0.1 ([`v0.1.0`](https://github.com/amitkaps/sitez/tree/v0.1.0)) wrote its pages, layouts
