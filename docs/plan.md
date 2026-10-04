@@ -69,7 +69,8 @@ there.
       the version on npm and attaches the tarball to a GitHub Release. The packed tarball,
       installed with `npm install` in a fresh copy of amitkaps.github.io, builds the same `dist/`.
 - [x] 0.2.0 is on npm and in a GitHub Release, and amitkaps.github.io installs it from npm.
-- [ ] Build amitkaps.github.io on Cloudflare with `npx sitez build`, from its git integration.
+- [x] next.amitkaps.com is built with Sitez 0.2.0 from npm and deployed to Cloudflare by the
+      site's CI. Taking it live at amitkaps.com is the site's own cutover, planned in its repo.
 
 Next comes simplifying before adding. The site changes to fit Sitez where it can, and Sitez gets
 leaner before it gets new features. The site doesn't have to match the old one.
@@ -95,15 +96,24 @@ the site can't do without it.
 
 Sitez does less, and depends on less.
 
-- [ ] Two dependencies, `@amitkaps/markz` and `vite-plus`. `htl` and `@preact/signals-core` move
-      into `src/runtime/`, keeping their licenses. Find whether `vite` (an alias of
-      `@voidzero-dev/vite-plus-core`) can come through `vite-plus` instead of being named. Check
-      the size of the runtime a page loads before and after.
+- [ ] Fewer and smaller dependencies, judged by what a site installs and what a page loads. A
+      site's `node_modules` is 137 MB today, and almost all of it comes through `vite-plus`. Sitez
+      uses only Vite's API at build and oxfmt and oxlint in `check`. Measured alone, `vite` is
+      31 MB with Rolldown, oxlint 15 MB and oxfmt 16 MB.
+  - Sitez depends on `vite` and `@amitkaps/markz`. `vite-plus` becomes a devDependency, for
+    building and testing Sitez itself, so no site installs its tests or type-aware linting.
+  - `htl` and `@preact/signals-core` move into `src/runtime/`, keeping their licenses, so Sitez
+    owns the runtime a page loads. That page's JavaScript is measured before and after.
+  - `check` keeps oxfmt and oxlint as its own dependencies, or drops formatting and linting and
+    keeps only Sitez's own checks. Ruled out: Biome (60 MB measured, not lighter), and ESLint,
+    Prettier or `tsc`, which add packages or a JavaScript runtime for what oxc does natively.
 - [ ] Whether `sitemap.xml` stays. Every site gets it, with no way out, and search engines find a
       small site's pages by its links. A sitemap page for humans, written from `pages`, would be
       the site's own.
 - [ ] Whether `feed.xml` stays. Any page with a `date` joins it, so `date` both orders pages and
       publishes them. amitkaps.com's essays are dated only for order.
+- [ ] Whether `sitez deploy` stays. It pushes to `gh-pages`, and no site uses it now, since
+      amitkaps.github.io deploys to Cloudflare from CI.
 - [ ] Whatever else 20 shows that Sitez needn't do.
 
 ### 22. Docs for users
