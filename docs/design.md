@@ -214,7 +214,12 @@ each kind of element.
   default. Its background, border and margins are wrong until the site's CSS sets
   `display: block`.
 - **An inline element** (`[term]{@key-word}`) is right as inline. It can't become another element,
-  so an `{@ext-link href=…}` writes its `href` twice, once on each tag.
+  so an `{@ext-link href=…}` writes its `href` twice, once on each tag. It sits inside a `<p>`, so
+  its output can't hold a tag that closes one, such as `<div>`, `<ul>` or `<p>`. The browser
+  would end the paragraph there and pop the element with it, and the page would break silently.
+  So the build fails, naming the line, the element and the tag. The list is the parser's, of the
+  start tags that close an open `<p>`, not the spec's phrasing content, so it fails exactly where
+  a browser breaks. The check reads the output after nesting, since inner components render first.
 
 The reset can't set `display: block` for the site. CSS has no selector for custom elements, or for
 elements used as blocks. So a block component costs one line in `+style.css`.
@@ -223,6 +228,13 @@ Replacing the tag with the component's output was ruled out. Sitez first did tha
 component could return `<aside class="call-out">`. The element's name was gone from the page, so
 its `.live` file never ran and its CSS never matched. A tag that is always there is worth more
 than choosing the root element.
+
+Passing the kind of use (inline, leaf or container) to the component was ruled out. Sitez reads
+it from Markz to run the check above, and the component never sees it. An element that renders
+differently by where it's used is two elements, such as `{@cite}` and `{@cite-block}`. So a tag
+means the same everywhere, for CSS and for its `.live` file. A `kind` prop would also be a fifth
+reserved attribute name, and `form` is already an HTML attribute. It can be added later without
+breaking a component, and taking it away couldn't.
 
 ### Links
 

@@ -154,6 +154,9 @@ hyphen, which no element could use.
      be an event handler, and those belong to `.live` files.
    - **An attribute named `page`, `pages`, `site` or `children` fails,** since every component
      already gets those.
+   - **An element inside a paragraph returns inline HTML.** A `<div>` or `<ul>` from
+     `[term]{@key-word}` would end the paragraph early, so it fails the build, naming the element
+     and the tag.
 
 6. **Browser behavior lives in `.live` files.** `code/@tag-filter.live.js` defines
    `<tag-filter>`, a custom element, and runs only in the browser. It ships only to pages whose
@@ -179,6 +182,8 @@ hyphen, which no element could use.
      writes the buttons).
    - **A live element reads its children and its attributes.** No data is sent to it besides the
      page's HTML, so nothing is sent twice.
+   - **The same `html` works in the browser.** In a `.live` file it makes DOM nodes, safely, where
+     at build time it writes escaped HTML.
    - **The two sides stay apart.** Build-time code that imports a `.live` file fails the build,
      naming the import. So does a `.live` file that imports a component or a layout.
 

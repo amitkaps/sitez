@@ -30,6 +30,12 @@ export interface TextSite {
 }
 
 /** @prose
+ * _Pending._ An inline element's output can't hold a tag that closes a paragraph
+ * ([docs/design.md#wrapping](docs/design.md#wrapping)). Read `kind` from the element's node, and
+ * when it's `"inline"`, fail on the first such start tag in its finished output, naming the line,
+ * the element and the tag. A fixture site with a `{@key-word}` that returns a `<div>` must fail.
+ */
+/** @prose
  * The HTML for one text page, in three steps that keep each exact.
  *
  * 1. Markz writes the HTML from a view of the document. In it, each link's destination is the URL
