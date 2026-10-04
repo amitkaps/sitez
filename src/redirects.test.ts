@@ -64,6 +64,16 @@ describe("readRedirects", () => {
     );
   });
 
+  test("fails on an old .html that a host also serves where a page is", () => {
+    expect(() => read([page("about", "/about/", ["/about.html"])])).toThrow(
+      "redirects lists /about.html: a host serves about.html at /about too, so the redirect page would stand in front of this page. Remove it.",
+    );
+    const pages = [page("blog/index", "/blog/"), page("posts", "/posts/", ["/blog.html"])];
+    expect(() => read(pages)).toThrow(
+      "redirects lists /blog.html: a host serves blog.html at /blog too, which reaches text/blog/index.md.",
+    );
+  });
+
   test("fails on a draft's URL, which dev serves", () => {
     const pages = [page("draft", "/draft/"), page("about", "/about/", ["/draft/"])];
     expect(() => read(pages, [pages[1]!])).toThrow("that's the URL of text/draft.md.");

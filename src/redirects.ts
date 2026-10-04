@@ -8,6 +8,11 @@
  *
  * A redirect is checked as a link is. It can't be a URL a page or another redirect has, and a link
  * to it fails, asking for the page it reaches. So nothing on the site goes through one.
+ *
+ * An old `/x.html` can't redirect while a page has `/x/`. Hosts serve `x.html` at `/x` too, so the
+ * redirect page would stand in front of that page's `/x`. When the page is the one listing it, the
+ * redirect isn't needed on Cloudflare, which sends `/x.html` to `/x/` by itself. GitHub Pages
+ * doesn't, and there the old `/x.html` is lost ([docs/design.md#redirects](docs/design.md#redirects)).
  */
 import { join, relative } from "node:path";
 import { outputFile } from "./discover.ts";
@@ -66,6 +71,19 @@ export function readRedirects(
         );
       }
       if (page) throw fail(`that's the URL of ${relative(root, page.file)}.`);
+      const shadowed = url.endsWith(".html")
+        ? pages.get(outputFile(`${url.slice(0, -5)}/`))
+        : undefined;
+      if (shadowed?.url === data.url) {
+        throw fail(
+          `a host serves ${url.slice(1)} at ${url.slice(0, -5)} too, so the redirect page would stand in front of this page. Remove it.`,
+        );
+      }
+      if (shadowed) {
+        throw fail(
+          `a host serves ${url.slice(1)} at ${url.slice(0, -5)} too, which reaches ${relative(root, shadowed.file)}.`,
+        );
+      }
       const other = listedBy.get(redirectFile(url));
       if (other) throw fail(`${relative(root, other)} lists it too. Keep one.`);
       listedBy.set(redirectFile(url), file);

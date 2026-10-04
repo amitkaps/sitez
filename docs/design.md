@@ -274,6 +274,10 @@ in `preview`, and `dev` answers an old URL with a 301.
   extension is a file, which a page can't stand in for.
 - It fails when a page has it, drafts included, or when another page lists it. It also fails when
   a file in `public/` is already there.
+- An old `/x.html` fails while a page has `/x/`. Hosts serve `x.html` at `/x` as well, so the
+  redirect page would stand in front of that page, and `/x` would reach it through a refresh.
+  Cloudflare sends `/x.html` to `/x/` by itself, so a page that only lost its `.html` needs no
+  redirect. GitHub Pages doesn't, and there that old URL is lost. A clean `/x` mattered more.
 - A link to an old URL fails, naming the page it reaches. Redirects are for links from elsewhere,
   so nothing on the site goes through one.
 - A draft's redirects aren't written, since the page they reach isn't.
