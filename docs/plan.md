@@ -94,26 +94,35 @@ the site can't do without it.
 
 ### 21. A leaner core
 
-Sitez does less, and depends on less.
+Sitez does less, and depends on less. Two measures say whether it worked, taken at the start and
+at the end, from the 0.2.0 baseline below.
+
+- **Install:** a site's `node_modules`, 137 MB for amitkaps.github.io.
+- **Code:** Sitez's source without tests, 3,258 lines, and idea.md, 2,952 words. A page's
+  JavaScript, with amitkaps.github.io's `common` at 4.6 KB.
 
 - [ ] Fewer and smaller dependencies, judged by what a site installs and what a page loads. A
       site's `node_modules` is 137 MB today, and almost all of it comes through `vite-plus`. Sitez
       uses only Vite's API at build and oxfmt and oxlint in `check`. Measured alone, `vite` is
       31 MB with Rolldown, oxlint 15 MB and oxfmt 16 MB.
-  - Sitez depends on `vite` and `@amitkaps/markz`. `vite-plus` becomes a devDependency, for
-    building and testing Sitez itself, so no site installs its tests or type-aware linting.
+  - Sitez depends on `vite`, `oxlint`, `oxfmt` and `@amitkaps/markz`, about 62 MB. `vite-plus`
+    becomes a devDependency, for building and testing Sitez itself, so no site installs its
+    tests or type-aware linting. Go from there.
   - `htl` and `@preact/signals-core` move into `src/runtime/`, keeping their licenses, so Sitez
     owns the runtime a page loads. That page's JavaScript is measured before and after.
-  - `check` keeps oxfmt and oxlint as its own dependencies, or drops formatting and linting and
-    keeps only Sitez's own checks. Ruled out: Biome (60 MB measured, not lighter), and ESLint,
+  - `check` runs oxfmt and oxlint as its own dependencies. Ruled out: Biome (60 MB measured, not lighter), and ESLint,
     Prettier or `tsc`, which add packages or a JavaScript runtime for what oxc does natively.
 - [ ] Whether `sitemap.xml` stays. Every site gets it, with no way out, and search engines find a
       small site's pages by its links. A sitemap page for humans, written from `pages`, would be
       the site's own.
 - [ ] Whether `feed.xml` stays. Any page with a `date` joins it, so `date` both orders pages and
       publishes them. amitkaps.com's essays are dated only for order.
-- [ ] Whether `sitez deploy` stays. It pushes to `gh-pages`, and no site uses it now, since
-      amitkaps.github.io deploys to Cloudflare from CI.
+- [ ] `sitez deploy` for GitHub Pages and Cloudflare, simpler, and with no dependency like
+      Wrangler. Today it pushes to `gh-pages` when the remote is on GitHub, and amitkaps.github.io
+      deploys to Cloudflare with Wrangler in its CI. Open: how a site says where it deploys. A
+      dotted key in `site.md` (`deploy.github`), which Markz reads, would be a setting there,
+      where idea.md allows only metadata. The convention that needs none is the git remote, as
+      now, or Cloudflare building from the repo.
 - [ ] Whatever else 20 shows that Sitez needn't do.
 
 ### 22. Docs for users
