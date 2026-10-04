@@ -5,9 +5,10 @@ JSON in `data/` and files in `public/`. Run `sitez build`, get complete HTML.**
 
 ## Promises
 
-1. **Four folders and a file.** `text/` is what you write, and `code/` is what renders and styles
-   it. `data/` is the JSON the code reads, and `public/` is files copied as they are. `site.md`
-   is the site's metadata. There is no configuration.
+1. **Four folders and two files.** `text/` is what you write, and `code/` is what renders and
+   styles it. `data/` is the JSON the code reads, and `public/` is files copied as they are.
+   `site.md` is the site's metadata, and `package.json` names the Sitez that builds it. There is
+   no configuration.
 2. **A text file is a page.** Its path is its URL. There is no route file.
 3. **Every page is complete HTML.** The build does the work so the browser doesn't.
 4. **Links are checked.** Text links to files, and Sitez turns them into URLs. A broken link
@@ -22,6 +23,7 @@ behave in the browser. Anything that needs more is a different tool.
 ```text
 site/
 ├── site.md                  the site's metadata
+├── package.json             the version of Sitez
 ├── text/
 │   ├── index.md             → /
 │   ├── about.md             → /about/
@@ -296,8 +298,22 @@ A page's `js` is what only it loads. `common` is the stylesheet and what pages s
 browser downloads once. A page that grows heavy or slow is visible where the cost is. A note says
 what the numbers can't, such as a raw `<script>` that loads whatever it loads.
 
+**A site names its version of Sitez.** Its `package.json` holds one line that matters, and the
+lockfile beside it pins the rest.
+
+```json
+{ "devDependencies": { "sitez": "0.2.0" } }
+```
+
+You install `sitez` once, and each site runs the version it names. The `sitez` command hands off
+to the site's own copy, so your machine and the host always build with the same Sitez. A site
+without `sitez` in its `package.json` fails every command, naming the line to add. One that
+hasn't been installed fails too, asking for `npm install`. The report's last line names the
+version that ran. An npm library the site's code imports goes in the same `package.json`.
+
 `sitez deploy` publishes to GitHub Pages when the repo's remote is on GitHub. Cloudflare needs no
-Sitez command. Connect the repo in Cloudflare and set the build command to `npx sitez build`.
+Sitez command. Connect the repo in Cloudflare and set the build command to `npx sitez build`. It
+installs from the lockfile first, so it builds with the site's own version.
 
 ## Not in v1
 
@@ -322,6 +338,8 @@ Ideas with a shape already, kept here until a site needs them. None is a promise
   wouldn't make slugs from titles. A template would have one placeholder. Without Markz expressions,
   its body could only hold components that read `page`.
 - **CSV in `data/`,** read as rows, as JSON is.
+- **`sitez create .`** would write a starter site: `site.md`, a `package.json` naming the running
+  version, and a first page in `text/`.
 - **A dashboard at `/__sitez/`,** so nobody needs the terminal to understand their site. `sitez dev`
   would open it. It would list every page with its cost and build time, the `+`, `@` and `.live`
   files that shaped it, the data it read, its links in and out, and its errors. Recently edited

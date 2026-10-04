@@ -6,7 +6,9 @@ underneath without changing those promises.
 ## Toolchain
 
 Sitez is an npm package built on [Vite+](https://vite-plus.dev). Vite+ is the toolchain, and
-Sitez is a Vite plugin plus the config nobody writes. Users never see a `vite.config.ts`.
+Sitez is a Vite plugin plus the config nobody writes. Users never see a `vite.config.ts`, and
+nothing in a site names Vite. So the toolchain is Sitez's to swap. Vite+ may give way to Vite,
+oxfmt and oxlint as separate packages, or to something else, and a site doesn't change.
 
 ```text
 sitez (npm)
@@ -19,10 +21,11 @@ sitez (npm)
 
 Sitez calls `createServer` and `build` itself, with `configFile: false`.
 
-A site needs no `package.json`. It gets one only when its code imports an npm library. A resolver
-plugin resolves a bare import from the site first, then as if imported from inside Sitez. `sitez`
-itself always resolves to the running Sitez's runtime, even when a site installs its own copy.
-Its templates go to this Sitez's renderer, which has to agree with them.
+A site's `package.json` names its version of Sitez, and any npm library its code imports. A
+resolver plugin resolves a bare import from the site first, then as if imported from inside Sitez.
+`sitez` itself resolves to the running Sitez's runtime, so its templates go to the renderer that
+has to agree with them. Since the command hands off to the site's copy ([Install](#install)), the
+running Sitez and the site's are one.
 
 Vite's dependency optimizer is off, because it resolves from the site root, where there are no
 packages. Sitez's dependencies are ESM and need no pre-bundling. Vite strips TypeScript's types
@@ -352,6 +355,21 @@ with a 404. It renders nothing, so it shows exactly what will deploy.
 `npm i -g sitez`, or `npx sitez dev` without installing. For someone without Node,
 `mise use -g npm:sitez` installs Node and Sitez together. That's the one-command install a binary
 would give, without building or signing one.
+
+The installed command is a launcher. It finds the site's root by `site.md`, reads `sitez` from the
+`package.json` beside it, and runs that copy from `node_modules`. ESLint and Astro work this way.
+A global version that differs from the site's is never used to build it, so the host and the
+author's machine can't drift. Without a pinned version, a release of Sitez could change a live
+site on its next deploy with nothing in the repo changed.
+
+Ruled out:
+
+- **A Vite plugin the site configures.** It would pin the version, but every site would write a
+  `vite.config.js`. Vite's API would become Sitez's public surface, and `check`, `deploy` and the
+  report would be scripts each site wires up.
+- **Running whatever `sitez` is installed.** That was the first design, with no `package.json`.
+  Nothing in the repo said which version built the site.
+- **A version in `site.md`.** It holds metadata, never settings, and npm already pins packages.
 
 A single binary stays possible later. Vite+ ships native code (Rolldown, the Oxc tools), which
 rules out Node's single executable applications. `bun build --compile` is the likely route.

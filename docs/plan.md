@@ -46,7 +46,13 @@ Each step ends in something a fixture site shows. So a step is done when its fix
 its tests pass, not when the code is written. Error cases are fixtures too, each a site that must
 fail with the message it must fail with.
 
-### 17. amitkaps.github.io
+### 17. A site names its Sitez
+
+- [ ] The `sitez` command hands off to the site's `node_modules/sitez`, from the `package.json`
+      beside `site.md`. A missing entry or a missing install fails, naming the fix.
+- [ ] The report's last line names the version that ran. Every fixture gets a `package.json`.
+
+### 18. amitkaps.github.io
 
 The real site, kept in its own private repo, is ported on its `next` branch. Its notes stay
 there.
@@ -57,7 +63,7 @@ there.
 - [ ] Compare with the SvelteKit site page by page, for the same content with less JavaScript.
       Whatever Sitez couldn't do goes back into idea.md or "Not in v1".
 
-### 18. Release
+### 19. Release
 
 - [ ] Publish `sitez` 0.2.0 to npm. Check `npx sitez build` and `mise use -g npm:sitez` on a
       clean machine.
