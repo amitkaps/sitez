@@ -23,6 +23,8 @@ line here. Finished steps shrink to one line each.
 - **11. The new folders, on Svelte.** `text/`, `code/` and `data/` replace `prose/` and
   `pattern/`, `pages` replaces `prose` and lists every page, and `_` files and non-Markz files in
   `text/` follow rule 1. Sitez's own tests moved to `tests/`.
+- **12. The runtime.** `src/runtime/` holds `html`, the renderer and `define`, and `sitez`'s
+  exports pick its build or browser half. `render.test.ts` covers each place a value can go.
 
 ## Open work, in order
 
@@ -32,16 +34,6 @@ fail with the message it must fail with.
 
 The order keeps the tests green throughout. The mechanical changes came while Svelte still
 rendered. Next the renderer is swapped, then Svelte is deleted.
-
-### 12. The runtime
-
-- [ ] The runtime gets its own folder, which never imports the rest of Sitez. It holds `html` and
-      the template value, the renderer, and `define`, `signal` and `effect` over htl and the
-      signals core.
-- [ ] `sitez`'s package exports pick the Node or browser entry by the `browser` condition.
-- [ ] A test table covers the renderer. It checks escaping in text and attributes, attributes
-      dropped or bare, arrays, nested templates and promises. It checks the failures too, a
-      function and a value in a tag.
 
 ### 13. Pages, layouts and components in JavaScript
 

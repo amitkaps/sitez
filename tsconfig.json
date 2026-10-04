@@ -20,5 +20,5 @@
     // Node runs `src/` directly in development, and needs the extension.
     "allowImportingTsExtensions": true
   },
-  "include": ["src", "test", "vite.config.ts"]
+  "include": ["src", "tests", "vite.config.ts"]
 }

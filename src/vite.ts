@@ -9,7 +9,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, sep } from "node:path";
+import { extname, join, sep } from "node:path";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { parse } from "@amitkaps/markz";
 import { compile } from "svelte/compiler";
@@ -78,6 +78,8 @@ export async function siteServer(
     server: dev
       ? { port: dev.port, host: "localhost", fs: { strict: false } }
       : { middlewareMode: true, hmr: false, watch: null },
+    // A site that installs `sitez` would otherwise load its own copy, past `fromSitez`.
+    ssr: { noExternal: ["sitez"] },
     plugins: [
       fromSitez(),
       textModules(root, real, () => site!.links),
@@ -163,6 +165,11 @@ export function asGiven(root: string, real: string, file: string): string {
  * Bare imports from a site's files resolve from the site first, so a site with its own
  * `package.json` gets its own libraries, then as if imported from inside Sitez, which is where
  * `svelte` is for a site without one.
+ *
+ * `sitez` itself is the one exception. It is always the runtime of the Sitez that is running, even
+ * when the site installs another version. Its templates go to this Sitez's renderer, which
+ * has to agree with them. The browser gets `browser`, as the package's `browser` condition picks
+ * it, and Sitez runs from `src/` in development, so the extension is this file's own.
  */
 export function fromSitez(): Plugin {
   const inside = import.meta.filename;
@@ -170,6 +177,10 @@ export function fromSitez(): Plugin {
     name: "sitez:resolve",
     enforce: "pre",
     async resolveId(id, importer, options) {
+      if (id === "sitez") {
+        const entry = this.environment.config.consumer === "client" ? "browser" : "index";
+        return join(runtime, entry + extname(inside));
+      }
       if (!/^[@a-z]/.test(id)) return null;
       const own = await this.resolve(id, importer, { ...options, skipSelf: true });
       return own ?? this.resolve(id, inside, { ...options, skipSelf: true });

@@ -20,11 +20,13 @@ sitez (npm)
 Sitez calls `createServer` and `build` itself, with `configFile: false`.
 
 A site needs no `package.json`. It gets one only when its code imports an npm library. A resolver
-plugin resolves a bare import from the site first, then as if imported from inside Sitez. So
-`sitez` itself resolves from a folder with no `node_modules`. Vite's dependency optimizer is off,
-because it resolves from the site root, where there are no packages. Sitez's dependencies are ESM
-and need no pre-bundling. Vite strips TypeScript's types with no setup, so `code/` takes `.ts` as
-well as `.js`.
+plugin resolves a bare import from the site first, then as if imported from inside Sitez. `sitez`
+itself always resolves to the running Sitez's runtime, even when a site installs its own copy.
+Its templates go to this Sitez's renderer, which has to agree with them.
+
+Vite's dependency optimizer is off, because it resolves from the site root, where there are no
+packages. Sitez's dependencies are ESM and need no pre-bundling. Vite strips TypeScript's types
+with no setup, so `code/` takes `.ts` as well as `.js`.
 
 ## The runtime
 
@@ -45,17 +47,30 @@ html`…`
   └─ browser: htl → DOM nodes
 ```
 
-**At build time**, `html` records its strings and values and renders nothing. The renderer turns
-that value into a string. It gives each place a value can go htl's meaning, so one tag means the
-same in both runtimes.
+**At build time**, `html` records its strings and values and renders nothing. The renderer
+(`src/runtime/render.ts`) turns that value into a string. It follows the HTML tokenizer through
+the template, as htl does, so each place a value can go means what it means in htl.
 
 - In text, a value is escaped (`& < > " '`). A nested template or Markz's HTML goes in as HTML,
   and an array is each of its items. `null`, `undefined` and `false` are nothing.
-- In an unquoted attribute (`href=${link}`), `null`, `undefined` and `false` drop the attribute.
-  `true` leaves it bare.
-- A value where an attribute name goes fails.
-- A promise anywhere is awaited, and every promise in a template resolves in parallel.
-- A function fails the build, naming the file.
+- Right after `name=`, a value is the attribute's. `null`, `undefined` and `false` drop the
+  attribute, and `true` leaves it bare. Anything else is written quoted and escaped.
+- Inside an attribute's value, quoted or not, a value is escaped text.
+- Inside `<script>` or `<style>`, a value goes in as it is, so a JSON-LD block stays JSON. One
+  holding the element's closing tag fails.
+- In a comment, a value is dropped.
+- A promise anywhere is awaited, in nested templates and arrays too.
+
+Some templates fail, and the build names the file.
+
+- A function fails, since at build time it could only be an event handler.
+- A value where a tag's name or an attribute's name goes fails. htl would spread an object there
+  as attributes, which is a second way to write `name=${value}`.
+- A template in an attribute fails, and so does a plain object anywhere. Each would write
+  `[object Object]`.
+
+The renderer differs from htl in one place on purpose. htl writes `false` in text as the word.
+`${cond && html`…`}` is how a template says "maybe", and the word is never wanted.
 
 Making DOM nodes at build time as well, as htl does, was ruled out. The build would need a DOM in
 Node only to serialize it back to the string it wanted.

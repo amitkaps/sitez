@@ -29,5 +29,5 @@ stage gets a file here, or a folder once it needs more than one, as its step in
 - `preview.ts` serves `dist/` as a static host would.
 - `check.ts` formats, lints and type-checks the site's files, and reports Markz's warnings.
 - `deploy.ts` builds and publishes `dist/` to GitHub Pages.
-- `runtime/` holds Sitez's files that a site's own build loads through Vite, such as the reset and the islands' runtime.
+- `runtime/` is what a site's own code loads: the `sitez` import and its renderer, and the reset.
 - `errors.ts` is how a mistake in a site becomes a message naming the file and what to change.
