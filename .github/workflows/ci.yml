@@ -35,3 +35,17 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      # The package as npm would ship it, installed into a copy of the blog example: catches a
+      # file missing from `files` or a dependency only the repo has, before a release does.
+      # Outside the repository, since npm refuses to run where `devEngines` names pnpm.
+      - name: Install the packed tarball in a site
+        run: |
+          pnpm pack --pack-destination "$RUNNER_TEMP"
+          cp -R tests/sites/blog "$RUNNER_TEMP/site"
+          cd "$RUNNER_TEMP/site"
+          tgz="$(ls "$RUNNER_TEMP"/amitkaps-sitez-*.tgz)"
+          node -e 'const fs = require("fs"); const p = JSON.parse(fs.readFileSync("package.json")); p.devDependencies["@amitkaps/sitez"] = "file:" + process.argv[1]; fs.writeFileSync("package.json", JSON.stringify(p))' "$tgz"
+          npm install --no-audit --no-fund
+          npx sitez build
+          npx sitez check
