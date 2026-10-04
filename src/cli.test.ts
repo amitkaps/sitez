@@ -58,6 +58,26 @@ describe("sitez", () => {
     );
   });
 
+  test("builds a live element that loads a library by URL, noting its host", async () => {
+    const root = mkdtempSync(join(tmpdir(), "sitez-"));
+    mkdirSync(join(root, "text"));
+    mkdirSync(join(root, "code"));
+    writeFileSync(join(root, "site.md"), "---\nname: Test\nurl: https://example.com\n---\n");
+    writeFileSync(join(root, "text/index.md"), "# Home\n\n{@chart-box /}\n");
+    writeFileSync(
+      join(root, "code/@chart-box.live.js"),
+      'import { define } from "@amitkaps/sitez";\nimport { format } from "https://cdn.example.com/d3-format@3/+esm";\ndefine("chart-box", (el) => { el.textContent = format(".2f")(1); });\n',
+    );
+    writeFileSync(
+      join(root, "package.json"),
+      '{ "devDependencies": { "@amitkaps/sitez": "0.2.0" } }\n',
+    );
+    const { code, log, error } = await sitez(["build"], root);
+    expect(error).toBe("");
+    expect(code).toBe(0);
+    expect(log).toMatch(/^\/ .* loads cdn\.example\.com$/m);
+  });
+
   test("fails in a site whose package.json doesn't name sitez, showing the line to add", async () => {
     const root = mkdtempSync(join(tmpdir(), "sitez-"));
     writeFileSync(join(root, "site.md"), "---\nname: Test\nurl: https://example.com\n---\n");

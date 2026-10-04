@@ -93,7 +93,7 @@ export async function build(
       ms: page.ms,
       html: gzipped(html),
       js: (script?.own ?? []).reduce((sum, file) => sum + gzipped(files.get(file)!), 0),
-      notes: notes(head + body),
+      notes: [...notes(head + body), ...(script?.hosts ?? []).map((host) => `loads ${host}`)],
     });
   }
   const all = rendered.map((page) => page.data);
@@ -123,7 +123,8 @@ function gzipped(content: string | Uint8Array): number {
 
 /** @prose
  * What a page's numbers leave out. A `<script>` Sitez didn't write, in a raw block or in
- * code's markup, runs whatever it loads, which the build can't count.
+ * code's markup, runs whatever it loads, which the build can't count. A library a live element
+ * loads by URL is noted by its host, where the page's script is built.
  */
 function notes(html: string): string[] {
   return /<script\b/i.test(html) ? ["raw <script>"] : [];

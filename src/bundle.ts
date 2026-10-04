@@ -143,6 +143,9 @@ export async function scripts(
   )?.fileName;
   const files: Files = new Map();
   const scripts: Scripts["pages"] = new Map();
+  const chunks = new Map(
+    output.flatMap((item) => (item.type === "chunk" ? [[item.fileName, item]] : [])),
+  );
   for (const item of output) {
     if (item.type === "asset") {
       files.set(item.fileName, item.source);
@@ -150,19 +153,44 @@ export async function scripts(
     }
     files.set(item.fileName, item.code);
     if (!item.isEntry) continue;
-    const preload = item.imports.map((file) => `<link rel="modulepreload" href="/${file}">`);
+    const imports = item.imports.filter((file) => chunks.has(file));
+    const preload = imports.map((file) => `<link rel="modulepreload" href="/${file}">`);
     scripts.set(item.name, {
       tags: [`<script type="module" src="/${item.fileName}"></script>`, ...preload].join("\n"),
-      own: [item.fileName, ...item.imports.filter((file) => file !== common)],
+      own: [item.fileName, ...imports.filter((file) => file !== common)],
+      hosts: hosts(item, chunks),
     });
   }
   return { files, pages: scripts, common };
 }
 
-/** What `scripts` built: by page, the tags that load its script and the files only it loads. */
+/** @prose
+ * The hosts a page's script loads a library from, through its own chunk or one it shares. A
+ * `.live` file imports a library by its full URL (rule 6), which Rolldown leaves as it is. The
+ * browser fetches it from that host, so the build can't count it, and the report names the host
+ * instead.
+ */
+function hosts(entry: Rolldown.OutputChunk, chunks: Map<string, Rolldown.OutputChunk>): string[] {
+  const found = new Set<string>();
+  const seen = new Set<string>();
+  const visit = (chunk: Rolldown.OutputChunk) => {
+    if (seen.has(chunk.fileName)) return;
+    seen.add(chunk.fileName);
+    for (const file of chunk.imports) {
+      const next = chunks.get(file);
+      if (next) visit(next);
+      else if (URL.canParse(file)) found.add(new URL(file).host);
+    }
+  };
+  visit(entry);
+  return [...found].sort();
+}
+
+/** What `scripts` built: by page, the tags that load its script, the files only it loads, and the
+ * hosts it loads libraries from. */
 export interface Scripts {
   files: Files;
-  pages: Map<string, { tags: string; own: string[] }>;
+  pages: Map<string, { tags: string; own: string[]; hosts: string[] }>;
   common: string | undefined;
 }
 
