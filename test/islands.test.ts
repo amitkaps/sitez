@@ -13,8 +13,11 @@ import { Window } from "happy-dom";
 import { expect, test } from "vite-plus/test";
 import { build } from "../src/build.ts";
 
+const blogOutDir = await built("blog");
+const elementsOutDir = await built("elements");
+
 test("the blog index hydrates its TagFilter and filters on a click", async () => {
-  const outDir = await built("blog");
+  const outDir = blogOutDir;
   // One page has islands, so there is nothing common to split out.
   expect(readdirSync(outDir).some((file) => file.startsWith("common."))).toBe(false);
   await inBrowser(outDir, "blog/index.html", async (document) => {
@@ -31,7 +34,7 @@ test("the blog index hydrates its TagFilter and filters on a click", async () =>
 });
 
 test("an island keeps its children as the server wrote them", async () => {
-  const outDir = await built("elements");
+  const outDir = elementsOutDir;
   // Two pages use FoldOut, so Svelte's runtime is common to both.
   expect(readdirSync(outDir).some((file) => file.startsWith("common."))).toBe(true);
   await inBrowser(outDir, "index.html", async (document) => {

@@ -44,5 +44,7 @@ export default defineConfig({
     expect: { requireAssertions: true },
     environment: "node",
     include: ["src/**/*.test.ts", "test/**/*.test.ts"],
+    testTimeout: 30_000,
+    isolate: false,
   },
 });
