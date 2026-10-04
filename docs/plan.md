@@ -48,9 +48,9 @@ fail with the message it must fail with.
 
 ### 17. A site names its Sitez
 
-- [ ] The `sitez` command hands off to the site's `node_modules/sitez`, from the `package.json`
-      beside `site.md`. A missing entry or a missing install fails, naming the fix.
-- [ ] The report's last line names the version that ran. Every fixture gets a `package.json`.
+- [ ] Every command fails in a site whose `package.json`, beside `site.md`, doesn't name `sitez`,
+      naming the line to add. Every fixture gets a `package.json`.
+- [ ] The report's last line names the version that ran.
 
 ### 18. amitkaps.github.io
 
@@ -65,8 +65,8 @@ there.
 
 ### 19. Release
 
-- [ ] Publish `sitez` 0.2.0 to npm. Check `npx sitez build` and `mise use -g npm:sitez` on a
-      clean machine.
+- [ ] Publish `sitez` 0.2.0 to npm. On a clean machine, `npm install` in a site and check
+      `npx sitez build`.
 - [ ] Build amitkaps.github.io on Cloudflare with `npx sitez build`, from its git integration.
 
 ## Open questions

@@ -305,11 +305,11 @@ lockfile beside it pins the rest.
 { "devDependencies": { "sitez": "0.2.0" } }
 ```
 
-You install `sitez` once, and each site runs the version it names. The `sitez` command hands off
-to the site's own copy, so your machine and the host always build with the same Sitez. A site
-without `sitez` in its `package.json` fails every command, naming the line to add. One that
-hasn't been installed fails too, asking for `npm install`. The report's last line names the
-version that ran. An npm library the site's code imports goes in the same `package.json`.
+`npm install` puts that version in the site, and `npx sitez build` or `pnpm sitez build` runs it.
+Nothing is installed globally, so your machine and the host always build with the same Sitez. A
+site whose `package.json` doesn't name `sitez` fails every command, naming the line to add. The
+report's last line names the version that ran. An npm library the site's code imports goes in the
+same `package.json`.
 
 `sitez deploy` publishes to GitHub Pages when the repo's remote is on GitHub. Cloudflare needs no
 Sitez command. Connect the repo in Cloudflare and set the build command to `npx sitez build`. It

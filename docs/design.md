@@ -352,27 +352,32 @@ with a 404. It renders nothing, so it shows exactly what will deploy.
 
 ## Install
 
-`npm i -g sitez`, or `npx sitez dev` without installing. For someone without Node,
-`mise use -g npm:sitez` installs Node and Sitez together. That's the one-command install a binary
-would give, without building or signing one.
+Sitez is installed in each site, never globally. `npm install` puts the version the site's
+`package.json` names in `node_modules`, and `npx sitez dev` or `pnpm sitez dev` runs that copy.
+So the author's machine and the host build with the same Sitez by construction. Without a pinned
+version, a release of Sitez could change a live site on its next deploy with nothing in the repo
+changed.
 
-The installed command is a launcher. It finds the site's root by `site.md`, reads `sitez` from the
-`package.json` beside it, and runs that copy from `node_modules`. ESLint and Astro work this way.
-A global version that differs from the site's is never used to build it, so the host and the
-author's machine can't drift. Without a pinned version, a release of Sitez could change a live
-site on its next deploy with nothing in the repo changed.
+Sitez checks one thing, that the site's `package.json` names `sitez`. Run in a site that doesn't,
+`npx` downloads the newest release, and nothing in the repo would record it. So every command
+fails there, naming the line to add. It never compares versions. Keeping `node_modules` in step
+with `package.json` is the package manager's job. The report's last line names the version that
+ran.
 
 Ruled out:
 
+- **A global install.** It was the first design, with no `package.json`, and nothing in the repo
+  said which version built the site. A global command that hands off to the site's copy, as
+  ESLint's does, was ruled out next. `npx` and `pnpm` already run the site's copy, so the
+  launcher would be machinery for a path nobody needs. `mise use -g npm:sitez` went with it.
+- **A single binary.** It was for installing without Node, and a site with a `package.json` needs
+  Node anyway.
 - **A Vite plugin the site configures.** It would pin the version, but every site would write a
   `vite.config.js`. Vite's API would become Sitez's public surface, and `check`, `deploy` and the
   report would be scripts each site wires up.
-- **Running whatever `sitez` is installed.** That was the first design, with no `package.json`.
-  Nothing in the repo said which version built the site.
 - **A version in `site.md`.** It holds metadata, never settings, and npm already pins packages.
-
-A single binary stays possible later. Vite+ ships native code (Rolldown, the Oxc tools), which
-rules out Node's single executable applications. `bun build --compile` is the likely route.
+- **Scripts in `package.json`.** `"dev": "sitez dev"` repeats the CLI under a second name, which
+  drifts. A site can add them, and Sitez never writes or reads them.
 
 ## Deploy
 
