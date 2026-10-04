@@ -39,18 +39,15 @@ line here. Finished steps shrink to one line each.
 - **16. Svelte goes.** `islands.ts`, the Island files, the Svelte plugin and the four Svelte
   dependencies are deleted, with `spike/`, whose findings are in design.md. `dev` hot-replaces CSS
   and reloads for anything else, and the report lists live elements by tag.
+- **17. A site names its Sitez.** Every command fails in a site whose `package.json` doesn't name
+  `sitez`, and the report's last line names the version that ran. Every fixture has a
+  `package.json`. An inline element whose output would end its paragraph fails the build.
 
 ## Open work, in order
 
 Each step ends in something a fixture site shows. So a step is done when its fixture builds and
 its tests pass, not when the code is written. Error cases are fixtures too, each a site that must
 fail with the message it must fail with.
-
-### 17. A site names its Sitez
-
-- [ ] Every command fails in a site whose `package.json`, beside `site.md`, doesn't name `sitez`,
-      naming the line to add. Every fixture gets a `package.json`.
-- [ ] The report's last line names the version that ran.
 
 ### 18. amitkaps.github.io
 

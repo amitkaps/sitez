@@ -24,11 +24,10 @@ Sitez calls `createServer` and `build` itself, with `configFile: false`.
 A site's `package.json` names its version of Sitez, and any npm library its code imports. A
 resolver plugin resolves a bare import from the site first, then as if imported from inside Sitez.
 `sitez` itself resolves to the running Sitez's runtime, so its templates go to the renderer that
-has to agree with them. Since the command hands off to the site's copy ([Install](#install)), the
+has to agree with them. Since `npx` and `pnpm` run the site's copy ([Install](#install)), the
 running Sitez and the site's are one.
 
-Vite's dependency optimizer is off, because it resolves from the site root, where there are no
-packages. Sitez's dependencies are ESM and need no pre-bundling. Vite strips TypeScript's types
+Vite's dependency optimizer is off. Sitez's dependencies are ESM and need no pre-bundling. Vite strips TypeScript's types
 with no setup, so `code/` takes `.ts` as well as `.js`.
 
 ## Names in `code/`

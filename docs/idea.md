@@ -291,7 +291,7 @@ page          html      js   time
 /teaching/  5.5 KB  2.0 KB  20 ms
 /quality/    90 KB   14 KB  1.2 s  raw <script>
 common      3.0 KB css, 1.5 KB js
-42 pages in 1.8 s → dist · live: filter-grid, theme-toggle
+42 pages in 1.8 s → dist · live: filter-grid, theme-toggle · sitez 0.2.0
 ```
 
 A page's `js` is what only it loads. `common` is the stylesheet and what pages share, which the

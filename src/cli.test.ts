@@ -45,12 +45,29 @@ describe("sitez", () => {
     mkdirSync(join(root, "text"));
     writeFileSync(join(root, "site.md"), "---\nname: Test\nurl: https://example.com\n---\n");
     writeFileSync(join(root, "text/index.md"), "# Home\n\nSome *stars*.\n");
+    writeFileSync(join(root, "package.json"), '{ "devDependencies": { "sitez": "0.2.0" } }\n');
     const { code, log, error } = await sitez(["build"], join(root, "text"));
     expect(code).toBe(0);
     expect(error).toBe("index.md:3:6: `*emphasis*`, write `_emphasis_` instead (star-emphasis)");
     // A second or more, on a busy machine, reads as seconds.
     expect(log).toMatch(
-      /^page +html +js +time\n\/ +[\d.]+ KB +— +[\d.]+ m?s\ncommon +[\d.]+ KB css\n1 page in [\d.]+ m?s → \.\.\/dist$/,
+      /^page +html +js +time\n\/ +[\d.]+ KB +— +[\d.]+ m?s\ncommon +[\d.]+ KB css\n1 page in [\d.]+ m?s → \.\.\/dist · sitez [\d.]+$/,
+    );
+  });
+
+  test("fails in a site whose package.json doesn't name sitez, showing the line to add", async () => {
+    const root = mkdtempSync(join(tmpdir(), "sitez-"));
+    writeFileSync(join(root, "site.md"), "---\nname: Test\nurl: https://example.com\n---\n");
+    const missing = await sitez(["build"], root);
+    expect(missing.code).toBe(1);
+    expect(missing.error).toContain(
+      `sitez: no package.json beside site.md. Add one naming the Sitez that builds this site:\n\n{ "devDependencies": { "sitez": "${pkg.version}" } }`,
+    );
+    writeFileSync(join(root, "package.json"), '{ "devDependencies": { "lodash": "4.0.0" } }\n');
+    const unnamed = await sitez(["check"], root);
+    expect(unnamed.code).toBe(1);
+    expect(unnamed.error).toContain(
+      `package.json: doesn't name sitez. Add this line to its "devDependencies":\n\n"sitez": "${pkg.version}"`,
     );
   });
 

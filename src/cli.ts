@@ -3,7 +3,8 @@
  * # The command
  *
  * `sitez` and its five commands, the whole interface a site's author sees. The command finds the
- * site first, so every command runs the same way from any folder inside it, then runs. A
+ * site first, so every command runs the same way from any folder inside it. It checks that the
+ * site's `package.json` names `sitez`, then runs. A
  * `SiteError` prints as `file: message` and exits 1; anything else is a Sitez bug and prints its
  * stack.
  */
@@ -17,7 +18,7 @@ import { dev } from "./dev.ts";
 import { preview } from "./preview.ts";
 import { SiteError, shownFrom, siteErrorText } from "./errors.ts";
 import { report } from "./report.ts";
-import { findRoot } from "./root.ts";
+import { findRoot, namesSitez } from "./root.ts";
 import { formatWarning } from "./warnings.ts";
 
 const commands = {
@@ -71,7 +72,7 @@ export async function run(argv: string[], cwd: string, out = console): Promise<n
   const port = values.port === undefined ? undefined : Number(values.port);
   const printBuild = (result: BuildResult) => {
     for (const warning of result.warnings) out.error(formatWarning(warning, shown));
-    out.log(report(result, relative(cwd, result.outDir) || "."));
+    out.log(report(result, relative(cwd, result.outDir) || ".", pkg.version));
   };
   const serveUntilStopped = async (server: { close(): Promise<void> }, message: string) => {
     out.log(`${message} Ctrl-C stops it.`);
@@ -80,6 +81,7 @@ export async function run(argv: string[], cwd: string, out = console): Promise<n
   };
   try {
     const root = findRoot(cwd);
+    namesSitez(root);
     if (name === "build") {
       printBuild(await build(root));
     } else if (name === "dev") {

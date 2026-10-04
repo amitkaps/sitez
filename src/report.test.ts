@@ -17,14 +17,14 @@ test("a page per row, sorted as given, then common and the total", () => {
     warnings: [],
     ms: 1812,
   };
-  expect(report(result, "dist")).toBe(
+  expect(report(result, "dist", "0.2.0")).toBe(
     [
       "page         html      js   time",
       "/          4.0 KB       —  12 ms",
       "/blog/     6.1 KB  5.0 KB  20 ms",
       "/quality/   90 KB   14 KB  1.2 s  raw <script>",
       "common     3.0 KB css, 12 KB js",
-      "3 pages in 1.8 s → dist · live: quality-report, tag-filter",
+      "3 pages in 1.8 s → dist · live: quality-report, tag-filter · sitez 0.2.0",
     ].join("\n"),
   );
 });
@@ -38,9 +38,9 @@ test("a site with no live elements has no common js and none listed", () => {
     warnings: [],
     ms: 40,
   };
-  expect(report(result, "dist").split("\n").slice(-2)).toEqual([
+  expect(report(result, "dist", "0.2.0").split("\n").slice(-2)).toEqual([
     "common  0.7 KB css",
-    "1 page in 40 ms → dist",
+    "1 page in 40 ms → dist · sitez 0.2.0",
   ]);
 });
 

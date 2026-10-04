@@ -3,10 +3,12 @@
  *
  * The folder holding `site.md` is the site, from wherever `sitez` runs inside it, the way git
  * finds a repo. So `site.md` is the one file every site has, and a site needs no `text/` at all.
- * The nearest `site.md` wins, which lets one repo hold several sites.
+ * The nearest `site.md` wins, which lets one repo hold several sites. Beside it, the site's
+ * `package.json` names the Sitez that builds it.
  */
-import { statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
+import pkg from "../package.json" with { type: "json" };
 import { SiteError } from "./errors.ts";
 
 export const SITE_FILE = "site.md";
@@ -31,6 +33,38 @@ export function findRoot(from: string): string {
         `no ${SITE_FILE} here or in any folder above. Sitez needs one at the site's root, holding a metadata block:\n\n---\nname: My site\nurl: https://example.com\n---`,
       );
     }
+  }
+}
+
+/** @prose
+ * Fails unless the site's `package.json` names `sitez`, so the repo records which Sitez builds it
+ * ([docs/design.md#install](docs/design.md#install)). It never compares versions, since keeping
+ * `node_modules` in step is the package manager's job. Either kind of dependency counts.
+ */
+export function namesSitez(root: string): void {
+  const file = join(root, "package.json");
+  const line = `"sitez": "${pkg.version}"`;
+  const add = `Then run npm install, so this site always builds with the same Sitez.`;
+  if (!isFile(file)) {
+    throw new SiteError(
+      root,
+      `no package.json beside ${SITE_FILE}. Add one naming the Sitez that builds this site:\n\n{ "devDependencies": { ${line} } }\n\n${add}`,
+    );
+  }
+  let manifest: { dependencies?: object; devDependencies?: object };
+  try {
+    manifest = JSON.parse(readFileSync(file, "utf8")) as typeof manifest;
+  } catch (error) {
+    throw new SiteError(file, `isn't valid JSON: ${(error as Error).message}`);
+  }
+  if (
+    !Object.hasOwn(manifest.devDependencies ?? {}, "sitez") &&
+    !Object.hasOwn(manifest.dependencies ?? {}, "sitez")
+  ) {
+    throw new SiteError(
+      file,
+      `doesn't name sitez. Add this line to its "devDependencies":\n\n${line}\n\n${add}`,
+    );
   }
 }
 
