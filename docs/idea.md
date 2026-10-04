@@ -188,6 +188,9 @@ hyphen, which no element could use.
      at build time it writes escaped HTML.
    - **The two sides stay apart.** Build-time code that imports a `.live` file fails the build,
      naming the import. So does a `.live` file that imports a component or a layout.
+   - **A live element is small.** It adds a little interactivity, which needs no library. A
+     `.live` file imports Sitez, the site's own `code/`, or a full URL. So a library such as D3
+     loads in the browser as an ES module from its URL, never from `node_modules`.
 
 7. **HTML before JavaScript.** Pages link with `<a>`, and Sitez's reset turns on cross-document
    View Transitions. `<details>`, `popover` and `<dialog>` open, close and toggle without
@@ -312,8 +315,8 @@ lockfile beside it pins the rest.
 `pnpm sitez build` runs it.
 Nothing is installed globally, so your machine and the host always build with the same Sitez. A
 site whose `package.json` doesn't name `@amitkaps/sitez` fails every command, naming the line to add. The
-report's last line names the version that ran. An npm library the site's code imports goes in the
-same `package.json`, and it must be an ES module. Sitez doesn't promise to load CommonJS. A site in a folder of a larger repo can use the repo's `package.json`, the nearest
+report's last line names the version that ran. An npm library that build-time code imports goes in the
+same `package.json`. A site in a folder of a larger repo can use the repo's `package.json`, the nearest
 one above it.
 
 **A site deploys from its host, not from Sitez.** Sitez's host is Cloudflare. Create a Worker from

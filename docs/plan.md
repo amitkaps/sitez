@@ -126,7 +126,8 @@ at the end, from the 0.2.0 baseline below.
 - [ ] A spike without Vite, last. Node 24 runs a site's modules and strips TypeScript itself, and its
       module hooks can do the resolver's job. The work is in dev, where changed code must rerun,
       perhaps in a fresh worker per rebuild, and in hashing unbundled browser modules. It gives
-      up nothing idea.md promises, since a site's libraries must be ES modules.
+      up nothing idea.md promises, since a `.live` file imports a library by its URL, never from
+      `node_modules`.
       Build amitkaps.github.io with it behind the same tests, and compare it with the
       three-dependency Sitez: lines added against the ~700 in `vite.ts`, `bundle.ts` and
       `dev.ts`, install size, and reload time in dev. Vite goes if it wins on all three.
