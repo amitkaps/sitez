@@ -28,6 +28,50 @@ Vite's dependency optimizer is off, because it resolves from the site root, wher
 packages. Sitez's dependencies are ESM and need no pre-bundling. Vite strips TypeScript's types
 with no setup, so `code/` takes `.ts` as well as `.js`.
 
+## Names in `code/`
+
+A file's role in `code/` is the first character of its name (`docs/idea.md#folders`). `@` is an
+element's file, `+` is a file Sitez reads by name, and anything else is a module. Every page is
+text, so no file in `code/` is a page, and a plain name can mean a module with no prefix.
+
+- **`@` is Markz's own mark.** `{@call-out}` in text is `@call-out.js` in code, so the file for an
+  element is found by reading the element.
+- **`+` is a closed set.** Sitez reads `+layout.js` and `+style.css`, and any other `+` file fails.
+  A misspelled name fails rather than doing nothing. SvelteKit marks its files the same way, so
+  the mark is familiar.
+- **`.live` is the one suffix.** It marks the file Sitez never imports in Node, where
+  `HTMLElement` doesn't exist. Sitez can't tell browser code from build code by reading plain
+  JavaScript, so the name is the mark.
+
+Sitez 0.2 began with other names, and they went because each was a rule with nothing behind it.
+
+- **JS pages** (`code/blog/index.js` → `/blog/`). A page that lists posts is a text page holding a
+  component, so a second kind of page bought nothing. Without it, a lowercase name no longer has
+  to mean a page, and a page's title always comes from its metadata.
+- **Capitalized layouts and components** (`Layout.js`, `CallOut.js`). They had to be translated
+  from the element's name, and case is easy to get wrong on a case-insensitive disk.
+- **`_` for modules.** Once nothing in `code/` is a page, a module needs no mark.
+- **`Head.js`.** The nearest layout already knows the page, so it exports `head` beside its
+  default export. A section's layout imports its parent's `head`, as it imports the parent layout.
+- **`.island.js`.** "Live" says what the file does, and "island" named an architecture the reader
+  had to know.
+- **A `content/` folder holding text and data.** It would put the files authors write together.
+  But `text/` would hold files that aren't pages, and "a folder is named for its kind of file"
+  would get an exception. Jekyll, Hugo and Eleventy keep data apart too.
+
+Other marks were weighed and ruled out.
+
+- **Browser code as a named export** of the component's file. One file would then run in Node and
+  in the browser, and its imports would cross the boundary unseen.
+- **`.html.js`, `.client.js`, `.island.js` or a `$` prefix.** Each is another word for `@` or
+  `.live` with no gain.
+- **A `live` attribute on each use** (`{@tag-filter live}`). Behavior belongs to the element, not
+  the use. It comes back only if load timing needs a per-use switch.
+- **`+` files for custom outputs** (a `+feed.xml.js`). Sitez writes the sitemap and feed itself,
+  and custom outputs are configuration by another name.
+- **`from` or `src` for data.** `data` says what the component gets, and `src` already means a URL
+  in HTML.
+
 ## The runtime
 
 A site imports four names from `sitez`, which are `html`, `signal`, `effect` and `define`. The
@@ -39,7 +83,7 @@ Sitez wants it, it moves out into a tiny package of its own. Until then, a secon
 a second release cycle for one consumer.
 
 `sitez` has one entry per runtime, picked by the package's `browser` export condition. So build
-code and islands write the same import.
+code and `.live` files write the same import.
 
 ```text
 html`…`
@@ -88,8 +132,8 @@ safe by construction. `signal` and `effect` are the signals core's.
 
 `define(name, setup)` defines the custom element and calls `setup(el)` once per element, on its
 first connect. `connectedCallback` runs again when an element moves, and running `setup` twice
-would bind everything twice. In Node, `define` fails, since an island never runs at build time.
-Each island bundle includes only what it uses, so an island that doesn't call `html` ships no
+would bind everything twice. In Node, `define` fails, since a `.live` file never runs at build
+time. Each bundle includes only what it uses, so a `.live` file that doesn't call `html` ships no
 htl.
 
 ## Dev server
@@ -101,18 +145,18 @@ deleted file is a new or missing URL without a restart.
 
 A page in dev has two scripts.
 
-- The first imports the stylesheet as modules (the reset and `code/style.css`), then shows the
+- The first imports the stylesheet as modules (the reset and `code/+style.css`), then shows the
   page. It blocks the first render (`blocking="render"`), as a stylesheet link does in `build`.
   Where that isn't supported, a small `<style>` keeps the page hidden until then, or for a second
   at most, so it never flashes unstyled. That `<style>` also opts into view transitions, which
   must be on before a page first renders.
-- The second imports the page's islands, apart, so a broken island can't hold back the styles.
+- The second imports the page's `.live` files, apart, so a broken one can't hold back the styles.
 
 Vite hot-replaces a change to CSS. Anything else reloads the page.
 
 - A change to code can change any page's HTML, even whether a link on another page is broken. So
   the server's modules are all invalidated.
-- A custom element can't be defined twice, so an island can't be swapped in place.
+- A custom element can't be defined twice, so a `.live` file can't be swapped in place.
 - Pages rendered at build time have no client state to keep, so a reload is the whole of HMR for
   them.
 
@@ -132,29 +176,53 @@ can't render a page differently. A rejected promise keeps its original error, wh
 the data module rather than the page. So the build wraps each render and names the page file.
 Pages render concurrently. If the build gets slow, the fix is a faster build, not less HTML.
 
-A text page is Markz's HTML with each element that has a component replaced by its output.
-`html()` renders a view of the document in which each such element is a marker, as each raw
-`=html` block is. So the only tags in its output are Markz's own, and replacing one is exact. A
-component is found up the tree, as a layout is. It's called with three kinds of props.
+A page is Markz's HTML with each element that has a component rendered by it. `html()` renders a
+view of the document in which each such element is a marker, as each raw `=html` block is. So the
+only tags in its output are Markz's own, and replacing one is exact. Markers are replaced
+innermost first, so a component's `children` holds its content already rendered. A component is
+found up the tree, as a layout is. It's called with three kinds of props.
 
 - Its attributes, as strings. Classes accumulate, and any other key's last value wins.
 - Its content, rendered first, as `children`.
 - The page's `page`, `pages` and `site`. An attribute named `children` or one of those fails.
 
-A component is a module like a page. Its default export returns a template, and the build renders
-it. Its output is trimmed, so a template written across lines can sit inside a paragraph.
+A `data` attribute is read before the call. Its path resolves in `data/`, and the parsed JSON
+replaces the string. One that isn't there fails, naming the line.
 
-A raw block is written as it is. `build` prints Markz's warnings, and they never fail it.
+A component is a module whose default export returns a template, and the build renders it. Its
+output is trimmed, so a template written across lines can sit inside a paragraph. Sitez writes the
+element around it ([Wrapping](#wrapping)). A raw block is written as it is. `build` prints Markz's
+warnings, and they never fail it.
 
-A page renders before its layout, because a JS page's title can come from its own `<h1>` and the
-layout needs the title. The layout is then called with the page's finished HTML as `children`. A
-layout that doesn't render its children, or renders them twice, fails the build. Only the nearest
-layout wraps a page. A `code/blog/Layout.js` that wants the site's header imports `../Layout.js`
-and puts itself inside it. `Head.js` resolves the same way.
+The layout is called with the page's finished HTML as `children`. A layout that doesn't render
+its children, or renders them twice, fails the build. Only the nearest layout wraps a page. A
+`code/blog/+layout.js` that wants the site's header imports `../+layout.js` and puts itself inside
+it. The same layout's `head` export adds to the page's `<head>`.
 
-`pages` is read before any page renders. So a JS page's entry has the title its `metadata` gives,
-and none when the title comes from its `<h1>`. A page that other pages list states its title in
-`metadata`.
+`pages` is every page's URL and metadata, read before any page renders.
+
+### Wrapping
+
+A component returns its element's inner HTML, and Sitez writes the element around it with its
+attributes. A `data` attribute is left out, since the component has read it. So the tag is always
+in the page, where CSS and the element's `.live` file look for it. Wrapping costs something for
+each kind of element.
+
+- **A leaf** (`{@video-embed id=x /}`) can never be a bare `<iframe>` or `<img>`. The page gets
+  `<video-embed id="x"><iframe …></iframe></video-embed>`.
+- **A container** (`{@call-out}…{/call-out}`) holds block content in an element that is inline by
+  default. Its background, border and margins are wrong until the site's CSS sets
+  `display: block`.
+- **An inline element** (`[term]{@key-word}`) is right as inline. It can't become another element,
+  so an `{@ext-link href=…}` writes its `href` twice, once on each tag.
+
+The reset can't set `display: block` for the site. CSS has no selector for custom elements, or for
+elements used as blocks. So a block component costs one line in `+style.css`.
+
+Replacing the tag with the component's output was ruled out. Sitez first did that, and a
+component could return `<aside class="call-out">`. The element's name was gone from the page, so
+its `.live` file never ran and its CSS never matched. A tag that is always there is worth more
+than choosing the root element.
 
 ### Links
 
@@ -169,15 +237,15 @@ elements and raw blocks.
 - A site link (`/about`) is looked up among the pages, then in `public/`.
 - A link to a draft, to the 404 page, or to anything that isn't there fails with its line.
 
-The check needs every page's draft status before any text renders. So `build` loads the JS pages'
-modules for their `metadata` first.
+The check needs every page's draft status before any text renders, which every page's metadata
+block gives.
 
 Then each rendered page's `href` and `src` attributes are checked against the same pages,
 `public/` and Sitez's own files. That catches what code and raw blocks write. A site link there
 has to be exact (`/blog/`), since the HTML is finished and nothing rewrites it. Only start tags
 are read. So HTML shown as text, whose `<` is escaped, and code inside `<script>` aren't taken for
-links. A link an island writes exists only in the browser and isn't checked. That's one more
-reason islands enhance rather than generate.
+links. A link a `.live` file writes exists only in the browser and isn't checked. That's one more
+reason live elements enhance rather than generate.
 
 ### The head, the sitemap and the feed
 
@@ -188,44 +256,39 @@ The head is written from metadata (`head.ts`).
 - A feed link, when the site has a feed.
 - `<html lang>`, which is `lang` from `site.md`.
 
-`Head.js`'s output follows. Writing one of those tags there fails, so there is one source for what
-a page says about itself.
+The nearest layout's `head` follows. Writing one of those tags there fails, so there is one source
+for what a page says about itself.
 
 `sitemap.xml` lists every page but the 404. `feed.xml` is RSS 2.0 with the pages that have a
 `date`, newest first, each with its title, summary and date. The 404 page is written as
 `404.html` and left out of `pages`, since nothing lists or links to it.
 
-## Islands
+## Live elements
 
-An island is a custom element, and its tag is the element's own name. It isn't
+A live element is a custom element, and its tag is the element's own name. It isn't
 `<div data-component="call-out">`. The browser finds and upgrades a custom element by itself,
 where a `div` would need Sitez's runtime to scan for it and watch for new ones. A custom element
 is also what Markz writes.
 
-The file is named by its tag and the word Sitez uses for it, as in `filter-grid.island.js`. So it
-can't be taken for a page or a component. Sitez never imports it in Node, where `HTMLElement`
-doesn't exist. Sitez can't read browser behavior from plain JavaScript, as it read it from
-Svelte's AST, so the file name is the mark.
+Sitez finds the `.live` files a page uses by scanning its finished HTML for their tags. Live
+elements nest without any effort, since custom elements do.
 
-Sitez finds the islands a page uses by scanning its finished HTML for their tags. Islands nest
-without any effort, since custom elements do.
-
-An island adds behavior to HTML the build wrote, and doesn't draw its own. On a slow load its
+A live element adds behavior to HTML the build wrote, and doesn't draw its own. On a slow load its
 module can run after first paint, so markup it inserted would move the page. In the spike, filter
-buttons an island prepended pushed the teaching grid down. So a component of the same name writes
-what the island shows. `FilterGrid.js` writes `<filter-grid>`, its buttons and its children, and
-`filter-grid.island.js` wires the buttons. A component whose output drops its own tag, while an
-island of that name exists, fails the build. The island would never run.
+buttons the script prepended pushed the teaching grid down. So the element's component writes
+what it shows. `@filter-grid.js` writes the buttons and the grid's children, and
+`@filter-grid.live.js` wires the buttons. Sitez writes `<filter-grid>` around the component's
+output, so the script always finds its element.
 
-The only data an island gets is the page, which means its children and its attributes. There are
-no props to serialize, nothing is sent twice, and there is nothing to hydrate. An island that
-needs rows of data will get them as a JSON `<script>` child, once a site needs one. That will need
-rules for what crosses (a `Date` becomes a string in JSON) and how big it may get.
+The only data a live element gets is the page, which means its children and its attributes. There
+are no props to serialize, nothing is sent twice, and there is nothing to hydrate. One that needs
+rows of data will get them as a JSON `<script>` child, once a site needs one. That will need rules
+for what crosses (a `Date` becomes a string in JSON) and how big it may get.
 
-The two sides of the boundary fail apart. Build-time code that imports an `.island.js` would
-crash Node. An island that imports a page, layout or component would bundle whatever those
-import. Both fail the build, naming the import. A module with no Node imports can be used by both,
-such as a `_card.js` that returns a template.
+The two sides of the boundary fail apart. Build-time code that imports a `.live` file would crash
+Node. A `.live` file that imports a component or a layout would bundle whatever those import. Both
+fail the build, naming the import. A module with no Node imports can be used by both, such as a
+`card.js` that returns a template.
 
 ## Bundling
 
@@ -233,7 +296,7 @@ Once every page has rendered, Rolldown builds what the browser downloads besides
 (`bundle.ts`). Nothing it builds reaches `dist/` until every page has.
 
 A site has one stylesheet, `style.[hash].css`. It holds the reset (`src/runtime/reset.css`), then
-`code/style.css` and what it imports. CSS is small and needed before anything paints. So one file,
+`code/+style.css` and what it imports. CSS is small and needed before anything paints. So one file,
 cached by the first page and reused by every other, costs less than a split that saves a few
 bytes a page.
 
@@ -242,15 +305,15 @@ The site's own CSS stays unlayered, so `@layer` and `!important` in it mean what
 mean. A `url()` in it is bundled as `assets/[name].[hash][ext]`. Vite would ship one it can't
 resolve as written, with only a warning, so Sitez fails the build instead.
 
-JavaScript splits by one rule. What more than one page uses goes in `common.js`. What only this
-page uses goes in the page's own `index.js`, next to its `index.html`. The signals core and an
-island in the layout are common, and `tag-filter` on `/blog/` is the page's.
+JavaScript splits by one rule. What more than one page uses goes in `common.js`. What only this page
+uses goes in the page's own `index.js`, next to its `index.html`. The signals core and a live
+element in the layout are common, and `tag-filter` on `/blog/` is the page's.
 
-File names carry a content hash (`common.3f9a1c.js`), so a new deploy is never served from a
-stale cache. A page with no islands loads no JavaScript, common or its own. An island used on a
-few pages still lands in `common.js`, and the `common` row in the build report shows if that
-grows. The runtime's floor is the signals core, about 1.5 KB gzipped. htl adds about 3 KB, only
-for an island that calls `html`. The build sets production mode itself.
+File names carry a content hash (`common.3f9a1c.js`), so a new deploy is never served from a stale
+cache. A page with no live element loads no JavaScript, common or its own. A `.live` file used on a
+few pages still lands in `common.js`, and the `common` row in the build report shows if that grows.
+The runtime's floor is the signals core, about 1.5 KB gzipped. htl adds about 3 KB, only for a
+`.live` file that calls `html`. The build sets production mode itself.
 
 ## Check
 
@@ -332,28 +395,42 @@ templates. The spike that decided it is in [spike/](../spike/README.md).
   remote functions, content collections with schemas, a docs shell, versions and locales, and an
   SPA router. Adopting it takes a Vite config, server hooks and an `ORIGIN` variable.
 
+## Precedent
+
+- **[Enhance](https://enhance.dev)** has the same element model. The file name is the tag, an
+  element is a pure function, and it renders in light DOM. It renders on a server, where Sitez
+  writes static files.
+- **[WebC](https://www.11ty.dev/docs/languages/webc/)** bundles a component's script only on the
+  pages where its tag appears, as Sitez does with `.live` files.
+
+What Sitez adds is the combination of text-first pages, behavior paired with markup by file name,
+and static output.
+
 ## Open questions
 
 - **Types.** `sitez check` has had no type checker since svelte-check went with Svelte. The likely
   one is `tsc` with `checkJs` over `code/`, strict but asking for no annotations. It comes once a
   site's mistakes call for it.
-- **Misspelled elements.** An element with no component and no island is a plain HTML element,
-  which is legitimate. So a misspelled island name silently does nothing. A warning could catch
-  it, for an element with no component, no island and no selector in `style.css`. That's worth
-  it if it isn't too fragile.
-- **Disposing effects.** An island's effects live as long as its page. Cross-document View
-  Transitions mean a full load each time, so nothing disposes them yet. An island that removes
+- **Misspelled elements.** An element with no `@` file and no `.live` file is a plain HTML
+  element, which is legitimate. So a misspelled name silently does nothing. A warning could catch
+  it, for an element with neither file and no selector in `+style.css`. That's worth it if it
+  isn't too fragile.
+- **Per-component CSS.** An `@call-out.css` beside `@call-out.js` would keep an element's styles
+  with it. It would join the one stylesheet, so its order against `+style.css` needs deciding.
+- **Disposing effects.** A live element's effects live as long as its page. Cross-document View
+  Transitions mean a full load each time, so nothing disposes them yet. A live element that removes
   elements would need `define` to dispose effects in `disconnectedCallback`.
-- **Re-rendering in islands.** htl builds DOM once, and signals update it through `effect`. That
-  covers hiding, toggling and text. An island that re-renders a list would lose focus and input
-  state. It would need a diffing renderer behind the same `html`, such as uhtml.
+- **Re-rendering in live elements.** htl builds DOM once, and signals update it through `effect`.
+  That covers hiding, toggling and text. A live element that re-renders a list would lose focus and
+  input state. It would need a diffing renderer behind the same `html`, such as uhtml.
 - **Meaning.** `<call-out>` means nothing to a screen reader, where `<aside>` is a landmark.
   `{@call-out role="note"}` works for one use. When the meaning matters on every use, that's what
   a component is for. Whether the docs should say so more strongly waits for a site that needs it.
 - **Raw HTML.** A ` ```=html ` block ships as written, `<script>` included. It is the author's
-  escape hatch, outside the islands and the JavaScript they account for. The build report notes a
-  page with a raw `<script>`. Whether to sanitize raw HTML waits until sites use it enough to say.
+  escape hatch, outside the `.live` files and the JavaScript they account for. The build report
+  notes a page with a raw `<script>`. Whether to sanitize raw HTML waits until sites use it enough
+  to say.
 - **A social image.** `og:image` is left out until Sitez can make one. Each page's card would be
-  drawn by a component at build time (a `Card.js` given `page` and `site`, or an SVG template).
+  drawn at build time by a function given `page` and `site`, or by an SVG template.
   Social sites don't take SVG, so the card has to be rasterized to PNG. That means a renderer
   such as resvg in the toolchain. Twitter's card becomes `summary_large_image` once there is one.
