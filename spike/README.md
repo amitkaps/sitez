@@ -1,7 +1,7 @@
 # Spike: `/teaching/` without Svelte
 
 The test that decided Sitez 0.2: amitkaps.github.io's `/teaching/` page, built without Svelte
-and measured against the live SvelteKit page. It held, and [design.md](../prose/design.md) was
+and measured against the live SvelteKit page. It held, and [design.md](../docs/design.md) was
 rewritten from it. This folder is a throwaway: it goes when the rewrite lands (plan step 15).
 
 ```sh

@@ -1,7 +1,7 @@
 {
   "name": "sitez",
   "version": "0.1.0",
-  "description": "A zero-config static site generator: Markz in prose/, Svelte in pattern/, files in public/.",
+  "description": "A zero-config static site generator: Markz in text/, JavaScript in code/, files in public/.",
   "license": "MIT",
   "repository": {
     "type": "git",

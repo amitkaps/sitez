@@ -37,6 +37,7 @@ A rename only, so that a test failing later means the renderer, not a path.
       imports and is never copied.
 - [ ] The `prose` prop becomes `pages`, and covers every page, Svelte pages included.
 - [ ] A file in `code/` whose name starts with `_` is a module, never a page.
+- [ ] Sitez's own `test/` becomes `tests/`, as in its other repos.
 
 ### 12. The runtime
 
