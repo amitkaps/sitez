@@ -42,6 +42,8 @@ line here. Finished steps shrink to one line each.
 - **17. A site names its Sitez.** Every command fails in a site whose `package.json` doesn't name
   `sitez`, and the report's last line names the version that ran. Every fixture has a
   `package.json`. An inline element whose output would end its paragraph fails the build.
+- **Redirects.** A page lists its old URLs under `redirects`, and `build` writes a page at each
+  that refreshes to it. A redirect a page has, or a link to one, fails, and `dev` answers with a 301.
 
 ## Open work, in order
 
@@ -56,7 +58,8 @@ there.
 
 - [ ] Pages go to `text/`, YAML becomes JSON in `data/`, and the card grids become components
       given `data`. The workshops, talks and teaching grids are each a `filter-grid` with a
-      `.live` file. Old `.html` URLs keep working.
+      `.live` file. Pages keep their folders, and each lists its old URLs under `redirects`,
+      `.html` ones included.
 - [ ] Compare with the SvelteKit site page by page, for the same content with less JavaScript.
       Whatever Sitez couldn't do goes back into idea.md or "Not in v1".
 

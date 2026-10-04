@@ -25,6 +25,7 @@ export interface PageData extends Metadata {
   summary?: string;
   date?: string;
   draft?: boolean;
+  redirects?: string | string[];
 }
 
 /** @prose
@@ -71,6 +72,11 @@ const pageKeys: Record<string, Rule> = {
     typeof value === "string" && isDate(value) ? undefined : "write a date as 2026-09-29",
   draft: (value) => (typeof value === "boolean" ? undefined : "write draft: true or draft: false"),
   url: () => "a page's URL is its file's path: move the file instead, and remove url",
+  redirects: (value) =>
+    typeof value === "string" ||
+    (Array.isArray(value) && value.every((item) => typeof item === "string"))
+      ? undefined
+      : "write the URLs that used to reach this page, such as redirects: [/old-name/]",
 };
 
 const absoluteUrl: Rule = (value) =>

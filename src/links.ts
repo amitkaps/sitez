@@ -14,6 +14,7 @@
 import { statSync } from "node:fs";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { NOT_FOUND, posix, urlOf } from "./discover.ts";
+import { redirectUrl } from "./redirects.ts";
 
 /** @prose
  * What a link can point at. `pages` holds every page by URL, with whether this run leaves it out:
@@ -25,6 +26,8 @@ export interface LinkTargets {
   repo: string | undefined;
   pages: Map<string, { draft: boolean }>;
   generated: Set<string>;
+  /** Each old URL a page lists under `redirects`, and the page's URL (`redirects.ts`). */
+  redirects: Map<string, string>;
 }
 
 export type LinkKind = "link" | "image";
@@ -61,11 +64,16 @@ function isFullUrl(destination: string): boolean {
  * A site link names a page by its URL, with or without its trailing slash, or a file in
  * `public/` by its path, and is written as the URL the site serves. A path this site doesn't
  * build may still be on the same domain, as a separate site can be, but Sitez can't tell that
- * from a typo: the author writes it in full, as any other site's link.
+ * from a typo: the author writes it in full, as any other site's link. A redirect is for links
+ * from elsewhere, so a link to one fails, naming the page it reaches.
  */
 function siteLink(targets: LinkTargets, path: string): { href: string } | { problem: string } {
   const url = path.endsWith("/") ? path : `${path}/`;
   if (targets.pages.has(url)) return pageLink(targets, url);
+  const moved = targets.redirects.get(redirectUrl(path) ?? path);
+  if (moved) {
+    return { problem: `${path} redirects to ${moved}. Link to ${moved}, where the page is now.` };
+  }
   if (targets.generated.has(path) || isFile(join(targets.root, "public", path))) {
     return { href: path };
   }

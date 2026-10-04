@@ -1,0 +1,1 @@
+text/index.md: line 3: /me redirects to /about/. Link to /about/, where the page is now.

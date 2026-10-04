@@ -1,6 +1,7 @@
 ---
 date: 2026-09-01
 tags: [sitez, start]
+redirects: [/hello/, /hello.html]
 ---
 
 # Hello

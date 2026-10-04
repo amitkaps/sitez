@@ -29,6 +29,7 @@ const targets: LinkTargets = {
     ["/blog/draft/", { draft: true }],
   ]),
   generated: new Set(["/sitemap.xml"]),
+  redirects: new Map([["/old-about/", "/about/"]]),
 };
 const from = join(root, "text/blog/hello.md");
 const link = (destination: string, kind: LinkKind = "link", site = targets) =>
@@ -93,6 +94,9 @@ describe("linkTarget", () => {
     expect(link("../../../outside.md")).toMatchObject({
       problem: expect.stringMatching(/isn't there/),
     });
+    expect(link("/old-about")).toEqual({
+      problem: "/old-about redirects to /about/. Link to /about/, where the page is now.",
+    });
   });
 });
 
@@ -113,6 +117,7 @@ describe("renderedLinkProblem", () => {
       'href="/posts/": /posts/ isn\'t a page or a file in public/. Link to one that is, or write a page elsewhere on this domain in full, starting https://',
     );
     expect(check('<a href="/blog/draft/">Soon</a>')).toMatch(/is a draft/);
+    expect(check('<a href="/old-about/">Old</a>')).toMatch(/redirects to \/about\//);
   });
 
   test("reads links from tags only, not from text or code that shows one", () => {

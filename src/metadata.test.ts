@@ -69,6 +69,10 @@ describe("the keys Sitez reads", () => {
       "url: /about/",
       "url is \"/about/\": a page's URL is its file's path: move the file instead, and remove url.",
     ],
+    [
+      "redirects: 3",
+      "redirects is 3: write the URLs that used to reach this page, such as redirects: [/old-name/].",
+    ],
   ])("fail when wrong in a page: %s", (line, message) => {
     expect(problem(() => textMetadata(file, "/x/", block(line)))).toBe(message);
   });

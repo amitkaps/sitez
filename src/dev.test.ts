@@ -58,6 +58,19 @@ describe("pages", () => {
     expect(response.headers.get("location")).toBe("/blog/");
   });
 
+  test("a page's old URL redirects to it, a draft's too", async () => {
+    for (const [path, location] of [
+      ["/hello/", "/blog/hello/"],
+      ["/hello", "/blog/hello/"],
+      ["/hello.html", "/blog/hello/"],
+      ["/not-yet/", "/blog/draft/"],
+    ]) {
+      const response = await get(path!);
+      expect(response.status).toBe(301);
+      expect(response.headers.get("location")).toBe(location);
+    }
+  });
+
   test("a URL that isn't valid percent-encoding is answered, not fatal", async () => {
     expect((await get("/%E0")).status).toBe(404);
     expect((await get("/blog/")).status).toBe(200);

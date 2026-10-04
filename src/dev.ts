@@ -16,6 +16,7 @@ import { SiteError, shownFrom, siteErrorText } from "./errors.ts";
 import { escape } from "./head.ts";
 import { document } from "./render.ts";
 import { pathOf } from "./preview.ts";
+import { redirectUrl } from "./redirects.ts";
 import { readRun, renderPage, type Run } from "./site.ts";
 import { feed, sitemap } from "./sitemap.ts";
 import { asGiven, inReal, siteServer, type SiteServer } from "./vite.ts";
@@ -130,7 +131,7 @@ export async function dev(
 
   /** @prose
    * Pages first, before Vite's own middleware. `/about` redirects to `/about/`, as a static host
-   * would; the sitemap and the feed are written from the metadata, as `build` writes them; any
+   * would, and a page's old URL to the page; the sitemap and the feed are written from the metadata, as `build` writes them; any
    * other request that isn't a page is Vite's: a module, a file in `public/`. What nothing
    * serves gets the 404 page, with a 404 status.
    */
@@ -152,6 +153,11 @@ export async function dev(
       if (html !== undefined) return send(response, 200, "text/html", html);
       if (!path.endsWith("/") && run.pages.some((page) => page.url === `${path}/`)) {
         response.writeHead(301, { location: `${url.pathname}/${url.search}` });
+        return void response.end();
+      }
+      const moved = run.links.redirects.get(redirectUrl(path) ?? path);
+      if (moved) {
+        response.writeHead(301, { location: moved });
         return void response.end();
       }
       next();

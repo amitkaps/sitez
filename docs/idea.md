@@ -209,6 +209,10 @@ draft: true
 
 - `date` puts a page in the RSS feed.
 - `draft` keeps it out of `build`, not out of `dev`.
+- `redirects` lists the URLs a page used to have, such as `[/old-name/, /old-name.html]`. Sitez
+  writes a page at each that sends the browser on, so a file can move without breaking links from
+  elsewhere. An old URL that a page or another redirect has fails the build, and so does a link
+  to one.
 - `title` is the page's `<title>` and `summary` its description. Sitez writes both into the
   page's `<head>`, so a page's head changes with its metadata, not its code.
 

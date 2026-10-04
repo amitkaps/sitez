@@ -1,8 +1,8 @@
 /** @prose
  * # Build
  *
- * `sitez build`: every page rendered to complete HTML in `dist/`, with the sitemap and feed, and
- * `public/` copied beside them. The site is read once (`site.ts`), then pages render
+ * `sitez build`: every page rendered to complete HTML in `dist/`, with the sitemap, the feed and
+ * a page at each redirect, and `public/` copied beside them. The site is read once (`site.ts`), then pages render
  * concurrently, each awaiting its own data, and the stylesheet and the live elements' scripts are
  * built
  * from what they rendered. Nothing is written until everything has built. Markz's warnings are
@@ -15,6 +15,7 @@ import { scripts, stylesheet, type Files } from "./bundle.ts";
 import { outputFile } from "./discover.ts";
 import { SiteError } from "./errors.ts";
 import { document } from "./render.ts";
+import { redirectFile, redirectPage } from "./redirects.ts";
 import { readRun, renderPage, type Rendered, type Run } from "./site.ts";
 import { feed, sitemap } from "./sitemap.ts";
 import { inReal, siteServer } from "./vite.ts";
@@ -99,6 +100,9 @@ export async function build(
   files.set("sitemap.xml", sitemap(site.url, all));
   const rss = feed(site, site.url, all);
   if (rss) files.set("feed.xml", rss);
+  for (const [from, to] of run.links.redirects) {
+    files.set(redirectFile(from), redirectPage(site.url, to));
+  }
   write(root, outDir, files);
   return {
     outDir,
@@ -160,7 +164,7 @@ function entryName(url: string): string {
 }
 
 function source(path: string): string {
-  if (path.endsWith(".html")) return "a page";
+  if (path.endsWith(".html")) return "a page or a page's redirects";
   if (path.endsWith(".xml")) return "the metadata";
   return "code/";
 }

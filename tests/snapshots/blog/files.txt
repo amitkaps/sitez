@@ -7,6 +7,8 @@ blog/index.J5tDZsLg.js
 blog/index.html
 favicon.svg
 feed.xml
+hello.html
+hello/index.html
 index.html
 sitemap.xml
 style.DjTho1g4.css

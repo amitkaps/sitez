@@ -1,0 +1,1 @@
+text/about.md: redirects lists /: that's the URL of text/index.md.

@@ -263,6 +263,33 @@ are read. So HTML shown as text, whose `<` is escaped, and code inside `<script>
 links. A link a `.live` file writes exists only in the browser and isn't checked. That's one more
 reason live elements enhance rather than generate.
 
+### Redirects
+
+A page that moved lists its old URLs under `redirects`, and `build` writes a small page at each.
+That page refreshes at once to the new URL, names it canonical, and asks not to be indexed.
+Search engines read an instant refresh as a permanent redirect. It works on every static host and
+in `preview`, and `dev` answers an old URL with a 301.
+
+- An old URL is a page's URL (`/old/`, or `/old` read as one) or an old `.html` file. Any other
+  extension is a file, which a page can't stand in for.
+- It fails when a page has it, drafts included, or when another page lists it. It also fails when
+  a file in `public/` is already there.
+- A link to an old URL fails, naming the page it reaches. Redirects are for links from elsewhere,
+  so nothing on the site goes through one.
+- A draft's redirects aren't written, since the page they reach isn't.
+
+Ruled out:
+
+- **A URL in a page's metadata** (Jekyll's `permalink`, an Astro entry's `slug`). The path would
+  stop being the URL (rule 2), and every link check would need a second source of URLs.
+- **A host's redirect file** (`_redirects` in `public/`). Only some hosts read it, GitHub Pages
+  and `preview` among those that don't, and Sitez can't check it. A site may still ship one.
+- **A stub file in `text/` for each old URL.** A site that moved its pages into folders would
+  get one file per old URL, and the stub would be a page with no content.
+
+Real 301s, written into a host's redirect file beside the stub pages, could come later without
+changing the key.
+
 ### The head, the sitemap and the feed
 
 The head is written from metadata (`head.ts`).

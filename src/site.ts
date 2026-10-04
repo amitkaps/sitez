@@ -22,6 +22,7 @@ import { linkTarget, renderedLinkProblem, type LinkTargets } from "./links.ts";
 import { isDraft, textMetadata, siteMetadata, type Metadata, type PageData } from "./metadata.ts";
 import { document, renderHead, renderLayout, renderModule, type Props } from "./render.ts";
 import { findLive, type Live } from "./live.ts";
+import { readRedirects } from "./redirects.ts";
 import { SITE_FILE } from "./root.ts";
 import { textHtml } from "./text.ts";
 import { asGiven, type SiteServer } from "./vite.ts";
@@ -95,12 +96,15 @@ export async function readRun(server: SiteServer, { dev = false } = {}): Promise
     repo: typeof site.repo === "string" ? site.repo : undefined,
     pages: new Map(),
     generated: new Set(["/sitemap.xml"]),
+    redirects: new Map(),
   };
   for (const page of pages) links.pages.set(page.url, { draft: draft(data.get(page)!) });
   const built = pages.filter((page) => !draft(data.get(page)!));
   const listed = built.filter((page) => page.url !== NOT_FOUND).map((page) => data.get(page)!);
   const hasFeed = built.some((page) => page.url !== NOT_FOUND && data.get(page)!.date);
   if (hasFeed) links.generated.add("/feed.xml");
+  const entry = (page: Page) => ({ file: page.file, data: data.get(page)! });
+  links.redirects = readRedirects(root, pages.map(entry), built.map(entry));
   return { root, site, server, links, pages: built, data, listed, hasFeed, warnings };
 }
 

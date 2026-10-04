@@ -1,6 +1,7 @@
 ---
 date: 2026-09-20
 draft: true
+redirects: [/not-yet/]
 ---
 
 # Not yet
