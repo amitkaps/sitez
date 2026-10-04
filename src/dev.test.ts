@@ -38,7 +38,7 @@ describe("pages", () => {
 
   test("the page's styles script loads the stylesheet and shows the page", async () => {
     const styles = await (await get("/@sitez/styles.js?url=%2Fblog%2F")).text();
-    expect(styles).toContain("/code/style.css");
+    expect(styles).toContain("/code/+style.css");
     expect(styles).toContain("document.getElementById('sitez-hidden')?.remove();");
   });
 
@@ -88,7 +88,7 @@ describe("changes", () => {
     // The browser has loaded the page, so its modules are in Vite's graph.
     await (await get("/@sitez/styles.js?url=%2Fblog%2F")).text();
     await (await get("/@sitez/page.js?url=%2Fblog%2F")).text();
-    await (await get("/code/style.css")).text();
+    await (await get("/code/+style.css")).text();
     // Only what this change causes: a reload from an earlier change may still be arriving.
     await new Promise((resolve) => setTimeout(resolve, 100));
     messages.length = 0;
@@ -107,12 +107,12 @@ describe("changes", () => {
   };
 
   test("CSS is replaced in place", async () => {
-    const message = await afterChange(edit("code/style.css", "40rem", "42rem"));
+    const message = await afterChange(edit("code/+style.css", "40rem", "42rem"));
     expect(message.type).toBe("update");
   });
 
   test("code reloads the page, which shows the change", async () => {
-    const message = await afterChange(edit("code/TagFilter.js", ">All<", ">Every<"));
+    const message = await afterChange(edit("code/blog/@tag-filter.js", ">All<", ">Every<"));
     expect(message.type).toBe("full-reload");
     expect(await (await get("/blog/")).text()).toContain(">Every</button>");
   });
@@ -136,14 +136,14 @@ describe("changes", () => {
   });
 
   test("a url() in the CSS that isn't there shows, and fixing it reloads", async () => {
-    edit("code/style.css", "./fonts/Serif.woff2", "./fonts/Serify.woff2")();
+    edit("code/+style.css", "./fonts/Serif.woff2", "./fonts/Serify.woff2")();
     const broken = await get("/about/");
     expect(broken.status).toBe(500);
     expect(await broken.text()).toContain(
-      "code/style.css: url(./fonts/Serify.woff2) isn't there. Fix the path: relative to this file, or /… for a file in public/.",
+      "code/+style.css: url(./fonts/Serify.woff2) isn't there. Fix the path: relative to this file, or /… for a file in public/.",
     );
     const message = await afterChange(
-      edit("code/style.css", "./fonts/Serify.woff2", "./fonts/Serif.woff2"),
+      edit("code/+style.css", "./fonts/Serify.woff2", "./fonts/Serif.woff2"),
     );
     expect(message.type).toBe("full-reload");
     expect((await get("/about/")).status).toBe(200);

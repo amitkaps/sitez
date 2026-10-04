@@ -76,8 +76,8 @@ describe("render", () => {
 describe("render fails", () => {
   // oxfmt-ignore
   test.each<[string, unknown, RegExp]>([
-    ["a function in text", html`<button>${() => {}}</button>`, /holds a function.*island/],
-    ["a function as an attribute", html`<button onclick=${() => {}}>x</button>`, /holds a function.*island/],
+    ["a function in text", html`<button>${() => {}}</button>`, /holds a function.*live file/],
+    ["a function as an attribute", html`<button onclick=${() => {}}>x</button>`, /holds a function.*live file/],
     ["a function in an array", html`<ul>${[() => {}]}</ul>`, /holds a function/],
     ["a promise of a function", html`<p>${Promise.resolve(() => {})}</p>`, /holds a function/],
     ["a value where an attribute's name goes", html`<a ${"href"}="/">x</a>`, /attribute's name goes/],
@@ -95,6 +95,6 @@ describe("render fails", () => {
   });
 });
 
-test("define fails at build time, naming the island's file", () => {
-  expect(() => define("tag-filter", () => {})).toThrow("code/tag-filter.island.js");
+test("define fails at build time, naming the live file", () => {
+  expect(() => define("tag-filter", () => {})).toThrow("code/@tag-filter.live.js");
 });

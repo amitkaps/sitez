@@ -1,18 +1,19 @@
 /** @prose
  * # A text page's HTML
  *
- * Markz's HTML with its links rewritten, its elements rendered by their components and its raw
- * blocks written as they are. A fake `render` shows what each component is called with.
+ * Markz's HTML with its links rewritten, its elements written around their components' output and
+ * its raw blocks written as they are. A fake `render` shows what each component is called with.
  */
 import { parse } from "@amitkaps/markz";
 import { describe, expect, test } from "vite-plus/test";
-import { componentName, textHtml } from "./text.ts";
+import { textHtml } from "./text.ts";
 
 const components: Record<string, string> = {
   "call-out": "CallOut.js",
   "key-word": "KeyWord.js",
 };
 const hrefs: Record<string, string> = { "about.md": "/about/", "about.md#team": "/about/#team" };
+const data: Record<string, unknown> = { "rows.json": [1, 2] };
 const text = (source: string) =>
   textHtml("/site/text/index.md", parse(source), {
     component: (name) => components[name],
@@ -20,8 +21,10 @@ const text = (source: string) =>
       destination === "gone.md"
         ? { problem: "gone.md isn't there." }
         : { href: hrefs[destination] ?? destination },
-    render: async (file, attributes, children) =>
-      `[${file} ${JSON.stringify(attributes)}${children === undefined ? "" : `|${children}|`}]`,
+    data: (path) =>
+      path in data ? { value: data[path] } : { problem: `data="${path}" isn't there.` },
+    render: async (file, attributes, children, data) =>
+      `[${file} ${JSON.stringify(attributes)}${children === undefined ? "" : `|${children}|`}${data ? JSON.stringify(data.value) : ""}]`,
   });
 
 describe("textHtml", () => {
@@ -29,20 +32,44 @@ describe("textHtml", () => {
     expect(await text("A {brace} and `${x}`.")).toBe("<p>A {brace} and <code>${x}</code>.</p>\n");
   });
 
-  test("renders an element with a component, with its attributes and content", async () => {
+  test("writes an element around its component's output, which gets its attributes and content", async () => {
     expect(await text("{@call-out type=note .a .b}\nBody.\n{/call-out}")).toBe(
-      '[CallOut.js {"type":"note","class":"a b"}|<p>Body.</p>\n|]\n',
+      '<call-out class="a b" type="note">[CallOut.js {"type":"note","class":"a b"}|<p>Body.</p>\n|]</call-out>\n',
     );
   });
 
   test("renders nested components innermost first", async () => {
     expect(await text("{@call-out}\nA [t]{@key-word} and [u]{@key-word}.\n{/call-out}")).toBe(
-      "[CallOut.js {}|<p>A [KeyWord.js {}|t|] and [KeyWord.js {}|u|].</p>\n|]\n",
+      "<call-out>[CallOut.js {}|<p>A <key-word>[KeyWord.js {}|t|]</key-word> and <key-word>[KeyWord.js {}|u|]</key-word>.</p>\n|]</call-out>\n",
     );
   });
 
   test("gives an element with no content no children", async () => {
-    expect(await text("{@call-out /}")).toBe("[CallOut.js {}]\n");
+    expect(await text("{@call-out /}")).toBe("<call-out>[CallOut.js {}]</call-out>\n");
+  });
+
+  test("writes a bare attribute bare, and escapes a value", async () => {
+    expect(await text('{@call-out open title="a & \\"b\\"" /}')).toContain(
+      '<call-out open title="a &amp; &quot;b&quot;">',
+    );
+  });
+
+  test("gives a component its data, and leaves the attribute out of the page", async () => {
+    expect(await text('{@call-out data="rows.json" type=note /}')).toBe(
+      '<call-out type="note">[CallOut.js {"type":"note"}[1,2]]</call-out>\n',
+    );
+  });
+
+  test("fails on a data path that isn't there, naming its line", async () => {
+    await expect(text('Intro.\n\n{@call-out data="gone.json" /}')).rejects.toThrow(
+      'line 3: data="gone.json" isn\'t there.',
+    );
+  });
+
+  test("leaves a data attribute on an element with no component as written", async () => {
+    expect(await text("{@chart-view data=rows.json /}")).toBe(
+      '<chart-view data="rows.json"></chart-view>\n',
+    );
   });
 
   test("fails on an attribute named like a prop every component gets", async () => {
@@ -78,9 +105,4 @@ describe("textHtml", () => {
       "line 3: gone.md isn't there.",
     );
   });
-});
-
-test("componentName capitalizes each part of the element name", () => {
-  expect(componentName("call-out")).toBe("CallOut");
-  expect(componentName("chart-view-2d")).toBe("ChartView2d");
 });

@@ -92,13 +92,13 @@ export async function dev(
     const found = run.pages.find((page) => page.url === url);
     if (!found) return undefined;
     const out = await renderPage(run, found);
-    const styles = [join(root, "code", "style.css"), ...server.components()];
+    const styles = [join(root, "code", "+style.css"), ...server.components()];
     const missing = missingUrl(
       root,
       styles.map((file) => asGiven(root, server.real, file)),
     );
     if (missing) throw missing;
-    rendered.set(url, out.islands);
+    rendered.set(url, out.live);
     const query = `?url=${encodeURIComponent(url)}`;
     const assets = [
       HIDDEN,
@@ -122,7 +122,7 @@ export async function dev(
     if (name === "page.js") return hydrateEntry(rendered.get(url) ?? [], server.islands);
     if (name !== "styles.js") return undefined;
     return [
-      ...styleImports(server.real, join(server.real, "code", "style.css")),
+      ...styleImports(server.real, join(server.real, "code", "+style.css")),
       ...server
         .components()
         .map((file) => `import ${JSON.stringify(`${file}?svelte&type=style&lang.css`)};`),

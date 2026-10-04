@@ -1,1 +1,1 @@
-code/_card.js: line 6: Badge is used here, but isn't defined. Import it at the top of this file.
+code/card.js: line 6: Badge is used here, but isn't defined. Import it at the top of this file.

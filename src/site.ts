@@ -13,22 +13,16 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "@amitkaps/markz";
-import { discover, nearest, NOT_FOUND, type Page } from "./discover.ts";
+import { readData } from "./data.ts";
+import { checkCode, discover, nearest, NOT_FOUND, type Page } from "./discover.ts";
 import { SiteError } from "./errors.ts";
 import { headTags } from "./head.ts";
 import { raw } from "./runtime/html.ts";
 import { linkTarget, renderedLinkProblem, type LinkTargets } from "./links.ts";
-import {
-  isDraft,
-  codeMetadata,
-  textMetadata,
-  siteMetadata,
-  type Metadata,
-  type PageData,
-} from "./metadata.ts";
+import { isDraft, textMetadata, siteMetadata, type Metadata, type PageData } from "./metadata.ts";
 import { document, renderHead, renderLayout, renderModule, type Props } from "./render.ts";
 import { SITE_FILE } from "./root.ts";
-import { componentName, textHtml } from "./text.ts";
+import { textHtml } from "./text.ts";
 import { asGiven, type SiteServer } from "./vite.ts";
 import { markzWarnings, type MarkzWarning } from "./warnings.ts";
 
@@ -45,7 +39,6 @@ export interface Run {
   hasFeed: boolean;
   /** Markz's, from `site.md` and every page this run renders. */
   warnings: MarkzWarning[];
-  modules: Map<Page, Record<string, unknown>>;
 }
 
 /** One page, rendered: its document's parts, before the stylesheet and scripts are known. */
@@ -55,8 +48,8 @@ export interface Rendered {
   ms: number;
   data: PageData;
   parts: { tags: string; head: string; body: string };
-  /** The islands the page and its layout rendered, by name, sorted. None until islands return. */
-  islands: string[];
+  /** The live elements the page's HTML uses, by tag, sorted. None until step 15. */
+  live: string[];
 }
 
 /** @prose
@@ -75,26 +68,21 @@ export function readSite(root: string): Metadata & { url: string } {
 }
 
 /** @prose
- * Every page's metadata, read before anything renders. A JS page is a draft only once its module
- * says so, and a text page's links are checked as it renders. So every JS page's module is loaded
- * for its metadata before any page renders, and the link targets are built whole.
- *
+ * Every page's metadata, read before anything renders, so the link targets are built whole.
  * `build` leaves drafts out, and so do `pages` and what links can reach, so no page lists or links
- * to what isn't built. A JS page whose title comes from its `<h1>` has none in `pages`, since its
- * title is known only once it renders. A page that's listed elsewhere states its title in
- * `metadata`.
+ * to what isn't built.
  */
 export async function readRun(server: SiteServer, { dev = false } = {}): Promise<Run> {
   const { root } = server;
   const site = readSite(root);
   const siteFile = join(root, SITE_FILE);
+  checkCode(root);
   const pages = discover(root);
   const draft = (data: PageData) => !dev && isDraft(data);
 
   const warnings = markzWarnings(siteFile, parse(readFileSync(siteFile, "utf8")));
   const data = new Map<Page, PageData>();
   for (const page of pages) {
-    if (page.kind !== "text") continue;
     const doc = parse(readFileSync(page.file, "utf8"));
     const pageData = textMetadata(page.file, page.url, doc);
     data.set(page, pageData);
@@ -107,35 +95,17 @@ export async function readRun(server: SiteServer, { dev = false } = {}): Promise
     pages: new Map(),
     generated: new Set(["/sitemap.xml"]),
   };
-  const modules = new Map<Page, Record<string, unknown>>();
-  for (const page of pages) {
-    if (page.kind !== "code") continue;
-    const module = await server.load(page.file);
-    modules.set(page, module);
-    data.set(page, codeMetadata(page.file, page.url, module.metadata));
-  }
   for (const page of pages) links.pages.set(page.url, { draft: draft(data.get(page)!) });
   const built = pages.filter((page) => !draft(data.get(page)!));
   const listed = built.filter((page) => page.url !== NOT_FOUND).map((page) => data.get(page)!);
   const hasFeed = built.some((page) => page.url !== NOT_FOUND && data.get(page)!.date);
   if (hasFeed) links.generated.add("/feed.xml");
-  return {
-    root,
-    site,
-    server,
-    links,
-    pages: built,
-    data,
-    listed,
-    hasFeed,
-    warnings,
-    modules,
-  };
+  return { root, site, server, links, pages: built, data, listed, hasFeed, warnings };
 }
 
 /** @prose
- * One page: its body, then its layout around it, then `Head.js`, then every link in the result
- * checked. A JS page's title is known only once it has rendered, when its `<h1>` can supply it.
+ * One page: its text, then its layout around it, then every link in the result checked. The
+ * layout's `head` export adds to the head.
  */
 export async function renderPage(run: Run, page: Page): Promise<Rendered> {
   try {
@@ -148,24 +118,16 @@ export async function renderPage(run: Run, page: Page): Promise<Rendered> {
 async function renderOne(run: Run, page: Page): Promise<Rendered> {
   const { root, site, server, listed } = run;
   const t = performance.now();
-  let pageData = run.data.get(page)!;
-  const props = (): Props => ({ page: pageData, pages: listed, site });
-  let body: string;
-  if (page.kind === "text") {
-    body = await renderText(run, page, props());
-  } else {
-    const module = run.modules.get(page) ?? (await server.load(page.file));
-    body = await renderModule(page.file, module, props());
-    if (pageData.title === undefined) {
-      pageData = codeMetadata(page.file, page.url, module.metadata, body);
-    }
-  }
-  const layoutFile = nearest(root, page.url, "Layout");
+  const pageData = run.data.get(page)!;
+  const props: Props = { page: pageData, pages: listed, site };
+  let body = await renderText(run, page, props);
+  let head = "";
+  const layoutFile = nearest(root, page.url, "+layout");
   if (layoutFile) {
-    body = await renderLayout(layoutFile, await server.load(layoutFile), props(), body);
+    const layout = await server.load(layoutFile);
+    body = await renderLayout(layoutFile, layout, props, body);
+    head = await renderHead(layoutFile, layout, props);
   }
-  const headFile = nearest(root, page.url, "Head");
-  const head = headFile ? await renderHead(headFile, await server.load(headFile), props()) : "";
   const tags = headTags(pageData, site, run.hasFeed);
   const problem = renderedLinkProblem(run.links, page.url, document(site, tags, head, body));
   if (problem) {
@@ -179,26 +141,33 @@ async function renderOne(run: Run, page: Page): Promise<Rendered> {
     file: page.file,
     data: pageData,
     parts: { tags, head, body },
-    islands: [],
+    live: [],
     ms: performance.now() - t,
   };
 }
 
 /** @prose
  * A text page's HTML (`text.ts`). Each component is found up the tree from the page's URL, as its
- * layout is, and gets the element's attributes, its content as `children`, and the page's props.
+ * layout is, and gets the element's attributes, its content as `children`, its `data`, and the
+ * page's props.
  */
 async function renderText(run: Run, page: Page, props: Props): Promise<string> {
   const { root, server } = run;
   const doc = parse(readFileSync(page.file, "utf8"));
   return textHtml(page.file, doc, {
-    component: (name) => nearest(root, page.url, componentName(name)),
+    component: (name) => nearest(root, page.url, `@${name}`),
     link: (destination, kind) => linkTarget(run.links, page.file, destination, kind),
-    render: async (file, attributes, children) =>
+    data: (path) => readData(root, path),
+    render: async (file, attributes, children, data) =>
       renderModule(
         file,
         await server.load(file),
-        { ...attributes, children: children === undefined ? undefined : raw(children), ...props },
+        {
+          ...attributes,
+          ...(data && { data: data.value }),
+          children: children === undefined ? undefined : raw(children),
+          ...props,
+        },
         "component",
       ),
   });
@@ -236,6 +205,5 @@ const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&
  *
  * A broken link in the rendered HTML is named against the page (`text/index.md: href="/about"`)
  * even when the layout wrote it, since the check reads the finished document. Look for the
- * `href`/`src` in the layout's source (and the page's, for a JS page) and name that file when
- * it's found there, falling back to "this page, its layout or a component".
+ * `href`/`src` in the layout's source and name that file when it's found there, falling back to "this page, its layout or a component".
  */

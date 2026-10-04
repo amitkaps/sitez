@@ -5,7 +5,7 @@
  * the page's `title`, as written, the description its `summary`, and the canonical URL and Open
  * Graph tags follow from those and `url` in `site.md`. Twitter reads the Open Graph tags, so it
  * needs only its card. So a page's head changes with its metadata, never with its code, and a
- * `Head.js` that writes one of these tags itself fails.
+ * layout's `head` that writes one of these tags itself fails.
  */
 import { NOT_FOUND } from "./discover.ts";
 import { SiteError } from "./errors.ts";
@@ -40,7 +40,7 @@ export function headTags(page: PageData, site: Metadata, feed: boolean): string 
 }
 
 /** @prose
- * `Head.js` can add anything else, such as a font or a script, but not a tag Sitez writes. Two
+ * A layout's `head` can add anything else, such as a font or a script, but not a tag Sitez writes. Two
  * titles or two descriptions is a page that says two things about itself. So it fails, naming the
  * metadata key that sets the tag.
  */

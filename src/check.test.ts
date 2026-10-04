@@ -4,7 +4,7 @@
  * `sitez check` on copies of the example sites: what it fixes, what it reports, and how it names
  * each file.
  */
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "vite-plus/test";
@@ -23,7 +23,6 @@ describe("sitez check", { timeout: 60_000 }, () => {
 
   test("fixes what is safe, names it, and reports the rest, named from where it runs", async () => {
     const site = copy("landing");
-    mkdirSync(join(site, "text"));
     writeFileSync(join(site, "text", "about.md"), "# About\n\nSome *stars*.\n");
     writeFileSync(join(site, "code", "_count.js"), "export const count = 1;\ndebugger;\n");
     writeFileSync(join(site, "code", "_messy.js"), "export const messy   =  1\n");

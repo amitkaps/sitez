@@ -45,12 +45,7 @@ export async function check(root: string, { cwd = root } = {}): Promise<CheckRes
   }
 
   const markz = () =>
-    [
-      join(root, SITE_FILE),
-      ...discover(root)
-        .filter((page) => page.kind === "text")
-        .map((page) => page.file),
-    ]
+    [join(root, SITE_FILE), ...discover(root).map((page) => page.file)]
       .flatMap((file) => markzWarnings(file, parse(readFileSync(file, "utf8"))))
       .map((warning) => formatWarning(warning, shown));
   const warnings = markz();

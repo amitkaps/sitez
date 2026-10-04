@@ -1,1 +1,1 @@
-text/index.md:25:66: `*emphasis*`, write `_emphasis_` instead (star-emphasis)
+text/index.md:29:66: `*emphasis*`, write `_emphasis_` instead (star-emphasis)

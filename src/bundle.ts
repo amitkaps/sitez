@@ -3,7 +3,7 @@
  *
  * What the browser downloads besides the HTML, built by Rolldown once every page has rendered,
  * since only then is it known which components the site uses. A site has one stylesheet: Sitez's
- * reset, then `code/style.css`, then every component's scoped styles. CSS is small and needed
+ * reset, then `code/+style.css`, then every component's scoped styles. CSS is small and needed
  * before anything paints, so one file, cached by the first page and reused by every other, is
  * cheaper than a split that saves a few bytes per page. Everything it references (a font, an
  * image) is bundled beside it. JavaScript is only the islands', only on the pages that have them.
@@ -29,7 +29,7 @@ export type Files = Map<string, string | Uint8Array>;
 
 /** @prose
  * The stylesheet, and the file it is written to. The reset is a layer of its own, so the order
- * that matters is the site's: `code/style.css` first, then components in a fixed order, so a
+ * that matters is the site's: `code/+style.css` first, then components in a fixed order, so a
  * component's rule wins over the site's at equal specificity. A `url()` that doesn't resolve
  * fails the build rather than shipping as written, as a broken link would. The build has no code
  * splitting, so its CSS is one file even when a component imports something dynamically.
@@ -40,7 +40,7 @@ export async function stylesheet(
   components: string[],
 ): Promise<{ href: string; files: Files }> {
   const imports = [
-    ...styleImports(real, `/code/style.css`),
+    ...styleImports(real, `/code/+style.css`),
     // Only a component's module brings its styles, so each is kept by exporting it.
     ...components.map((file, i) => `export { default as c${i} } from ${JSON.stringify(file)};`),
   ];
@@ -59,10 +59,10 @@ export async function stylesheet(
   const [url] = unresolved;
   if (url) {
     // Vite's warning names only the URL, so the file is the one whose source has it.
-    const file = [join(real, "code", "style.css"), ...components].find(
+    const file = [join(real, "code", "+style.css"), ...components].find(
       (file) => existsSync(file) && readFileSync(file, "utf8").includes(url),
     );
-    throw urlError(asGiven(root, real, file ?? join(real, "code", "style.css")), url);
+    throw urlError(asGiven(root, real, file ?? join(real, "code", "+style.css")), url);
   }
   const files: Files = new Map();
   let href = "";
@@ -109,12 +109,12 @@ function urlError(file: string, url: string): SiteError {
 
 /** @prose
  * The imports every page's styles start with: Sitez's reset, then the site's own
- * `code/style.css` when there is one, imported as `style` names it.
+ * `code/+style.css` when there is one, imported as `style` names it.
  */
 export function styleImports(real: string, style: string): string[] {
   return [
     `import ${JSON.stringify(join(runtime, "reset.css"))};`,
-    ...(existsSync(join(real, "code", "style.css")) ? [`import ${JSON.stringify(style)};`] : []),
+    ...(existsSync(join(real, "code", "+style.css")) ? [`import ${JSON.stringify(style)};`] : []),
   ];
 }
 

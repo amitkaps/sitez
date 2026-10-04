@@ -69,9 +69,7 @@ export async function build(
   // A page's script imports exactly the islands it rendered; then every page gets the
   // stylesheet and, if it has islands, its script.
   const used = new Map(
-    rendered
-      .filter((page) => page.islands.length > 0)
-      .map((page) => [entryName(page.url), page.islands]),
+    rendered.filter((page) => page.live.length > 0).map((page) => [entryName(page.url), page.live]),
   );
   const css = await stylesheet(root, server.real, components);
   const js = await scripts(root, server.real, used, server.islands);

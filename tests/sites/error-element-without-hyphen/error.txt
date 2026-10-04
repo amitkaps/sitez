@@ -1,0 +1,1 @@
+code/@callout.js: an @ file renders an element, so it is named for the element's tag, with a hyphen and lowercase, as in @call-out.js. Behavior in the browser is @call-out.live.js. Rename it, or drop the @ if it's a module.

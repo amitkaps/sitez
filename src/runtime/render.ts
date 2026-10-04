@@ -79,7 +79,7 @@ function stringOf(value: unknown): string {
 
 const functionError = () =>
   new TemplateError(
-    "a template holds a function, which can't run at build time. An event handler belongs in an island (code/name.island.js).",
+    "a template holds a function, which can't run at build time. An event handler belongs in a live file (code/@name.live.js).",
   );
 
 const isPlainObject = (value: unknown): boolean =>

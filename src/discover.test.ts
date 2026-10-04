@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { describe, expect, test } from "vite-plus/test";
-import { discover, nearest } from "./discover.ts";
+import { checkCode, discover, nearest } from "./discover.ts";
 import { SiteError } from "./errors.ts";
 
 /** A site from a list of paths; every file gets the same few bytes. */
@@ -20,7 +20,7 @@ function urls(root: string) {
 }
 
 describe("discover", () => {
-  test("gives every text file and lowercase JS or TS file a URL from its path", () => {
+  test("gives every text file a URL from its path, and nothing in code/ one", () => {
     const root = site(
       "text/index.md",
       "text/about.md",
@@ -33,25 +33,17 @@ describe("discover", () => {
       "/ text/index.md",
       "/about/ text/about.md",
       "/blog/ text/blog/index.md",
-      "/blog/archive/ code/blog/archive.ts",
       "/blog/hello/ text/blog/hello.md",
-      "/tags/ code/tags.js",
     ]);
   });
 
-  test("skips layouts, components, modules, islands, other files and anything under a dot", () => {
+  test("skips other files, and anything under a dot", () => {
     const root = site(
       "text/index.md",
       "text/.drafts/idea.md",
       "text/.DS_Store",
-      "code/Layout.js",
-      "code/CallOut.ts",
-      "code/_data.ts",
-      "code/_card.js",
-      "code/blog/_list.js",
-      "code/tag-filter.island.js",
-      "code/types.d.ts",
-      "code/style.css",
+      "code/+layout.js",
+      "code/@call-out.ts",
       "code/page.svelte",
       "code/.cache/page.js",
       "data/talks.json",
@@ -68,21 +60,24 @@ describe("discover", () => {
     );
   });
 
-  test("works with no text/ or no code/", () => {
-    expect(urls(site("code/index.js"))).toEqual(["/ code/index.js"]);
+  test("points a JSON file in text/ to data/", () => {
+    const error = catchError(() => discover(site("text/talks.json")));
+    expect(error.message).toBe(
+      "text/ holds only Markz (.md), so this file wouldn't reach the site. Move it to data/talks.json, and read it from a component with data.",
+    );
+  });
+
+  test("works with no text/", () => {
+    expect(urls(site("code/index.js"))).toEqual([]);
     expect(urls(site())).toEqual([]);
   });
 
-  test.each([
-    ["text/about.md", "code/about.js", "/about/"],
-    ["text/blog.md", "text/blog/index.md", "/blog/"],
-    ["text/index.md", "code/index.ts", "/"],
-  ])("fails on two files for one URL: %s and %s", (first, second, url) => {
-    const root = site(first, second);
+  test("fails on two files for one URL, naming the second", () => {
+    const root = site("text/blog.md", "text/blog/index.md");
     const error = catchError(() => discover(root));
-    expect(relative(root, error.file)).toBe(second);
+    expect(relative(root, error.file)).toBe("text/blog/index.md");
     expect(error.message).toBe(
-      `${url} also comes from ${first}. A URL has one file: rename or remove one of them.`,
+      "/blog/ also comes from text/blog.md. A URL has one file: rename or remove one of them.",
     );
   });
 
@@ -93,27 +88,80 @@ describe("discover", () => {
   });
 });
 
-describe("nearest", () => {
-  const root = site("code/Layout.js", "code/blog/Layout.ts");
-  const layout = (url: string) => relative(root, nearest(root, url, "Layout") ?? root);
+describe("checkCode", () => {
+  test("accepts elements, the files read by name, and modules", () => {
+    const root = site(
+      "code/+layout.js",
+      "code/+layout.ts",
+      "code/+style.css",
+      "code/@call-out.js",
+      "code/@call-out.live.js",
+      "code/blog/@chart-view-2d.ts",
+      "code/blog/+layout.js",
+      "code/format.js",
+      "code/_old.js",
+      "code/Layout.js",
+      "code/.cache/+oops.js",
+    );
+    expect(() => checkCode(root)).not.toThrow();
+  });
 
-  test("is the nearest Layout.js or Layout.ts up the tree from the URL", () => {
-    expect(layout("/")).toBe("code/Layout.js");
-    expect(layout("/about/")).toBe("code/Layout.js");
-    expect(layout("/blog/")).toBe("code/blog/Layout.ts");
-    expect(layout("/blog/2026/hello/")).toBe("code/blog/Layout.ts");
-    expect(layout("/blogroll/")).toBe("code/Layout.js");
+  test.each(["@callout.js", "@Call-Out.js", "@call-out.css", "@call-out.island.js", "@-x.js"])(
+    "fails on an @ file that isn't an element's: %s",
+    (name) => {
+      const root = site(`code/${name}`);
+      const error = catchError(() => checkCode(root));
+      expect(relative(root, error.file)).toBe(`code/${name}`);
+      expect(error.message).toMatch(/^an @ file renders an element/);
+    },
+  );
+
+  test.each(["+layuot.js", "+head.js", "+style.scss", "+layout.live.js"])(
+    "fails on a + file Sitez doesn't read: %s",
+    (name) => {
+      const root = site(`code/blog/${name}`);
+      const error = catchError(() => checkCode(root));
+      expect(relative(root, error.file)).toBe(`code/blog/${name}`);
+      expect(error.message).toMatch(
+        /^Sitez reads \+layout\.js and \+style\.css and no other \+ file/,
+      );
+    },
+  );
+
+  test("fails on a +style.css below code/", () => {
+    const root = site("code/+style.css", "code/blog/+style.css");
+    const error = catchError(() => checkCode(root));
+    expect(relative(root, error.file)).toBe("code/blog/+style.css");
+    expect(error.message).toMatch(/^a site has one stylesheet/);
+  });
+});
+
+describe("nearest", () => {
+  const root = site("code/+layout.js", "code/blog/+layout.ts", "code/blog/@call-out.live.js");
+  const found = (url: string, name = "+layout") => relative(root, nearest(root, url, name) ?? root);
+
+  test("is the nearest .js or .ts of the name up the tree from the URL", () => {
+    expect(found("/")).toBe("code/+layout.js");
+    expect(found("/about/")).toBe("code/+layout.js");
+    expect(found("/blog/")).toBe("code/blog/+layout.ts");
+    expect(found("/blog/2026/hello/")).toBe("code/blog/+layout.ts");
+    expect(found("/blogroll/")).toBe("code/+layout.js");
+  });
+
+  test("finds an element's live file as it finds its component", () => {
+    expect(found("/blog/hello/", "@call-out.live")).toBe("code/blog/@call-out.live.js");
+    expect(nearest(root, "/about/", "@call-out.live")).toBeUndefined();
   });
 
   test("fails on a .js and a .ts of one name", () => {
-    const both = site("code/Layout.js", "code/Layout.ts");
-    const error = catchError(() => nearest(both, "/", "Layout"));
-    expect(relative(both, error.file)).toBe("code/Layout.ts");
-    expect(error.message).toBe("Layout.js is beside it, and a name has one file. Remove one.");
+    const both = site("code/+layout.js", "code/+layout.ts");
+    const error = catchError(() => nearest(both, "/", "+layout"));
+    expect(relative(both, error.file)).toBe("code/+layout.ts");
+    expect(error.message).toBe("+layout.js is beside it, and a name has one file. Remove one.");
   });
 
   test("is none when the site has no layout", () => {
-    expect(nearest(site("text/index.md"), "/", "Layout")).toBeUndefined();
+    expect(nearest(site("text/index.md"), "/", "+layout")).toBeUndefined();
   });
 });
 

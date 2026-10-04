@@ -1,10 +1,9 @@
 /** @prose
  * # Metadata
  *
- * What pages and layouts know about a page, the site and every page (rule 5). A text page's
+ * What layouts and components know about a page, the site and every page (rule 5). A page's
  * metadata is its Markz block, with `title` defaulting to the first heading and `summary` to the
- * first paragraph, so most pages need no block. A JS page's is its exported `metadata`, with
- * `title` defaulting to its first `<h1>` once it has rendered.
+ * first paragraph, so most pages need no block.
  *
  * Sitez checks only the keys it reads itself, and a wrong one fails the build naming the file and
  * the key rather than being read some other way: `draft: yes` would otherwise publish a draft.
@@ -50,27 +49,6 @@ export function textMetadata(file: string, url: string, doc: Document): PageData
     title: typeof block.title === "string" ? block.title : title,
     summary: typeof block.summary === "string" ? block.summary : summary,
   };
-}
-
-/** @prose
- * A JS page's metadata, from its module's `metadata` export, and its title from the first `<h1>`
- * of its HTML when the export has none. The renderer writes text escaped, so the few entities it
- * produces are all there is to decode.
- */
-export function codeMetadata(
-  file: string,
-  url: string,
-  exported: unknown,
-  body?: string,
-): PageData {
-  if (exported !== undefined && (typeof exported !== "object" || exported === null)) {
-    throw new SiteError(file, "metadata is exported but not an object: write { title: … }.");
-  }
-  const block = { ...(exported as Metadata | undefined) };
-  check(file, block, pageKeys);
-  const h1 = body?.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/)?.[1];
-  const title = typeof block.title === "string" ? block.title : h1 && plain(h1);
-  return { ...block, url, title: title || undefined };
 }
 
 export function isDraft(page: PageData): boolean {
@@ -133,16 +111,4 @@ function first(doc: Document, type: "heading" | "paragraph"): string | undefined
       return textContent(doc, node).replace(/\s+/g, " ").trim() || undefined;
   }
   return undefined;
-}
-
-function plain(html: string): string {
-  return html
-    .replace(/<!--[\s\S]*?-->|<[^>]+>/g, "")
-    .replaceAll("&lt;", "<")
-    .replaceAll("&gt;", ">")
-    .replaceAll("&quot;", '"')
-    .replaceAll("&#39;", "'")
-    .replaceAll("&amp;", "&")
-    .replace(/\s+/g, " ")
-    .trim();
 }

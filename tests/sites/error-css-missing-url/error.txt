@@ -1,1 +1,1 @@
-code/style.css: url(./paper.png) isn't there. Fix the path: relative to this file, or /… for a file in public/.
+code/+style.css: url(./paper.png) isn't there. Fix the path: relative to this file, or /… for a file in public/.

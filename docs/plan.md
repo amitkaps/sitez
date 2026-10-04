@@ -28,7 +28,11 @@ line here. Finished steps shrink to one line each.
 - **13. Pages, layouts and components in JavaScript.** The build renders them through the
   runtime, and text through markers. The fixtures are JS, and `check` dropped svelte-check.
 - **The conventions refined.** idea.md drops JS pages, capitalized names, `_` and `Head.js` for
-  `@`, `+` and `.live` names, and components that wrap. Step 14 builds it.
+  `@`, `+` and `.live` names, and components that wrap.
+- **14. Names in `code/`, and components that wrap.** Pages are only text, `@name.js` renders an
+  element and Sitez writes the element around it, and `+layout.js` exports `head`. `data` feeds a
+  component from `data/`. `checkCode` fails on an unknown `+` file, a bad `@` name and a second
+  stylesheet.
 
 ## Open work, in order
 
@@ -38,24 +42,6 @@ fail with the message it must fail with.
 
 The order keeps the tests green throughout. The mechanical changes came while Svelte still
 rendered. Next the renderer is swapped, then Svelte is deleted.
-
-### 14. Names in `code/`, and components that wrap
-
-The refined conventions in idea.md ([design.md](design.md#names-in-code)). Most of step 13 carries
-over, and its JS pages go.
-
-- [ ] Pages are only `.md` in `text/`. `discover.ts` drops JS pages, and the `<h1>` title rule
-      goes with them.
-- [ ] `code/` reads `@name.js`, `+layout.js` and `+style.css` up the tree, and plain names are
-      modules. An unknown `+` file, a `+style.css` below `code/`, and an `@` file without a hyphen
-      fail.
-- [ ] A component returns inner HTML, and the build writes the element around it with its
-      attributes ([Wrapping](design.md#wrapping)).
-- [ ] `data="talks.json"` passes `data/talks.json`, parsed, as `data`. A missing path fails with
-      its line, and the attribute isn't written.
-- [ ] `+layout.js`'s `head` export replaces `Head.js`.
-- [ ] The fixtures move to the new names, with `landing` and the blog's index as text pages. The
-      error fixtures follow, with one each for an unknown `+` file and a missing data path.
 
 ### 15. Live elements
 

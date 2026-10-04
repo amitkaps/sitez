@@ -1,1 +1,1 @@
-code/Layout.js: this layout doesn't render its page. Write ${children} where / goes.
+code/+layout.js: this layout doesn't render its page. Write ${children} where / goes.

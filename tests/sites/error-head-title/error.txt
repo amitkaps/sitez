@@ -1,1 +1,1 @@
-code/Head.js: this writes a <title>, but Sitez writes it from metadata. Remove it, and set title in the page's metadata.
+code/+layout.js: this writes a <title>, but Sitez writes it from metadata. Remove it, and set title in the page's metadata.

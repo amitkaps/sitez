@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { parse } from "@amitkaps/markz";
 import { describe, expect, test } from "vite-plus/test";
 import { SiteError } from "./errors.ts";
-import { codeMetadata, textMetadata, siteMetadata } from "./metadata.ts";
+import { textMetadata, siteMetadata } from "./metadata.ts";
 
 const file = "/site/text/page.md";
 
@@ -56,26 +56,6 @@ describe("textMetadata", () => {
   });
 });
 
-describe("codeMetadata", () => {
-  test("is the exported metadata", () => {
-    expect(codeMetadata(file, "/blog/", { title: "Blog", tags: ["x"] })).toEqual({
-      url: "/blog/",
-      title: "Blog",
-      tags: ["x"],
-    });
-  });
-
-  test("falls back to the first <h1>'s text", () => {
-    const body =
-      '<!--[--><h1 class="big">Tom &amp; <em>Jerry&#39;s</em>\n  page</h1><h1>Second</h1>';
-    expect(codeMetadata(file, "/", undefined, body).title).toBe("Tom & Jerry's page");
-  });
-
-  test("prefers the export to the <h1>", () => {
-    expect(codeMetadata(file, "/", { title: "Set" }, "<h1>Heading</h1>").title).toBe("Set");
-  });
-});
-
 describe("the keys Sitez reads", () => {
   test.each([
     ["draft: yes", 'draft is "yes": write draft: true or draft: false.'],
@@ -89,17 +69,8 @@ describe("the keys Sitez reads", () => {
       "url: /about/",
       "url is \"/about/\": a page's URL is its file's path: move the file instead, and remove url.",
     ],
-  ])("fail when wrong in a text page: %s", (line, message) => {
+  ])("fail when wrong in a page: %s", (line, message) => {
     expect(problem(() => textMetadata(file, "/x/", block(line)))).toBe(message);
-  });
-
-  test("fail when wrong in a JS page", () => {
-    expect(problem(() => codeMetadata(file, "/x/", { draft: "no" }))).toBe(
-      'draft is "no": write draft: true or draft: false.',
-    );
-    expect(problem(() => codeMetadata(file, "/x/", "Blog"))).toBe(
-      "metadata is exported but not an object: write { title: … }.",
-    );
   });
 
   test("pass when right, and leave other keys alone", () => {

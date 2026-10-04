@@ -3,16 +3,20 @@
 A Markz element with a component of its name renders it; the rest stay as Markz writes them.
 
 {@call-out type=note title="{a brace}"}
-Rendered by `code/CallOut.js`, holding a [term]{@key-word} of its own.
+Rendered by `code/@call-out.js`, holding a [term]{@key-word} of its own.
 {/call-out}
 
 {@chart-view data=sales.csv /}
 
+The cards in `data/cards.json`, read through a `data` attribute:
+
+{@card-list data="cards.json" .cards /}
+
 {@fold-out label=Details}
-Folded text, an island's children, with a [term]{@key-word} rendered at build time.
+Folded text, a live element's children, with a [term]{@key-word} rendered at build time.
 {/fold-out}
 
-Every other page, listed by `code/PageList.js` from `pages`:
+Every other page, listed by `code/@page-list.js` from `pages`:
 
 {@page-list /}
 

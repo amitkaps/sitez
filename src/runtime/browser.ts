@@ -1,9 +1,9 @@
 /** @prose
  * # `sitez` in the browser
  *
- * What an island imports. `html` is htl's, which makes DOM nodes, and `signal` and `effect` are
- * the signals core's. Each island's bundle keeps only what it uses, so an island that never calls
- * `html` ships no htl.
+ * What a live element's file imports. `html` is htl's, which makes DOM nodes, and `signal` and
+ * `effect` are the signals core's. Each bundle keeps only what it uses, so a live file that never
+ * calls `html` ships no htl.
  */
 export { html } from "htl";
 export { effect, signal } from "@preact/signals-core";

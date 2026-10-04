@@ -1,14 +1,14 @@
 /** @prose
  * # Rendering a page
  *
- * A page becomes one complete HTML document. The page renders first, then its layout around it
- * (rule 2), and the whole goes in the document every page shares. The page renders on its own
- * first, because a JS page's title can come from its own `<h1>` and the layout needs that title.
- * Everything awaits (rule 5), so the HTML is finished when it's written. The head's title,
- * description and links come from metadata, and `Head.js` adds the rest.
+ * A page becomes one complete HTML document. The text renders first, then its layout around it
+ * (rule 2), and the whole goes in the document every page shares. Everything awaits (rule 5), so
+ * the HTML is finished when it's written. The head's title, description and links come from
+ * metadata, and the layout's `head` adds the rest.
  *
- * A page, layout or component is a module whose default export returns a template. The build
- * calls it and renders the result with its own renderer (`runtime/render.ts`).
+ * A layout or component is a module whose default export returns a template, and a layout's `head`
+ * export does too. The build calls it and renders the result with its own renderer
+ * (`runtime/render.ts`).
  */
 import { SiteError } from "./errors.ts";
 import { checkHead, escape } from "./head.ts";
@@ -34,7 +34,7 @@ export async function renderModule(
   file: string,
   module: Record<string, unknown>,
   props: object,
-  kind = "page",
+  kind = "component",
 ): Promise<string> {
   const fn = module.default;
   if (typeof fn !== "function") {
@@ -43,9 +43,13 @@ export async function renderModule(
       `this ${kind} has no default export to render. Write export default ({ page }) => html\`…\`, a function returning its HTML.`,
     );
   }
-  const out = await guard(file, async () =>
-    render(await (fn as (props: object) => unknown)(props)),
-  );
+  return call(file, fn as Renderer, props);
+}
+
+type Renderer = (props: object) => unknown;
+
+async function call(file: string, fn: Renderer, props: object): Promise<string> {
+  const out = await guard(file, async () => render(await fn(props)));
   return out.trim();
 }
 
@@ -73,20 +77,31 @@ export async function renderLayout(
   return out.replace(slot, () => body);
 }
 
-/** `Head.js`'s output, which can't write a tag Sitez writes from metadata (`head.ts`). */
+/** @prose
+ * What the layout's `head` export adds to the page's `<head>`, which can't be a tag Sitez writes
+ * from metadata (`head.ts`). A layout with no `head` adds nothing.
+ */
 export async function renderHead(
   file: string,
   module: Record<string, unknown>,
   props: Props,
 ): Promise<string> {
-  const out = await renderModule(file, module, props, "head");
+  const fn = module.head;
+  if (fn === undefined) return "";
+  if (typeof fn !== "function") {
+    throw new SiteError(
+      file,
+      "head is exported but isn't a function. Write export const head = () => html`…`, returning what goes in the <head>.",
+    );
+  }
+  const out = await call(file, fn as Renderer, props);
   checkHead(file, out);
   return out;
 }
 
 /** @prose
  * The document every page shares, in the site's `lang`. Sitez's head tags come from the page's
- * metadata (`head.ts`), then whatever `Head.js` adds.
+ * metadata (`head.ts`), then whatever the layout's `head` adds.
  */
 export function document(site: Metadata, tags: string, head: string, body: string): string {
   return `<!doctype html>
