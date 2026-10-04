@@ -71,6 +71,43 @@ there.
 - [x] 0.2.0 is on npm and in a GitHub Release, and amitkaps.github.io installs it from npm.
 - [ ] Build amitkaps.github.io on Cloudflare with `npx sitez build`, from its git integration.
 
+### 20. Two dependencies
+
+Sitez depends on `@amitkaps/markz` and `vite-plus`, and nothing else.
+
+- [ ] `htl` and `@preact/signals-core` move into `src/runtime/`, keeping their licenses. They're
+      small, and the runtime is where a site meets them, so Sitez owns what it promises there.
+- [ ] Find whether `vite` (now an alias of `@voidzero-dev/vite-plus-core`) can come through
+      `vite-plus` instead of being named.
+- [ ] design.md's toolchain tree shows the two, and the size of the runtime a page loads is
+      checked before and after.
+
+### 21. What the port found
+
+Changes from building amitkaps.github.io, and from the next sites. Each one either goes into
+idea.md or "Not in v1", or a site's own code does it.
+
+- [ ] A title suffix (`About · Amit Kapoor`) without each layout writing it.
+- [ ] `og:image` and Twitter tags in the head.
+- [ ] Excerpts. The site reads Markz and the file system itself to get them, which is the open
+      question on rendered bodies below.
+- [ ] A stable order for pages with the same `date`.
+- [ ] A site's own look over the reset, without the first rules of `+style.css` undoing it.
+- [ ] Preloading a font the stylesheet names.
+- [ ] Markz: a quote closing after a single quote, and `\` as a line break. Those changes go to
+      markz.
+- [ ] `sitez check` reformats JavaScript in code fences, which a page may show on purpose.
+- [ ] The report counts the redirects it wrote.
+
+### 22. Docs for users
+
+idea.md is the spec, written for whoever builds Sitez. Users need a guide: install, the folders,
+writing a page, a component, a live element, deploying, and every error with its fix.
+
+- [ ] Decide what renders the guide. prose already reads this repo as a document, and Sitez
+      building its own docs would test it on a second site.
+- [ ] Write it once 20 and 21 settle what it describes.
+
 ## Open questions
 
 - **Rendered bodies in `pages`.** Each entry could carry its page's HTML as well as its metadata,
