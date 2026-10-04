@@ -11,6 +11,7 @@ import { textHtml } from "./text.ts";
 const components: Record<string, string> = {
   "call-out": "CallOut.js",
   "key-word": "KeyWord.js",
+  "fact-box": "FactBox.js",
 };
 const hrefs: Record<string, string> = { "about.md": "/about/", "about.md#team": "/about/#team" };
 const data: Record<string, unknown> = { "rows.json": [1, 2] };
@@ -24,7 +25,9 @@ const text = (source: string) =>
     data: (path) =>
       path in data ? { value: data[path] } : { problem: `data="${path}" isn't there.` },
     render: async (file, attributes, children, data) =>
-      `[${file} ${JSON.stringify(attributes)}${children === undefined ? "" : `|${children}|`}${data ? JSON.stringify(data.value) : ""}]`,
+      file === "FactBox.js"
+        ? "<div-ider></div-ider><DIV>fact</DIV>"
+        : `[${file} ${JSON.stringify(attributes)}${children === undefined ? "" : `|${children}|`}${data ? JSON.stringify(data.value) : ""}]`,
   });
 
 describe("textHtml", () => {
@@ -75,6 +78,18 @@ describe("textHtml", () => {
   test("fails on an attribute named like a prop every component gets", async () => {
     await expect(text("Intro.\n\n{@call-out pages=short /}")).rejects.toThrow(
       "line 3: {@call-out} has a pages attribute, but every component in text already gets page, pages, site and children.",
+    );
+  });
+
+  test("fails on an inline element whose output would end its paragraph, naming the tag", async () => {
+    await expect(text("Intro.\n\nA [fact]{@fact-box}.")).rejects.toThrow(
+      "line 3: {@fact-box} is used inline, but its component writes a <div>, which ends a paragraph.",
+    );
+  });
+
+  test("lets a leaf or container write block HTML", async () => {
+    expect(await text("{@fact-box /}")).toBe(
+      "<fact-box><div-ider></div-ider><DIV>fact</DIV></fact-box>\n",
     );
   });
 

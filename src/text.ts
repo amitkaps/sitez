@@ -30,12 +30,6 @@ export interface TextSite {
 }
 
 /** @prose
- * _Pending._ An inline element's output can't hold a tag that closes a paragraph
- * ([docs/design.md#wrapping](docs/design.md#wrapping)). Read `kind` from the element's node, and
- * when it's `"inline"`, fail on the first such start tag in its finished output, naming the line,
- * the element and the tag. A fixture site with a `{@key-word}` that returns a `<div>` must fail.
- */
-/** @prose
  * The HTML for one text page, in three steps that keep each exact.
  *
  * 1. Markz writes the HTML from a view of the document. In it, each link's destination is the URL
@@ -56,10 +50,12 @@ export async function textHtml(file: string, doc: Document, site: TextSite): Pro
   const components = new Map<string, string | undefined>();
   const swapped = new Map<NodeId, object>();
   const elements: {
+    node: NodeId;
     name: string;
     file: string;
     attributes: Record<string, string>;
     data?: { value: unknown };
+    inline: boolean;
   }[] = [];
   const markers = new Set<NodeId>();
   const raws: string[] = [];
@@ -85,7 +81,7 @@ export async function textHtml(file: string, doc: Document, site: TextSite): Pro
         return;
       }
       if (type !== "element") return;
-      const { name } = doc.data(node, "element");
+      const { name, kind } = doc.data(node, "element");
       if (!components.has(name))
         components.set(name, name.includes("-") ? site.component(name) : undefined);
       const component = components.get(name);
@@ -104,7 +100,7 @@ export async function textHtml(file: string, doc: Document, site: TextSite): Pro
       }
       swapped.set(node, { name: `sitez-element-${elements.length}` });
       markers.add(node);
-      elements.push({ name, file: component, attributes, data });
+      elements.push({ node, name, file: component, attributes, data, inline: kind === "inline" });
     },
   });
 
@@ -114,8 +110,9 @@ export async function textHtml(file: string, doc: Document, site: TextSite): Pro
     const start = out.indexOf(open);
     const end = out.indexOf(close, start);
     const content = out.slice(start + open.length, end);
-    const { name, file: component, attributes, data } = elements[i]!;
+    const { node, name, file: component, attributes, data, inline } = elements[i]!;
     const inner = await site.render(component, attributes, content || undefined, data);
+    if (inline) paragraphSafe(file, doc, node, name, inner);
     const element = `${openTag(name, attributes)}${inner}</${name}>`;
     out = out.slice(0, start) + element + out.slice(end + close.length);
   }
@@ -123,6 +120,28 @@ export async function textHtml(file: string, doc: Document, site: TextSite): Pro
 }
 
 const marker = (kind: string, i: number) => `<sitez-${kind}-${i}></sitez-${kind}-${i}>`;
+
+/** @prose
+ * An inline element's output can't hold a start tag that closes a paragraph
+ * ([docs/design.md#wrapping](docs/design.md#wrapping)). These are the tags the HTML parser closes an
+ * open `<p>` for, so the build fails exactly where a browser would break the page. The check runs on
+ * every inline element, inside a paragraph or not, since a tag means the same wherever it's used.
+ */
+const CLOSING_TAGS =
+  "address article aside blockquote center details dialog dir div dl fieldset figcaption figure " +
+  "footer header hgroup main menu nav ol p search section summary ul h[1-6] pre listing form li " +
+  "dd dt plaintext table hr xmp";
+const CLOSES_P = new RegExp(`<(${CLOSING_TAGS.split(" ").join("|")})(?=[\\s/>])`, "i");
+
+function paragraphSafe(file: string, doc: Document, node: NodeId, name: string, out: string): void {
+  const tag = CLOSES_P.exec(out)?.[1];
+  if (!tag) return;
+  const { line } = position(doc.source)(doc.start(node));
+  throw new SiteError(
+    file,
+    `line ${line}: {@${name}} is used inline, but its component writes a <${tag.toLowerCase()}>, which ends a paragraph. Return inline HTML, such as a <span>.`,
+  );
+}
 
 const PAGE_PROPS = ["page", "pages", "site", "children"];
 

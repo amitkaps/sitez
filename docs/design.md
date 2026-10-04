@@ -223,6 +223,8 @@ each kind of element.
   So the build fails, naming the line, the element and the tag. The list is the parser's, of the
   start tags that close an open `<p>`, not the spec's phrasing content, so it fails exactly where
   a browser breaks. The check reads the output after nesting, since inner components render first.
+  It runs wherever the element is used inline, in a heading or a table cell too, since a tag
+  means the same everywhere.
 
 The reset can't set `display: block` for the site. CSS has no selector for custom elements, or for
 elements used as blocks. So a block component costs one line in `+style.css`.
