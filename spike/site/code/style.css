@@ -1,0 +1,898 @@
+/* The site's stylesheet, merged from the Jekyll static/css/styles.css and the
+ * starter's app.css into one file organised with cascade layers.
+ *
+ *   reset — normalisation, owns nothing visual
+ *   base  — design tokens and bare element styling
+ *   site  — page furniture and component classes
+ *
+ * Layer order is declared up front, so a rule's layer decides precedence rather
+ * than its position in the file. That makes the layers safe to split into
+ * separate files later without changing how anything renders.
+ */
+
+@layer reset, base, site;
+
+/* Unlayered: @font-face has no specificity, so layering it buys nothing. */
+@font-face {
+  font-family: "Literata";
+  font-weight: 200 900;
+  font-display: swap;
+  font-style: normal;
+  src: url("/static/fonts/LiterataEN.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Literata";
+  font-weight: 200 900;
+  font-display: swap;
+  font-style: italic;
+  src: url("/static/fonts/LiterataENi.woff2") format("woff2");
+}
+
+@layer reset {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    text-decoration: inherit;
+    vertical-align: inherit;
+  }
+
+  html {
+    cursor: default;
+    line-height: var(--comfort);
+    -moz-tab-size: 4;
+    tab-size: 4;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    word-break: break-word;
+    -webkit-font-smoothing: subpixel-antialiased;
+  }
+
+  html {
+    font-size: 20px;
+  }
+
+  @media all and (max-width: 1200px) {
+    html {
+      font-size: 18px;
+    }
+  }
+
+  @media all and (max-width: 600px) {
+    html {
+      font-size: 16px;
+    }
+  }
+
+  aside,
+  section,
+  nav {
+    display: block;
+  }
+}
+
+@layer base {
+  :root {
+    /* Typography */
+    --mono: ui-monospace, Menlo, Monaco, Consolas, monospace;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Noto, "Helvetica Neue", sans-serif;
+    --serif: Literata, ui-serif, "Georgia Pro", Georgia, serif;
+
+    /* Font size */
+    --size: calc(1rem + 0.2vw);
+    --caption: 0.8rem;
+    --text: 1rem;
+    --subhead: 1.2rem;
+    --heading: 1.3rem;
+    --display: 1.5rem;
+
+    /* Font weights */
+    --extralight: 200;
+    --light: 300;
+    --regular: 400;
+    --medium: 500;
+    --semibold: 600;
+    --bold: 700;
+    --extrabold: 800;
+    --black: 900;
+
+    /* Optical sizing */
+    --ocaption: 7;
+    --otext: 12;
+    --osubhead: 36;
+    --odisplay: 72;
+
+    /* Spacing */
+    --xs: 0.5rem;
+    --sm: 1rem;
+    --md: 2rem;
+    --lg: 4rem;
+    --xl: 8rem;
+
+    /* Line height */
+    --tight: 1.15;
+    --compact: 1.35;
+    --comfort: 1.45;
+
+    /* Width */
+    --narrow: 65ch;
+    --read: 65ch;
+    --frame: 80ch;
+    --wide: 90ch;
+
+    /* Colour */
+    --bg-color: #f5f5ed;
+    --bg-fill-color: #e6e5d6;
+    --text-color: #222;
+    --text-muted-color: #666;
+    --text-strong-color: #000;
+    --fill-color: #6c491b;
+    --highlight-color: #610505;
+    --link-color: #610505;
+    --heading-color: #610505;
+
+    --bqindents: 40px;
+    --warningtextsize: 125%;
+  }
+
+  body {
+    margin: 0 auto;
+    padding: var(--md) var(--lg);
+    font-family: var(--serif);
+    font-weight: var(--regular);
+    font-size: var(--text);
+    line-height: var(--comfort);
+    text-align: left;
+    color: var(--text-color);
+    background-color: var(--bg-color);
+  }
+
+  @media all and (max-width: 600px) {
+    body {
+      padding: var(--md) var(--sm);
+    }
+  }
+
+  header,
+  footer,
+  main {
+    display: block;
+    margin: 0 auto;
+    max-width: 120ch;
+    padding: var(--md) 0;
+  }
+
+  article {
+    display: block;
+    padding-top: 0;
+    max-width: var(--wide);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin-top: 0;
+    margin-bottom: var(--sm);
+    line-height: var(--tight);
+    max-width: var(--read);
+  }
+
+  * + :is(h1, h2) {
+    margin-top: var(--lg);
+  }
+
+  * + :is(h3, h4) {
+    margin-top: var(--md);
+  }
+
+  h1 {
+    font-size: var(--display);
+    font-style: italic;
+    font-weight: var(--bold);
+  }
+
+  h2 {
+    font-size: var(--heading);
+    font-weight: var(--semibold);
+  }
+
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-size: var(--subhead);
+    font-weight: var(--medium);
+  }
+
+  blockquote {
+    font-style: italic;
+    font-size: var(--text);
+    max-width: var(--narrow);
+    border-left: #ccc 1px solid;
+    padding-left: var(--sm);
+    margin: 0;
+  }
+
+  blockquote p {
+    hanging-punctuation: first;
+  }
+
+  cite {
+    font-style: italic;
+  }
+
+  p,
+  pre,
+  ol,
+  ul,
+  dl {
+    margin-top: 0;
+    margin-bottom: 1rem;
+  }
+
+  ol ol,
+  ul ul,
+  ol ul,
+  ul ol {
+    margin-bottom: 0;
+  }
+
+  p {
+    margin-bottom: 1.3em;
+  }
+
+  b,
+  strong {
+    font-weight: var(--semibold);
+  }
+
+  em,
+  i {
+    font-style: italic;
+  }
+
+  small {
+    font-size: 80%;
+  }
+
+  pre,
+  code,
+  kbd,
+  samp {
+    font-family: var(--mono);
+    font-size: 1em;
+  }
+
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  sub,
+  sup {
+    position: relative;
+    font-size: 75%;
+    line-height: 0;
+    vertical-align: baseline;
+  }
+
+  sub {
+    bottom: -0.25em;
+  }
+
+  sup {
+    top: -0.5em;
+  }
+
+  abbr[title] {
+    text-decoration: underline dotted;
+    cursor: help;
+    border-bottom: 0;
+    text-decoration-skip-ink: none;
+  }
+
+  address {
+    margin-bottom: 1rem;
+    font-style: normal;
+    line-height: inherit;
+  }
+
+  a {
+    color: var(--link-color);
+    text-decoration-line: none;
+    text-decoration-color: var(--link-color);
+    text-decoration-skip-ink: auto;
+  }
+
+  a:hover {
+    color: var(--text-strong-color);
+  }
+
+  img {
+    max-width: 800px;
+    width: 100%;
+  }
+
+  hr {
+    border-style: solid;
+    border-color: var(--highlight-color);
+    margin: 1rem 0;
+  }
+
+  iframe,
+  object,
+  embed {
+    max-width: var(--frame);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p,
+  a,
+  ul,
+  li,
+  hr {
+    max-width: var(--read);
+  }
+
+  input,
+  textarea {
+    font-family: inherit;
+    font-size: 1rem;
+    color: var(--text-color);
+    background-color: var(--bg-color);
+  }
+
+  input:focus,
+  textarea:focus {
+    outline: none;
+  }
+
+  textarea {
+    width: 15rem;
+    height: 10rem;
+  }
+
+  input[type="email"] {
+    font-size: 0.83rem;
+    line-height: 1.2;
+    padding-top: 0.3rem;
+    padding-bottom: 0.1rem;
+    padding-left: 0.5rem;
+    width: 10rem;
+    border: 0;
+    border-bottom: solid 1px var(--text-strong-color);
+  }
+
+  input[type="submit"] {
+    width: 5rem;
+    font-size: 0.83rem;
+    padding: 0.25rem;
+    border: 0;
+    background-color: var(--highlight-color);
+    color: var(--bg-color);
+  }
+
+  input[type="submit"]:hover {
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  button {
+    font-family: inherit;
+    font-size: 0.9rem;
+    padding: 0.4rem;
+    background-color: var(--bg-fill-color);
+    border: solid 1px #bbb;
+  }
+
+  button:focus {
+    outline: none;
+  }
+
+  button:hover {
+    cursor: pointer;
+    color: var(--text-strong-color);
+    border: solid 1px #666;
+  }
+}
+
+@layer site {
+  .wide {
+    width: 100%;
+    grid-column: 2 / 4;
+  }
+
+  .title {
+    margin-bottom: 0;
+  }
+
+  .tagline {
+    color: var(--text-muted-color);
+    font-weight: 700;
+    font-size: 1.15rem;
+    margin-top: 0.2rem;
+  }
+
+  /* Header and nav */
+
+  nav {
+    padding-top: 1rem;
+    padding-bottom: 3rem;
+    font-size: 0.9rem;
+    font-variant: small-caps;
+  }
+
+  nav a {
+    border: 0;
+    text-decoration: none;
+  }
+
+  nav ul {
+    padding: 0;
+  }
+
+  nav ul li {
+    display: inline-block;
+    padding-right: 0.4rem;
+  }
+
+  .nav-inline {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .name {
+    color: var(--highlight-color);
+    font-size: 1.1rem;
+    font-weight: var(--semibold);
+    font-style: italic;
+    margin-right: 1rem;
+  }
+
+  .name a {
+    text-decoration: none;
+  }
+
+  .lineart {
+    width: 10rem;
+    height: 10rem;
+    float: right;
+    margin-top: -0.5rem;
+  }
+
+  .icon {
+    display: inline-block;
+    width: 1.5rem;
+    height: 1.5rem;
+    margin: 0 0.5rem;
+    fill: var(--text-color);
+  }
+
+  .icon-link,
+  .icon-link:hover {
+    border: 0;
+    text-decoration: none;
+  }
+
+  .icon-link:hover .icon {
+    fill: var(--highlight-color);
+  }
+
+  /* Footer */
+
+  .footer-links {
+    margin: 0.6rem 0;
+  }
+
+  .footer-links .small {
+    margin-bottom: 0.5rem;
+  }
+
+  /* Portfolio thumbnails */
+
+  .stamp {
+    width: 200px;
+    margin-right: 15px;
+    margin-bottom: 15px;
+    float: left;
+  }
+
+  .portfolio {
+    margin: 1rem 0;
+    display: inline-block;
+  }
+
+  .clearfix::before,
+  .clearfix::after {
+    content: " ";
+    display: table;
+  }
+
+  .clearfixf::after {
+    clear: both;
+  }
+
+  /* Client thumbnails */
+
+  .thumbnail {
+    width: 100px;
+    margin-right: 15px;
+    margin-bottom: 15px;
+    float: left;
+    filter: grayscale(0.8);
+  }
+
+  .thumbnail::after {
+    content: "";
+    display: block;
+    clear: both;
+  }
+
+  /* Filters */
+
+  button.is-checked {
+    background-color: var(--highlight-color);
+    color: var(--bg-color);
+  }
+
+  .button-group {
+    margin: 1rem 0.5rem;
+  }
+
+  button a,
+  button a:hover {
+    border-bottom-style: none;
+  }
+
+  /* YouTube embeds */
+
+  .video-container {
+    position: relative;
+    width: 100%;
+    height: 0;
+    padding-bottom: 56.25%;
+  }
+
+  .video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .youtube {
+    padding-bottom: 56.25%;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 200ms ease-out;
+    margin: 10px 0;
+    /* The thumbnail is a <button> now rather than a click-handling <div>, so
+		   the button chrome inherited from the base layer has to be cleared. */
+    display: block;
+    width: 100%;
+    padding-top: 0;
+    padding-left: 0;
+    padding-right: 0;
+    border: 0;
+    background: none;
+  }
+
+  .youtube img {
+    position: absolute;
+    width: 100%;
+    top: -16.84%;
+    left: 0;
+    opacity: 0.7;
+  }
+
+  .youtube .play {
+    position: absolute;
+    width: 90px;
+    height: 60px;
+    background-color: #333;
+    box-shadow: 0 0 30px rgb(0 0 0 / 60%);
+    z-index: 1;
+    opacity: 0.8;
+    border-radius: 6px;
+  }
+
+  .youtube .play::before {
+    position: absolute;
+    content: "";
+    border-style: solid;
+    border-width: 15px 0 15px 26px;
+    border-color: transparent transparent transparent #fff;
+  }
+
+  .youtube .play,
+  .youtube .play::before {
+    top: 50%;
+    left: 50%;
+    transform: translate3d(-50%, -50%, 0);
+  }
+
+  .youtube .play:hover,
+  .youtube img:hover {
+    opacity: 1;
+  }
+
+  .youtube iframe {
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    top: 0;
+    left: 0;
+  }
+
+  .djembe {
+    font-family: djemberegular, courier, monospace;
+    font-size: 32px;
+    line-height: 0.5em;
+  }
+
+  /* Card grids */
+
+  .grid {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    max-width: 50rem;
+  }
+
+  .grid a {
+    border: 0;
+    text-decoration: none;
+    color: var(--text-color);
+  }
+
+  .grid-item {
+    position: relative;
+    margin: 0.4rem;
+    padding: 0.3rem 0.5rem;
+    background: var(--bg-fill-color);
+    box-shadow: 0 4px 8px 0 rgb(0 0 0 / 20%);
+    transition: 0.3s;
+    font-family: var(--sans);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .grid-item:hover {
+    box-shadow: 0 8px 16px 0 rgb(0 0 0 / 40%);
+  }
+
+  .grid-item .right-1,
+  .grid-item .right-2,
+  .grid-item .left-1,
+  .grid-item .left-2,
+  .grid-item .left-3,
+  .grid-item .left-4,
+  .grid-item .left-5,
+  .grid-item .bottom-r,
+  .grid-item .bottom-l {
+    position: absolute;
+  }
+
+  .grid-item .title {
+    font-size: 1.3rem;
+    line-height: 1.45rem;
+    margin: 0.4rem 0;
+    font-weight: bolder;
+  }
+
+  .grid-item .tagline {
+    font-size: 1rem;
+    line-height: 1.2rem;
+    margin: 0.4rem 0;
+    font-weight: bolder;
+  }
+
+  .grid-item .first {
+    font-size: 1rem;
+    line-height: 1.2rem;
+    margin: 0.4rem 0;
+    font-weight: bolder;
+  }
+
+  .grid-item .second {
+    font-size: 0.9rem;
+    line-height: 1.1rem;
+    margin: 0.4rem 0;
+    text-overflow: ellipsis;
+  }
+
+  .grid-item .third {
+    font-size: 0.8rem;
+    line-height: 1rem;
+    margin: 0.4rem 0;
+  }
+
+  .grid-item .right-1 {
+    font-size: 0.7rem;
+    right: 0.5rem;
+    bottom: 0;
+  }
+
+  .grid-item .right-2 {
+    font-size: 0.7rem;
+    right: 0.5rem;
+    bottom: 1.1rem;
+  }
+
+  .grid-item .left-1 {
+    font-size: 0.7rem;
+    left: 0.5rem;
+    bottom: 0;
+  }
+
+  .grid-item .left-2 {
+    font-size: 0.7rem;
+    left: 0.5rem;
+    bottom: 1.1rem;
+  }
+
+  .grid-item .left-3 {
+    font-size: 0.7rem;
+    left: 0.5rem;
+    bottom: 2.2rem;
+  }
+
+  .grid-item .left-4 {
+    font-size: 0.7rem;
+    left: 0.5rem;
+    bottom: 3.3rem;
+  }
+
+  .grid-item .left-5 {
+    font-size: 0.7rem;
+    left: 0.5rem;
+    bottom: 4.4rem;
+  }
+
+  .grid-item .bottom-r {
+    font-size: 1rem;
+    right: 0.5rem;
+    bottom: 0.2rem;
+  }
+
+  .grid-item .bottom-l {
+    font-size: 0.8rem;
+    left: 0.5rem;
+    bottom: 0.2rem;
+  }
+
+  .grid-item .left-container {
+    width: 66%;
+    height: 96%;
+    float: left;
+    margin: 1% 0.5%;
+  }
+
+  .grid-item .right-container {
+    width: 30%;
+    height: 88%;
+    float: right;
+    margin: 2% 0.5%;
+  }
+
+  .grid-item .top-container {
+    width: 100%;
+    height: 45%;
+    margin: 2% 0;
+  }
+
+  .grid-item .bottom-container {
+    width: 100%;
+    height: 40%;
+    margin: 2%;
+  }
+
+  .grid-item .image {
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+  }
+
+  .grid-item p {
+    text-overflow: ellipsis;
+  }
+
+  .upcoming,
+  .teaching {
+    height: 10rem;
+    width: 10rem;
+  }
+
+  .workshops {
+    height: 12rem;
+    width: 11rem;
+  }
+
+  .essays {
+    height: 12rem;
+    margin: 0.8rem 0.4rem;
+    padding: 0.8rem 0.5rem;
+  }
+
+  .projects {
+    height: 20rem;
+    width: 18rem;
+  }
+
+  .talks {
+    height: 13rem;
+    width: 18rem;
+    min-width: 18rem;
+  }
+
+  /* Buy section */
+
+  .buy a {
+    text-decoration-line: none;
+  }
+
+  /* Course scroller */
+
+  .scroller {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+    padding: 0;
+  }
+
+  .scroller::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scroller > * {
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .scroller > *:nth-child(2) {
+    margin-left: 0;
+  }
+
+  .scroller > *:nth-last-child(2) {
+    margin-right: 0;
+  }
+
+  .scroller > * + * {
+    margin-left: 1rem;
+  }
+
+  .scroller-item {
+    position: relative;
+    flex: 0 0 20rem;
+    transition: transform 500ms;
+    background: var(--bg-fill-color);
+    margin: 0.5rem;
+    padding: 1rem;
+    border-radius: 8px;
+  }
+
+  .scroller-item ul {
+    padding: 0 1rem;
+  }
+}
+
+/* Elements from text: undefined custom elements are inline until the site says otherwise. */
+filter-grid {
+  display: block;
+}

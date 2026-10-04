@@ -3,7 +3,9 @@
 An exploration, not a decision: Sitez without Svelte. Pages, layouts and the components prose
 uses render to HTML at build time as plain JavaScript functions; islands become custom elements
 that run only in the browser. Sitez shrinks to a Vite plugin over Markz, with one small runtime
-of its own. Nothing here changes [idea.md](idea.md) until the spike at the end holds.
+of its own. The spike on amitkaps.github.io's `/teaching/` page held
+([spike/README.md](../spike/README.md)), so this folds into [idea.md](idea.md) and
+[design.md](design.md) next, and goes.
 
 ## The contract
 
@@ -146,36 +148,49 @@ HTML, not on Svelte.
 build rendered. They don't draw the page themselves:
 
 ```md
-{@filter-grid}
+{@filter-grid filters="vis:Visualisation, ds:Data Science, talk:Talk"}
 {@teaching-grid /}
 {/filter-grid}
 ```
 
-`teaching-grid` is a build-time component, so all 91 items are in the HTML. `filter-grid` is an
-island: it adds the buttons and toggles `hidden` on items, with signals for its state:
+`teaching-grid` is a build-time component, so all 91 items are in the HTML. `filter-grid` is
+both. Its component writes the tag and its buttons at build time, and its island upgrades that
+tag in the browser, wiring the buttons and toggling `hidden` on items, with signals for its state:
 
 ```js
+// code/FilterGrid.js
+export default ({ filters, children }) => {
+  const pairs = [["", "Show all"], ...filters.split(",").map((pair) => pair.trim().split(":"))];
+  return html`<filter-grid>
+    <div class="filters">
+      ${pairs.map(([value, label]) => html`<button data-value=${value}>${label}</button>`)}
+    </div>
+    ${children}
+  </filter-grid>`;
+};
+
 // code/filter-grid.island.js
 define("filter-grid", (el) => {
+  const buttons = [...el.querySelectorAll("button[data-value]")];
+  const items = [...el.querySelectorAll("[data-filter]")];
   const active = signal("");
-  const items = el.querySelectorAll("[data-category]");
-  const categories = [...new Set([...items].map((i) => i.dataset.category))];
-  el.prepend(
-    html`<div class="filters">
-      ${["", ...categories].map(
-        (c) => html`<button onclick=${() => (active.value = c)}>${c || "Show all"}</button>`,
-      )}
-    </div>`,
-  );
-  effect(() =>
-    items.forEach((i) => (i.hidden = !!active.value && i.dataset.category !== active.value)),
-  );
+  for (const b of buttons) b.onclick = () => (active.value = b.dataset.value);
+  effect(() => {
+    for (const b of buttons) b.classList.toggle("is-checked", b.dataset.value === active.value);
+    for (const i of items)
+      i.hidden = !!active.value && !i.dataset.filter.split(" ").includes(active.value);
+  });
 });
 ```
 
-It gets no props, ships no copy of the data, and needs no hydration. That's the whole data
+The island gets no props, ships no copy of the data, and needs no hydration. That's the whole data
 channel in v1: an island reads the HTML it wraps and its string attributes. A JSON `<script>` child,
 for an island that needs rows of data, comes when a site needs it. amitkaps.github.io doesn't.
+
+An island could add the buttons itself, but in the spike that moved the grid on a slow load: the
+module can run after first paint. So the build writes whatever an island shows, and the island adds
+only behavior. Since that island no longer calls `html`, htl isn't in its bundle: 2 KB of
+JavaScript in all.
 
 Sitez finds the islands a page uses by scanning its finished HTML for their tags, then bundles those modules into the page's
 JavaScript, with the `common.js` split as today. A page with no island tags loads no JavaScript.
@@ -261,9 +276,10 @@ These are spec changes, to make or reject together:
 - **Async components.** If only pages may be `async`, a component that needs data forces the
   `await` up to its page. If templates may hold promises, the renderer resolves them, in parallel,
   and names the component when one rejects. Decide before the first site depends on either.
-- **Element names are now one namespace.** `{@call-out}` could resolve to `CallOut.js` (build
-  time) or `call-out.island.js` (island). Both existing is an error. Neither existing is the first
-  level, a plain HTML element, which is legitimate, so Sitez can't fail the build on it. A misspelled
+- **Element names are now one namespace.** `{@call-out}` can resolve to `CallOut.js` (build
+  time), `call-out.island.js` (island), or both, when the component writes the tag the island
+  upgrades. The component's output must keep the tag, or the island never runs. Neither existing is
+  the first level, a plain HTML element, which is legitimate, so Sitez can't fail the build on it. A misspelled
   island then looks exactly like a CSS-only element and does nothing, silently. A warning for an
   element with no component, no island and no selector in `style.css` would catch it. That works,
   but could be fragile.
@@ -271,10 +287,18 @@ These are spec changes, to make or reject together:
   Quality-page-like island needs rows. The JSON `<script>` child that comes then will need rules
   for what crosses (JSON turns a `Date` into a string, where `devalue` kept it) and how big it may
   get, which the build report shows.
-- **Layout shift.** An island that adds controls (the filter buttons) moves the page when its
-  module loads. The build-time component can render the controls, with the island only wiring them
-  up, which is more in keeping with "HTML before JavaScript." The `filter-grid` example above
-  doesn't do this yet. The spike should show whether it matters.
+- **Layout shift.** The spike showed it matters: buttons an island inserted moved the grid when
+  its module ran after first paint. The build writes them now, as in the example above. Nothing
+  enforces it, so an island that inserts visible markup can still bring the shift back.
+- **The head.** A layout can't add to `<head>`. amitkaps.github.io preloads two fonts and links its
+  icons from its layout's `<svelte:head>`, and Sitez writes the rest of the head from metadata. It
+  needs a convention before the port, such as a `code/head.html` included in every page's head.
+- **Template values cross module instances.** Build code loads `sitez` through Vite, and the build
+  loads it through Node: two copies of the module. A template value is marked with
+  `Symbol.for("sitez.template")`, not a class, so the renderer recognizes it from either.
+- **Markz has no hook for elements.** Sitez replaces an element with its component's output after
+  Markz writes the HTML, with markers as `prose.ts` already uses for raw blocks, unless Markz grows
+  a hook.
 - **The runtime contract.** What `define` does (initialize once, on first connect), what `effect`
   returns, and how effects are disposed is written down after the spike, from code that works, not
   before it.
@@ -285,19 +309,28 @@ These are spec changes, to make or reject together:
   initialize once. Effects should be disposed in `disconnectedCallback`. Cross-document View
   Transitions mean a full page load each time, so leaks stay small, but double initialization
   doesn't.
-- **Authoring ergonomics.** HTML inside template strings gets no autocompletion, no checking, and
-  maybe no formatting: whether oxfmt formats embedded `html```, as Prettier does, needs checking.
-  Svelte's editor support is the comfort this gives up, and you feel that every day, not just at
-  build.
+- **Authoring ergonomics.** oxfmt formats the HTML inside `html` templates, as Prettier does,
+  and oxlint passes (the spike checked). What's still missing is completion and checking inside
+  the strings. That's the comfort Svelte's editor support gives, and you feel its loss every day,
+  not only at build time.
 - **Links an island writes aren't checked.** They exist only in the browser. That's acceptable if
   islands enhance rather than generate. One more reason for that rule.
 - **Migration.** `v0.1.0-rc.0` is out, built on Svelte. The fixtures, snapshots, `islands.ts` and
   the dev server's island hot-replace are written for it. Since amitkaps.github.io hasn't started
   its port, this is the cheapest moment to change; after its port, it's two migrations.
 
-## How to decide
+## The spike
 
-Spike it on amitkaps.github.io's `/teaching/` page: its layout, `ArticleHeader`, the teaching
-grid as a build-time component, and `filter-grid` as an island. Compare against the SvelteKit page
-on JavaScript sent, data sent, layout shift, and how the code feels to write and edit. If it
-holds, idea.md and design.md change together, and plan.md gets the rewrite as its next steps.
+amitkaps.github.io's `/teaching/` page, built this way in [spike/](../spike/README.md): its
+layout, `ArticleHeader`, the teaching grid as a build-time component, and `filter-grid` as an
+island. Compared with the live SvelteKit page:
+
+- **JavaScript:** 2.0 KB against 206 KB. Most of SvelteKit's is a 170 KB chunk with the whole
+  site's content, because of how that site loads data; its runtime alone is about 31 KB.
+- **Data sent:** the HTML only, 5.5 KB against 6.1 KB, with nothing sent twice.
+- **Layout shift:** the same as SvelteKit's once the build writes the buttons. What's left in both
+  is the web fonts swapping in.
+- **Code:** about 100 lines of JavaScript against about 150 of Svelte, formatted by oxfmt.
+
+It held. Next, idea.md and design.md change together, and plan.md gets the rewrite as its next
+steps.
