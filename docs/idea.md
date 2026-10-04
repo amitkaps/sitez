@@ -313,7 +313,7 @@ lockfile beside it pins the rest.
 Nothing is installed globally, so your machine and the host always build with the same Sitez. A
 site whose `package.json` doesn't name `@amitkaps/sitez` fails every command, naming the line to add. The
 report's last line names the version that ran. An npm library the site's code imports goes in the
-same `package.json`. A site in a folder of a larger repo can use the repo's `package.json`, the nearest
+same `package.json`, and it must be an ES module. Sitez doesn't promise to load CommonJS. A site in a folder of a larger repo can use the repo's `package.json`, the nearest
 one above it.
 
 **A site deploys from its host, not from Sitez.** Sitez's host is Cloudflare. Create a Worker from
