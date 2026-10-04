@@ -101,7 +101,7 @@ export async function renderLayout(
  */
 export function document(site: Metadata, tags: string, head: string, body: string): string {
   return `<!doctype html>
-<html lang="${escape(String(site.lang))}">
+<html lang="${escape(site.lang as string)}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
