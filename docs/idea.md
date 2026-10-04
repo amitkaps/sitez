@@ -318,8 +318,10 @@ same `package.json`. A site in a folder of a larger repo can use the repo's `pac
 one above it.
 
 `sitez deploy` publishes to GitHub Pages when the repo's remote is on GitHub. Cloudflare needs no
-Sitez command. Connect the repo in Cloudflare and set the build command to `npx sitez build`. It
-installs from the lockfile first, so it builds with the site's own version.
+Sitez command. Create a Worker from the repo in Cloudflare, with `npx sitez build` as its build
+command and `npx wrangler deploy` as its deploy command. Cloudflare installs from the lockfile
+first, so it builds with the site's own version. A `wrangler.jsonc` in the repo points the Worker
+at `dist/` and serves `404.html` for a missing address, and the domain is set in Cloudflare.
 
 ## Not in v1
 

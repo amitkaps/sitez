@@ -91,6 +91,8 @@ the site can't do without it.
 - [ ] Markz: a quote closing after a single quote, and `\` as a line break. Those changes go to
       markz.
 - [ ] `sitez check` reformats JavaScript in code fences, which a page may show on purpose.
+- [ ] Deploy from Cloudflare's git integration, as idea.md describes, in place of
+      `wrangler-action` in CI. The CI then only checks.
 
 ### 21. A leaner core
 
@@ -117,12 +119,10 @@ at the end, from the 0.2.0 baseline below.
       the site's own.
 - [ ] Whether `feed.xml` stays. Any page with a `date` joins it, so `date` both orders pages and
       publishes them. amitkaps.com's essays are dated only for order.
-- [ ] `sitez deploy` for GitHub Pages and Cloudflare, simpler, and with no dependency like
-      Wrangler. Today it pushes to `gh-pages` when the remote is on GitHub, and amitkaps.github.io
-      deploys to Cloudflare with Wrangler in its CI. Open: how a site says where it deploys. A
-      dotted key in `site.md` (`deploy.github`), which Markz reads, would be a setting there,
-      where idea.md allows only metadata. The convention that needs none is the git remote, as
-      now, or Cloudflare building from the repo.
+- [ ] Deploy needs no setting and no Wrangler dependency
+      ([docs/design.md#deploy](design.md#deploy)). `sitez deploy` serves GitHub Pages, found from
+      the git remote. Cloudflare builds from the repo with its own Wrangler, as prose's site does.
+      Simplify `deploy.ts` to what that leaves.
 - [ ] Whatever else 20 shows that Sitez needn't do.
 
 ### 22. Docs for users

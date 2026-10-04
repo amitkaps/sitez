@@ -425,8 +425,14 @@ the branch's files with `dist/`'s and a `.nojekyll`, and commits `Deploy <source
 keeps its history, so a bad deploy can be found and reverted. A build that changed nothing pushes
 nothing.
 
-Cloudflare builds from its own git integration with `npx sitez build`, so Sitez carries no
-Wrangler.
+Cloudflare builds from its own git integration, as prose's site does. Its build command is
+`npx sitez build`, and its deploy command `npx wrangler deploy` runs Wrangler on Cloudflare's
+machine. So neither Sitez nor a site depends on Wrangler, and a site needs no Sitez command or
+setting to deploy there. The host is chosen where the site is connected, never in `site.md`.
+
+Ruled out: **a deploy target in `site.md`** (`deploy.github`, `deploy.cloudflare`). Markz reads
+dotted keys, but a target is a setting, and `site.md` holds metadata. The git remote names GitHub,
+and Cloudflare's own connection names Cloudflare.
 
 ## Release
 
