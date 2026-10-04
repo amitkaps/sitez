@@ -417,22 +417,21 @@ Ruled out:
 
 ## Deploy
 
-`sitez deploy` builds, then pushes `dist/` to the `gh-pages` branch when the remote is on GitHub
-(`deploy.ts`). It uses the user's own git and credentials.
+A site deploys from Cloudflare, which builds the repo itself, as prose's site does. Its build
+command is `npx sitez build`, and its deploy command `npx wrangler deploy` runs Wrangler on
+Cloudflare's machine. So neither Sitez nor a site depends on Wrangler, and a site needs no Sitez
+command or setting to deploy.
 
-It clones the branch into a temp folder, so the author's checkout is never touched. It replaces
-the branch's files with `dist/`'s and a `.nojekyll`, and commits `Deploy <source sha>`. The branch
-keeps its history, so a bad deploy can be found and reverted. A build that changed nothing pushes
-nothing.
+Ruled out:
 
-Cloudflare builds from its own git integration, as prose's site does. Its build command is
-`npx sitez build`, and its deploy command `npx wrangler deploy` runs Wrangler on Cloudflare's
-machine. So neither Sitez nor a site depends on Wrangler, and a site needs no Sitez command or
-setting to deploy there. The host is chosen where the site is connected, never in `site.md`.
+- **A deploy command.** Each host has its own one-time setup, such as a domain, a 404 page or a
+  config file, and a command covers one step of it. Steps for one host are simpler than a command
+  for several. GitHub Pages was the other host, and Sitez's sites are moving off it.
+- **A deploy target in `site.md`** (`deploy.github`, `deploy.cloudflare`). Markz reads dotted
+  keys, but a target is a setting, and `site.md` holds metadata.
 
-Ruled out: **a deploy target in `site.md`** (`deploy.github`, `deploy.cloudflare`). Markz reads
-dotted keys, but a target is a setting, and `site.md` holds metadata. The git remote names GitHub,
-and Cloudflare's own connection names Cloudflare.
+`sitez deploy` still exists until step 21 of the plan removes it. It pushes `dist/` and a
+`.nojekyll` to the `gh-pages` branch when the remote is on GitHub (`deploy.ts`).
 
 ## Release
 

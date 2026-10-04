@@ -283,7 +283,6 @@ sitez dev      # serve with live reload
 sitez build    # write dist/
 sitez preview  # serve dist/ as it will be deployed
 sitez check    # fix what's safe (format, lint fixes), then report the rest
-sitez deploy   # publish dist/
 ```
 
 `dist/` is ordinary static files and can be hosted anywhere. `build` ends with what each page
@@ -317,9 +316,9 @@ report's last line names the version that ran. An npm library the site's code im
 same `package.json`. A site in a folder of a larger repo can use the repo's `package.json`, the nearest
 one above it.
 
-`sitez deploy` publishes to GitHub Pages when the repo's remote is on GitHub. Cloudflare needs no
-Sitez command. Create a Worker from the repo in Cloudflare, with `npx sitez build` as its build
-command and `npx wrangler deploy` as its deploy command. Cloudflare installs from the lockfile
+**A site deploys from its host, not from Sitez.** Sitez's host is Cloudflare. Create a Worker from
+the repo in Cloudflare, with `npx sitez build` as its build command and `npx wrangler deploy` as
+its deploy command. Every push to the production branch deploys. Cloudflare installs from the lockfile
 first, so it builds with the site's own version. A `wrangler.jsonc` in the repo points the Worker
 at `dist/` and serves `404.html` for a missing address, and the domain is set in Cloudflare.
 
@@ -332,6 +331,8 @@ at `dist/` and serves `404.html` for a missing address, and the domain is set in
 - Dynamic routes, pagination and tags.
 - Image processing, i18n and content schemas.
 - Themes, plugins, and settings in `site.md` beyond metadata.
+- A deploy command, and steps for hosts other than Cloudflare. Each host has its own one-time
+  setup, which a command can't cover.
 
 Each one is a way to add configuration, which is the thing Sitez removes. A site that needs a
 client router, `load`, endpoints or server output should use SvelteKit.

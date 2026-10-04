@@ -119,10 +119,9 @@ at the end, from the 0.2.0 baseline below.
       the site's own.
 - [ ] Whether `feed.xml` stays. Any page with a `date` joins it, so `date` both orders pages and
       publishes them. amitkaps.com's essays are dated only for order.
-- [ ] Deploy needs no setting and no Wrangler dependency
-      ([docs/design.md#deploy](design.md#deploy)). `sitez deploy` serves GitHub Pages, found from
-      the git remote. Cloudflare builds from the repo with its own Wrangler, as prose's site does.
-      Simplify `deploy.ts` to what that leaves.
+- [ ] Remove `sitez deploy` and `deploy.ts`, once amitkaps.github.io has run on Cloudflare for a
+      week. idea.md already has one way to deploy: Cloudflare builds the repo with its own
+      Wrangler, as prose's site does ([docs/design.md#deploy](design.md#deploy)).
 - [ ] Whatever else 20 shows that Sitez needn't do.
 
 ### 22. Docs for users
