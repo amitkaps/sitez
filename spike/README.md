@@ -1,9 +1,8 @@
 # Spike: `/teaching/` without Svelte
 
-The test [prose/redesign.md](../prose/redesign.md) set for itself: amitkaps.github.io's
-`/teaching/` page, built the redesigned way and measured against the live SvelteKit page. It
-held. This folder is a throwaway: it goes when the rewrite lands, and its findings live in the
-redesign doc until then.
+The test that decided Sitez 0.2: amitkaps.github.io's `/teaching/` page, built without Svelte
+and measured against the live SvelteKit page. It held, and [design.md](../prose/design.md) was
+rewritten from it. This folder is a throwaway: it goes when the rewrite lands (plan step 15).
 
 ```sh
 node spike/build.js        # writes spike/dist/teaching/index.html
@@ -38,7 +37,10 @@ and 200 KB/s.
 
 - **SvelteKit's 206 KB** is mostly one 170 KB chunk: the raw Markdown and YAML of every page,
   pulled in because `/teaching/`'s universal `load` imports `#lib`. That's the site's setup, not
-  a floor. The Svelte and Kit runtime alone is about 31 KB.
+  a floor. Fixed, with the load in `+page.server.ts`, it would be about 37 KB (estimated by
+  subtracting that chunk, not built): about 31 KB of Svelte and Kit runtime plus the page's code,
+  with the 2.6 KB of teaching data sent again as JSON for hydration. So the fair comparison is
+  about 37 KB against 2 KB.
 - **The shift left in every column is the web fonts swapping in**, which is the site's CSS
   (`font-display`), not the renderer. With fonts blocked, it disappears from SvelteKit and from
   the final spike.
@@ -65,7 +67,8 @@ and 200 KB/s.
    with a regular expression. The real build needs markers, as `prose.ts` already uses for raw
    blocks, or an element hook in Markz.
 6. **A layout can't add to `<head>`.** The live site preloads two fonts and links its icons from
-   the layout's `<svelte:head>`. The spike hard-codes them. The redesign needs an answer.
+   the layout's `<svelte:head>`. The spike hard-codes them. Answered since: `Head.js`, resolved
+   like a layout.
 7. **The indentation in templates goes into the HTML.** It costs little once gzipped (5.5 KB
    against SvelteKit's 6.1 KB), so no minifier is needed.
 8. **Build errors name the file, not the line.** A handler found at build time says which file it

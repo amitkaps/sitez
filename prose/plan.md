@@ -8,94 +8,90 @@ to one line each.
 
 ## Done
 
-- **Idea and design.** `prose/idea.md` (promises, rules, not in v1, three test sites),
-  `prose/design.md` (toolchain, build, islands, bundling), `AGENTS.md`.
-- **1. Skeleton.** The `sitez` package on Vite+ (`vp check`, `vp test`, `vp pack` to
-  `dist/cli.js`), Node 26 to develop (the package runs on 24 and up) and pnpm pinned in
-  `package.json` (`devEngines`), CI on every PR; the CLI with its five
-  commands, root finding from `site.md` and `SiteError` for the messages; the `blog`, `landing` and
-  `error-reserved-site-md` sites in `test/sites/`. Each stage gets its file in `src/` as its step
-  starts, not before. Markz comes from npm as `@amitkaps/markz`.
-- **0. Spikes.** Async server rendering, island detection, hydrating islands with children, and
-  Vite without a config all hold; their answers are in design.md, and the code is in `4343fcb`.
-  Islands are read from the compiler's AST, not its output.
-- **2. Pages.** `discover.ts` (URLs, two files for one URL, `prose/site.md`), `metadata.ts`
-  (defaults, drafts, a Svelte page's `<h1>`), prose compiled as Svelte (`prose.ts`), rendering
-  through Vite's module runner with the nearest layout (`vite.ts`, `render.ts`), and `build.ts`
-  writing `dist/`. `test/sites.test.ts` builds every example site against `test/snapshots/`.
-  Dropped: failing on "a page named like a pattern", since capitalization already decides.
-- **Metadata checks.** `title`, `summary`, `date`, `draft` and a page's `url`, and `name`, `url`,
-  `repo` in `site.md`, fail the build when wrong; no schema library, since site-specific keys are
-  the site's to check.
-- **3. Components in prose.** A Markz element renders the nearest component of its name
-  (`discover.ts`'s `nearest`, shared with layouts), attributes as props and body as children;
-  raw `=html` blocks are written verbatim rather than compiled (`prose.ts`). `build` prints Markz's
-  warnings (`warnings.ts`). The `elements` site shows both, and `warnings.txt` snapshots them.
-- **4. Links.** `links.ts`: page files to URLs, site links checked, `public/` files by path, other
-  repo files to GitHub, images only from `public/`; a missing target, a draft or the 404 fails at
-  its line. Rewritten in the view `html()` renders, so code is untouched. Every rendered page's
-  `href` and `src` are checked too, so a layout's nav can't break.
-- **5. The site's own files.** `head.ts` writes the head from metadata, with Twitter's card and
-  `lang` (from `site.md`, `en` by default), and fails a `<svelte:head>` that writes those tags;
-  `sitemap.ts` writes `sitemap.xml` and an RSS `feed.xml` of summaries; the 404 page is
-  `404.html`; `url` in `site.md` is required. The social image is an open question in design.md.
-- **6. Styling.** One stylesheet per site (`bundle.ts`): the reset as `@layer reset`
-  (`src/runtime/reset.css`), `pattern/style.css`, then every rendered component's styles,
-  content-hashed with the fonts and images it names; a `url()` that isn't there fails. The
-  per-page CSS split was dropped: CSS is small, and one file is cached once.
-- **7. Islands.** `islands.ts` reads browser behavior from the AST and wraps every imported
-  component in the server render; `runtime/server.ts` decides per render what it is, writes the
-  marker with `devalue` props, and fails a page or layout with behavior, a function prop, a
-  handler through a spread, an island in an island's children and an island reading `prose`.
-  Each page with islands gets its own entry, shared code goes in `common.js`, and
-  `test/islands.test.ts` hydrates the built pages in happy-dom.
-- **8. Build report.** `report.ts`: per page html and its own js, gzipped, and render time; a
-  `common` row for the stylesheet and `common.js`; the total and the islands. The per-page css
-  column went with the per-page CSS. Its one note so far is a raw `<script>`.
-- **9. Dev server.** `site.ts` holds what `build` and `dev` share; `dev.ts` renders on request,
-  drafts included, redirects `/about` to `/about/` and serves the 404 page, sitemap and feed.
-  CSS and islands hot-replace, anything else reloads, and a failure shows `build`'s message in
-  the page. `src/dev.test.ts` reads Vite's hot-update socket; no real browser runs in CI.
-- **10. The rest of the CLI.** `preview.ts` serves `dist/` as a host does; `check.ts` runs oxfmt,
-  oxlint, svelte-check and Markz's warnings, fixing what's safe first, one line a problem; `deploy.ts` builds
-  and pushes to `gh-pages` with the author's git, keeping the branch's history.
+- **0.1, the Svelte iteration** ([`v0.1.0`](https://github.com/amitkaps/sitez/tree/v0.1.0)).
+  Steps 0 to 10 built Sitez on Svelte: the skeleton and CLI, pages and metadata checks,
+  components in prose, links, the head, sitemap and feed, one stylesheet, islands hydrated from
+  the server render, the build report, the dev server, and preview, check and deploy. What doesn't
+  depend on the renderer carries over: `discover.ts`, `metadata.ts`, `links.ts`, `head.ts`,
+  `sitemap.ts`, `report.ts`, `preview.ts`, `deploy.ts`, check's oxfmt and oxlint, the reset, and
+  the error fixtures.
+- **The redesign's spike.** amitkaps.github.io's `/teaching/` page built without Svelte
+  ([spike/](../spike/README.md)): 2 KB of JavaScript against 206 KB, no data sent twice, and no
+  layout shift once the build writes the island's buttons. idea.md and design.md were rewritten
+  from it.
 
 ## Open work, in order
 
 Each step ends in something a fixture site shows, so the step is done when its fixture builds and
 its tests pass, not when the code is written. Error cases are fixtures too: a site that must fail,
-with the message it must fail with.
+with the message it must fail with. The order keeps the tests green throughout: the mechanical
+changes come while Svelte still renders, then the renderer is swapped, then Svelte is deleted.
 
-### 11. The Markz site
+### 11. The new folders, on Svelte
 
-idea.md's third test, run for real, on a branch of markz.
+A rename only, so that a test failing later means the renderer, not a path.
 
-- [ ] Add `site.md`, rename `prose/markz.md` to `index.md`, move the patterns into `pattern/`,
-      delete the SvelteKit routes, `pages.ts` and the Worker config.
-- [ ] The Quality page awaits the harness at build time; `QualityReport.svelte` is an island.
-- [ ] Compare with today's site page by page: same content, less JavaScript. Whatever Sitez
+- [ ] `prose/` becomes `text/` and `pattern/` becomes `code/`, in the code, the fixtures and the
+      messages; `text/site.md` is the reserved name.
+- [ ] Any file in `text/` but `.md` fails, pointing to `public/`. `data/` holds JSON that code
+      imports and is never copied.
+- [ ] The `prose` prop becomes `pages`, and covers every page, Svelte pages included.
+- [ ] A file in `code/` whose name starts with `_` is a module, never a page.
+
+### 12. The runtime
+
+- [ ] Its own folder, which never imports the rest of Sitez: `html` and the template value, the
+      renderer, and `define`, `signal` and `effect` over htl and the signals core.
+- [ ] `sitez`'s package exports pick the Node or browser entry by the `browser` condition.
+- [ ] A test table for the renderer: escaping in text and attributes, attributes dropped or bare,
+      arrays, nested templates, promises, and the failures (a function, a value in a tag).
+
+### 13. Pages, layouts and components in JavaScript
+
+- [ ] Lowercase `.js` and `.ts` files in `code/` are pages; capitalized ones are layouts and
+      components; `Head.js` adds to the head, and writing a tag Sitez writes fails.
+- [ ] A text page is Markz's HTML with each element that has a component replaced by its
+      output, through markers in the view `html()` renders, as raw blocks are today.
+- [ ] A layout gets the page's finished HTML as `children`, and fails if it drops or repeats it;
+      a JS page without `metadata` gets its title from its `<h1>`.
+- [ ] The `blog`, `landing` and `elements` fixtures are rewritten in JS, and their snapshots
+      match what they rendered on Svelte, scoping classes and hydration comments aside.
+
+### 14. Islands as custom elements
+
+- [ ] `name.island.js` (or `.ts`) defines `<name>`; a page's islands are found by scanning its
+      HTML, and bundled per page with the `common.js` split.
+- [ ] Failures: build-time code importing an island, an island importing a page, layout or
+      component, and a component dropping its own tag when an island of that name exists.
+- [ ] `test/islands.test.ts` runs the built pages in happy-dom: `define` sets up once, and the
+      `tag-filter` and `fold-out` islands work.
+
+### 15. Svelte goes
+
+- [ ] Delete `islands.ts`, `runtime/server.ts`, `runtime/client.ts` and the `Island*.svelte`
+      files; drop `svelte`, its Vite plugin, `svelte-check` and `devalue`.
+- [ ] `check.ts` runs oxfmt, oxlint and Markz's warnings; the report lists islands by tag.
+- [ ] `dev` hot-replaces CSS and reloads for anything else.
+- [ ] `spike/` goes, its findings already in design.md.
+
+### 16. amitkaps.github.io
+
+The real site, kept in its own private repo, ported on its `next` branch. Its notes stay there.
+
+- [ ] Pages to `text/`, YAML to JSON in `data/`, the card grids as components, and the
+      workshops, talks and teaching grids wrapped in `filter-grid`. Old `.html` URLs keep working.
+- [ ] Compare with the SvelteKit site page by page: same content, less JavaScript. Whatever Sitez
       couldn't do goes back into idea.md or "Not in v1".
 
-### 11b. A personal site
+### 17. Release
 
-A second real site, kept in its own private repo: flat, content-heavy, with data grids, a 404 page
-and old `.html` URLs, where the Markz site is docs. Its notes stay in that repo.
-
-- [ ] Port it on a branch: URLs from paths, raw HTML rewritten as Markz, data grids as element
-      components (the filterable ones islands), its data as JSON beside the patterns.
-- [ ] Compare with the current site page by page, as for the Markz site.
-
-### 12. Release
-
-- [x] Release candidates as GitHub prereleases with the packed tarball attached (`v0.1.0-rc.0`),
-      which the Markz site installs from its URL until 0.1.0 is on npm.
-- [ ] Publish `sitez` 0.1.0 to npm; check `npx sitez build` and `mise use -g npm:sitez` on a
+- [ ] Publish `sitez` 0.2.0 to npm; check `npx sitez build` and `mise use -g npm:sitez` on a
       clean machine.
-- [ ] Cloudflare: build the Markz site with `npx sitez build` from its git integration.
+- [ ] Cloudflare: build amitkaps.github.io with `npx sitez build` from its git integration.
 
 ## Open questions
 
-- **Rendered bodies in `prose`.** Whether each entry carries its page's HTML (for a feed with
+- **Rendered bodies in `pages`.** Whether each entry carries its page's HTML (for a feed with
   full posts, or an index with excerpts) as well as its metadata. The feed carries summaries
   until a site needs more.
 - The rest are in [design.md](design.md#open-questions).

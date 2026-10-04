@@ -8,7 +8,7 @@ Read **`prose/idea.md`** and **`prose/design.md`** first: what Sitez promises, a
   is the human's decision: say so instead of building it.
 - Sitez has no configuration. When a feature seems to need an option, look for the convention
   that makes it unnecessary, or ask. `site.md` holds metadata, never settings.
-- Every failure a user can cause (a broken link, a function passed to an island, a reserved file
+- Every failure a user can cause (a broken link, a function in a build-time template, a reserved file
   name) fails the build with a message naming the file and what to change. Never guess silently.
 
 ## Reading the codebase

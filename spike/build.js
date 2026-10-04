@@ -1,7 +1,7 @@
 /** @prose
  * # The spike's build
  *
- * Just enough of the redesign's build to put `/teaching/` side by side with the SvelteKit page:
+ * Just enough of Sitez 0.2's build to put `/teaching/` side by side with the SvelteKit page:
  * Markz's HTML with each element that has a component replaced by its output, the layout around
  * it, the islands found by scanning the finished HTML, and their bundle. Throwaway: the real one
  * reuses discover, metadata, links and head from `src/`.
