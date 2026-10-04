@@ -68,8 +68,7 @@ there.
 - [x] Sitez is 0.2.0, published as `@amitkaps/sitez` with the command `sitez`. A `v*` tag runs the release workflow, which stages
       the version on npm and attaches the tarball to a GitHub Release. The packed tarball,
       installed with `npm install` in a fresh copy of amitkaps.github.io, builds the same `dist/`.
-- [ ] Publish 0.2.0 to npm by hand, then set up the trusted publisher
-      ([docs/design.md#release](design.md#release)), and tag `v0.2.0`.
+- [x] 0.2.0 is on npm and in a GitHub Release, and amitkaps.github.io installs it from npm.
 - [ ] Build amitkaps.github.io on Cloudflare with `npx sitez build`, from its git integration.
 
 ## Open questions
