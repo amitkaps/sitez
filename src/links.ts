@@ -1,10 +1,9 @@
 /** @prose
  * # Links
  *
- * Where a link in prose goes, and whether it's there (rule 4). Prose links to files, as it does
- * on GitHub, and Sitez turns each into the URL the site serves it at: a page's `.md` into the
- * page's URL, a file in `public/` into its path, and any other file in the repo into its page on
- * GitHub. A site link (`/about`) is Markz's form for a URL on this site, and is checked the same
+ * Where a link in text goes, and whether it's there (rule 4). Text links to files, as it does on
+ * GitHub, and Sitez turns each into the URL the site serves it at. A page's `.md` becomes the
+ * page's URL, a file in `public/` its path, and any other file in the repo its page on GitHub. A site link (`/about`) is Markz's form for a URL on this site, and is checked the same
  * way. A full URL is another site's, and is never checked.
  *
  * Sitez knows every page and file, so a link to one that isn't there fails the build, as does a
@@ -18,8 +17,8 @@ import { NOT_FOUND, posix, urlOf } from "./discover.ts";
 
 /** @prose
  * What a link can point at. `pages` holds every page by URL, with whether this run leaves it out:
- * `build` fills it before any prose loads, since a Svelte page is a draft only once its module has
- * said so. `generated` is what Sitez writes beside the pages (`/sitemap.xml`, `/feed.xml`).
+ * `build` fills it before any text page loads, since a Svelte page is a draft only once its module
+ * has said so. `generated` is what Sitez writes beside the pages (`/sitemap.xml`, `/feed.xml`).
  */
 export interface LinkTargets {
   root: string;
@@ -31,7 +30,7 @@ export interface LinkTargets {
 export type LinkKind = "link" | "image";
 
 /** @prose
- * The URL a destination in `file` is written as, or the problem with it, which `prose.ts` turns
+ * The URL a destination in `file` is written as, or the problem with it, which `text.ts` turns
  * into a build error at the link's line. The query and fragment are kept as written; a fragment
  * alone (`#usage`) is a place on this page and passes as it is.
  */
@@ -76,7 +75,7 @@ function siteLink(targets: LinkTargets, path: string): { href: string } | { prob
 }
 
 /** @prose
- * A relative link names a file from the page's own folder. A `.md` in `prose/` is that page; a
+ * A relative link names a file from the page's own folder. A `.md` in `text/` is that page; a
  * file in `public/` is served at its path; any other file in the repo, source code included, goes
  * to GitHub from `repo` in `site.md`, as a folder does. An image has to be served by the site
  * itself, so one outside `public/` fails rather than pointing at a GitHub page.
@@ -94,9 +93,9 @@ function fileLink(
   if (!stat)
     return { problem: `${destination} isn't there: no file at ${relative(root, target)}.` };
 
-  const prose = join(root, "prose");
-  if (stat.isFile() && extname(target) === ".md" && inside(prose, target)) {
-    const url = urlOf(prose, target);
+  const text = join(root, "text");
+  if (stat.isFile() && extname(target) === ".md" && inside(text, target)) {
+    const url = urlOf(text, target);
     if (pages.has(url)) return pageLink(targets, url);
   }
   const publicDir = join(root, "public");

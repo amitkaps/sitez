@@ -26,7 +26,7 @@ export function markzWarnings(file: string, doc: Document): MarkzWarning[] {
   });
 }
 
-/** `prose/about.md:3:7: `*emphasis*`, write `_emphasis_` instead (star-emphasis)`, the file as `name` gives it. */
+/** `text/about.md:3:7: `*emphasis*`, write `_emphasis_` instead (star-emphasis)`, the file as `name` gives it. */
 export function formatWarning(warning: MarkzWarning, name: (file: string) => string): string {
   const { file, line, column, code, message, instead } = warning;
   return `${name(file)}:${line}:${column}: ${message}, write ${instead} instead (${code})`;

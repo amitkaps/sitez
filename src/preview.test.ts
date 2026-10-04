@@ -6,7 +6,7 @@ import { build } from "./build.ts";
 import { SiteError } from "./errors.ts";
 import { preview, type Preview } from "./preview.ts";
 
-const blog = join(import.meta.dirname, "../test/sites/blog");
+const blog = join(import.meta.dirname, "../tests/sites/blog");
 const outDir = join(mkdtempSync(join(tmpdir(), "sitez-preview-")), "dist");
 let server: Preview;
 

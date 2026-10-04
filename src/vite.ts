@@ -2,7 +2,7 @@
  * # Vite
  *
  * The Vite server Sitez runs for a site, with the config nobody writes. `build` and `dev` render
- * pages the same way, through its module runner, so a pattern's modules run from where they are
+ * pages the same way, through its module runner, so the site's modules run from where they are
  * and `import.meta.url` still points at them: the Markz site's Quality page reads its test cases
  * relative to its own file. A site has no `node_modules`, so its imports resolve from Sitez.
  */
@@ -18,7 +18,7 @@ import { SiteError } from "./errors.ts";
 import { nearest, posix, urlOf } from "./discover.ts";
 import { islandModules, type Islands } from "./islands.ts";
 import { linkTarget, type LinkTargets } from "./links.ts";
-import { componentName, proseComponent } from "./prose.ts";
+import { componentName, textComponent } from "./text.ts";
 
 /** Sitez's own files a site's pages and bundles load: the reset, and the islands' runtime. */
 export const runtime = join(import.meta.dirname, "runtime");
@@ -30,7 +30,7 @@ export interface SiteServer {
   /** The site's root as Vite names its modules: its real path. */
   real: string;
   /** @prose
-   * What prose links are checked against as prose loads: the last run's, replaced whole by the
+   * What text links are checked against as text pages load: the last run's, replaced whole by the
    * next once it is complete, so a page loading meanwhile never sees half of one.
    */
   links: LinkTargets;
@@ -80,7 +80,7 @@ export async function siteServer(
       : { middlewareMode: true, hmr: false, watch: null },
     plugins: [
       fromSitez(),
-      proseModules(root, real, () => site!.links),
+      textModules(root, real, () => site!.links),
       islandModules(root, real, islands),
       sveltePlugin(real, { hmr: dev !== undefined }),
       noOptimizer(),
@@ -178,23 +178,23 @@ export function fromSitez(): Plugin {
 }
 
 /** @prose
- * Each `.md` in `prose/` loads as the Svelte component `prose.ts` writes for it, with the
+ * Each `.md` in `text/` loads as the Svelte component `text.ts` writes for it, with the
  * components its elements render found up the tree from the page's URL, as its layout is, and
  * its links checked against the server's current `links`. Vite hands over the real path; links and components are
  * looked up from the root the site was given, as every message names it.
  */
-function proseModules(root: string, real: string, links: () => LinkTargets): Plugin {
-  const folder = join(real, "prose") + sep;
+function textModules(root: string, real: string, links: () => LinkTargets): Plugin {
+  const folder = join(real, "text") + sep;
   return {
-    name: "sitez:prose",
+    name: "sitez:text",
     enforce: "pre",
     load(id) {
       const file = id.split("?")[0]!;
       if (!file.startsWith(folder) || !file.endsWith(".md")) return null;
       const doc = parse(readFileSync(file, "utf8"));
       const page = asGiven(root, real, file);
-      const url = urlOf(join(root, "prose"), page);
-      const source = proseComponent(page, doc, {
+      const url = urlOf(join(root, "text"), page);
+      const source = textComponent(page, doc, {
         component: (name) => nearest(root, url, componentName(name)),
         link: (destination, kind) => linkTarget(links(), page, destination, kind),
       });

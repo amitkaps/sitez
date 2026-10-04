@@ -1,1 +1,0 @@
-prose/index.md: line 3: {@call-out} has a page attribute, but every component in prose already gets page, prose and site. Rename the attribute.

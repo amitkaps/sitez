@@ -188,7 +188,7 @@ export function checkNotIsland(file: string, kind: "page" | "layout"): void {
   if (!behavior) return;
   throw new SiteError(
     file,
-    `line ${behavior.line}: this ${kind} has browser behavior (${behavior.what}), but pages and layouts are HTML. Move that part into a component of its own in pattern/ and render it here: the component becomes the island.`,
+    `line ${behavior.line}: this ${kind} has browser behavior (${behavior.what}), but pages and layouts are HTML. Move that part into a component of its own in code/ and render it here: the component becomes the island.`,
   );
 }
 
@@ -209,7 +209,7 @@ const WRAPPED = ".sitez.js";
  */
 export function islandModules(root: string, real: string, islands: Islands): Plugin {
   const server = join(runtime, "server.ts");
-  const pattern = join(real, "pattern") + sep;
+  const code = join(real, "code") + sep;
   const entryImporter = join(real, "index.html");
   return {
     name: "sitez:islands",
@@ -230,8 +230,8 @@ export function islandModules(root: string, real: string, islands: Islands): Plu
       const file = id.slice(WRAP.length, -WRAPPED.length);
       const shown = asGiven(root, real, file);
       const { behavior, reads } = analyze(file);
-      const name = file.startsWith(pattern)
-        ? posix(pattern, file).replace(/\.svelte$/, "")
+      const name = file.startsWith(code)
+        ? posix(code, file).replace(/\.svelte$/, "")
         : packageName(file);
       if (behavior) {
         if (basename(file) === "Layout.svelte") checkNotIsland(shown, "layout");

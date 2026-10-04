@@ -1,11 +1,13 @@
 /** @prose
  * # Pages
  *
- * Which files are pages, and at which URL (rules 1 and 2). Every `.md` in `prose/` and every
- * `.svelte` in `pattern/` whose name doesn't start with a capital is a page; its path, less the
- * extension, is its URL, and `index` is its folder's own. A capitalized `.svelte` is a pattern a
- * page uses, and `.js`/`.ts` files are modules: neither is a page. Folders and files starting with
- * `.` are skipped, as a site's tools leave them there.
+ * Which files are pages, and at which URL (rules 1 and 2). Every `.md` in `text/` is a page, and
+ * so is every `.svelte` in `code/` whose name doesn't start with a capital or `_`. A page's path, less
+ * the extension, is its URL, and `index` is its folder's own.
+ *
+ * A capitalized `.svelte` is a layout or component, a `_` prefix marks a module, and `.js` and
+ * `.ts` files are modules too. None of them is a page. Folders and files starting with `.` are
+ * skipped, since a site's tools leave them there.
  */
 import { readdirSync, statSync } from "node:fs";
 import { basename, extname, join, relative, sep } from "node:path";
@@ -16,24 +18,34 @@ export interface Page {
   url: string;
   /** Absolute path to the page's file. */
   file: string;
-  kind: "prose" | "pattern";
+  kind: "text" | "code";
 }
 
 /** @prose
- * Finds every page, sorted by URL. Fails on `prose/site.md`, which would otherwise be a page, and
- * on two files for one URL (`prose/about.md` and `pattern/about.svelte`, or `prose/blog.md` and
- * `prose/blog/index.md`), naming both.
+ * Finds every page, sorted by URL. It fails on `text/site.md`, which would otherwise be a page.
+ * It fails on two files for one URL, naming both (`text/about.md` and `code/about.svelte`, or
+ * `text/blog.md` and `text/blog/index.md`).
+ *
+ * It also fails on any file in `text/` that isn't `.md`. `text/` holds what is read as it is, and
+ * an image or a PDF there would otherwise be silently left out of the site. Its place is `public/`.
  */
 export function discover(root: string): Page[] {
   const pages: Page[] = [];
-  for (const file of files(join(root, "prose"))) {
-    if (extname(file) !== ".md") continue;
-    if (file === join(root, "prose", SITE_FILE)) throw reserved(file);
-    pages.push({ url: urlOf(join(root, "prose"), file), file, kind: "prose" });
+  const text = join(root, "text");
+  for (const file of files(text)) {
+    if (extname(file) !== ".md") {
+      throw new SiteError(
+        file,
+        `text/ holds only Markz (.md), so this file wouldn't reach the site. Move it to public/${posix(text, file)}, and link to it from there.`,
+      );
+    }
+    if (file === join(text, SITE_FILE)) throw reserved(file);
+    pages.push({ url: urlOf(text, file), file, kind: "text" });
   }
-  for (const file of files(join(root, "pattern"))) {
-    if (extname(file) !== ".svelte" || /^[A-Z]/.test(basename(file))) continue;
-    pages.push({ url: urlOf(join(root, "pattern"), file), file, kind: "pattern" });
+  const code = join(root, "code");
+  for (const file of files(code)) {
+    if (extname(file) !== ".svelte" || /^[A-Z_]/.test(basename(file))) continue;
+    pages.push({ url: urlOf(code, file), file, kind: "code" });
   }
 
   const byUrl = new Map<string, Page>();
@@ -51,24 +63,24 @@ export function discover(root: string): Page[] {
 }
 
 /** @prose
- * The nearest pattern of a name up the tree from a page's URL (rule 2): for `/blog/hello/`,
- * `pattern/blog/hello/`, then `pattern/blog/`, then `pattern/`. Layouts and the components prose
- * elements render are both found this way, so where a pattern sits says what it belongs to. Only
- * the nearest is used; a layout that wants the one above it imports it, as any component would.
+ * The nearest file of a name up the tree from a page's URL (rule 2). For `/blog/hello/`, that's
+ * `code/blog/hello/`, then `code/blog/`, then `code/`. Layouts and the components that render text
+ * elements are both found this way, so where a file sits says what it belongs to. Only the nearest
+ * is used. A layout that wants the one above it imports it, as any component would.
  */
 export function nearest(root: string, url: string, name: string): string | undefined {
   const segments = url.split("/").filter(Boolean);
   for (let n = segments.length; n >= 0; n--) {
-    const file = join(root, "pattern", ...segments.slice(0, n), `${name}.svelte`);
+    const file = join(root, "code", ...segments.slice(0, n), `${name}.svelte`);
     if (statSync(file, { throwIfNoEntry: false })?.isFile()) return file;
   }
   return undefined;
 }
 
 /** @prose
- * The page at `/404/`, `prose/404.md` or `pattern/404.svelte`, is what a host serves for a URL
- * that doesn't exist, and hosts look for it at `404.html` (rule 1). Every other page is its
- * folder's `index.html`, so its URL needs no extension.
+ * The page at `/404/`, `text/404.md` or `code/404.svelte`, is what a host serves for a URL that
+ * doesn't exist. Hosts look for it at `404.html` (rule 1). Every other page is its folder's
+ * `index.html`, so its URL needs no extension.
  */
 export const NOT_FOUND = "/404/";
 
@@ -76,7 +88,7 @@ export function outputFile(url: string): string {
   return url === NOT_FOUND ? "404.html" : join(...url.split("/").filter(Boolean), "index.html");
 }
 
-/** A file's URL from its path below `folder` (`prose/` or `pattern/`). */
+/** A file's URL from its path below `folder` (`text/` or `code/`). */
 export function urlOf(folder: string, file: string): string {
   const segments = relative(folder, file).slice(0, -extname(file).length).split(sep);
   if (segments.at(-1) === "index") segments.pop();

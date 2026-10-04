@@ -2,7 +2,7 @@
  * # Finding the site
  *
  * The folder holding `site.md` is the site, from wherever `sitez` runs inside it, the way git
- * finds a repo. So `site.md` is the one file every site has, and a site needs no `prose/` at all.
+ * finds a repo. So `site.md` is the one file every site has, and a site needs no `text/` at all.
  * The nearest `site.md` wins, which lets one repo hold several sites.
  */
 import { statSync } from "node:fs";
@@ -12,15 +12,15 @@ import { SiteError } from "./errors.ts";
 export const SITE_FILE = "site.md";
 
 /** @prose
- * Walks up from `from` to the first folder with a `site.md`. `prose/site.md` is reserved: found
- * from inside `prose/`, with a `site.md` one level up, it would otherwise make `prose/` a site of
+ * Walks up from `from` to the first folder with a `site.md`. `text/site.md` is reserved. Found
+ * from inside `text/`, with a `site.md` one level up, it would otherwise make `text/` a site of
  * its own. Found from the root, page discovery rejects it with the same message.
  */
 export function findRoot(from: string): string {
   const start = resolve(from);
   for (let dir = start; ; dir = dirname(dir)) {
     if (isFile(join(dir, SITE_FILE))) {
-      if (basename(dir) === "prose" && isFile(join(dirname(dir), SITE_FILE))) {
+      if (basename(dir) === "text" && isFile(join(dirname(dir), SITE_FILE))) {
         throw reserved(join(dir, SITE_FILE));
       }
       return dir;
@@ -34,11 +34,11 @@ export function findRoot(from: string): string {
   }
 }
 
-/** `prose/site.md`, found here from inside `prose/` or by page discovery from the root. */
+/** `text/site.md`, found here from inside `text/` or by page discovery from the root. */
 export function reserved(file: string): SiteError {
   return new SiteError(
     file,
-    `${SITE_FILE} is reserved for the site's metadata, next to prose/, so it can't be a page. Rename it, or move its metadata into ../${SITE_FILE}.`,
+    `${SITE_FILE} is reserved for the site's metadata, next to text/, so it can't be a page. Rename it, or move its metadata into ../${SITE_FILE}.`,
   );
 }
 

@@ -3,8 +3,9 @@ node_modules/
 dist/
 *.tgz
 
-# Tools' leftovers: `vp test --coverage`, Vite's config bundling, logs
+# Tools' leftovers: `vp test --coverage`, Vite's config bundling, `prose build`, logs
 coverage/
+.prose/
 vite.config.ts.timestamp-*
 *.log
 

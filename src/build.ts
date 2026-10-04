@@ -116,8 +116,8 @@ function gzipped(content: string | Uint8Array): number {
 }
 
 /** @prose
- * What a page's numbers leave out. A `<script>` Sitez didn't write, in a raw block or a
- * pattern's markup, runs whatever it loads, which the build can't count.
+ * What a page's numbers leave out. A `<script>` Sitez didn't write, in a raw block or in
+ * code's markup, runs whatever it loads, which the build can't count.
  */
 function notes(html: string): string[] {
   return /<script\b/i.test(html) ? ["raw <script>"] : [];
@@ -160,5 +160,5 @@ function entryName(url: string): string {
 function source(path: string): string {
   if (path.endsWith(".html")) return "a page";
   if (path.endsWith(".xml")) return "the metadata";
-  return "pattern/";
+  return "code/";
 }

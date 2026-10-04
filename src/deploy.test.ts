@@ -26,7 +26,7 @@ describe("sitez deploy", { timeout: 60_000 }, () => {
     mkdirSync(remote, { recursive: true });
     git(remote, "init", "--quiet", "--bare");
     const site = join(temp, "site");
-    cpSync(join(import.meta.dirname, "../test/sites/landing"), site, { recursive: true });
+    cpSync(join(import.meta.dirname, "../tests/sites/landing"), site, { recursive: true });
     git(site, "init", "--quiet");
     git(site, "add", "--all");
     git(site, "commit", "--quiet", "-m", "Start");
@@ -50,7 +50,7 @@ describe("sitez deploy", { timeout: 60_000 }, () => {
 
   test("a site without a GitHub remote is told how to deploy instead", async () => {
     const site = join(mkdtempSync(join(tmpdir(), "sitez-deploy-")), "site");
-    cpSync(join(import.meta.dirname, "../test/sites/landing"), site, { recursive: true });
+    cpSync(join(import.meta.dirname, "../tests/sites/landing"), site, { recursive: true });
     git(site, "init", "--quiet");
     git(site, "remote", "add", "origin", "https://gitlab.com/someone/site.git");
     const error = await deploy(site).catch((error: unknown) => error);

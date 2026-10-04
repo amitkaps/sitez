@@ -1,1 +1,0 @@
-pattern/about.svelte: /about/ also comes from prose/about.md. A URL has one file: rename or remove one of them.

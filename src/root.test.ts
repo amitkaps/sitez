@@ -5,7 +5,7 @@ import { describe, expect, test } from "vite-plus/test";
 import { SiteError } from "./errors.ts";
 import { findRoot } from "./root.ts";
 
-const sites = join(import.meta.dirname, "../test/sites");
+const sites = join(import.meta.dirname, "../tests/sites");
 
 describe("findRoot", () => {
   test("is the folder holding site.md", () => {
@@ -13,12 +13,12 @@ describe("findRoot", () => {
   });
 
   test("is found from any folder inside the site", () => {
-    expect(findRoot(join(sites, "blog/prose/blog"))).toBe(join(sites, "blog"));
-    expect(findRoot(join(sites, "blog/pattern"))).toBe(join(sites, "blog"));
+    expect(findRoot(join(sites, "blog/text/blog"))).toBe(join(sites, "blog"));
+    expect(findRoot(join(sites, "blog/code"))).toBe(join(sites, "blog"));
   });
 
-  test("works for a site with no prose/", () => {
-    expect(findRoot(join(sites, "landing/pattern"))).toBe(join(sites, "landing"));
+  test("works for a site with no text/", () => {
+    expect(findRoot(join(sites, "landing/code"))).toBe(join(sites, "landing"));
   });
 
   test("fails with no site.md anywhere above, showing what to write", () => {
@@ -29,12 +29,12 @@ describe("findRoot", () => {
     expect(error.message).toContain("name: My site");
   });
 
-  test("fails on prose/site.md, found from inside prose/", () => {
+  test("fails on text/site.md, found from inside text/", () => {
     const site = join(sites, "error-reserved-site-md");
-    const error = catchError(() => findRoot(join(site, "prose")));
-    expect(error.file).toBe(join(site, "prose/site.md"));
+    const error = catchError(() => findRoot(join(site, "text")));
+    expect(error.file).toBe(join(site, "text/site.md"));
     const expected = readFileSync(join(site, "error.txt"), "utf8").trim();
-    expect(`prose/site.md: ${error.message}`).toBe(expected);
+    expect(`text/site.md: ${error.message}`).toBe(expected);
   });
 });
 

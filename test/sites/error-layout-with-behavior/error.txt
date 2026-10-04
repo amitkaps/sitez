@@ -1,1 +1,0 @@
-pattern/Layout.svelte: line 6: this layout has browser behavior (bind:value on <input>), but pages and layouts are HTML. Move that part into a component of its own in pattern/ and render it here: the component becomes the island.

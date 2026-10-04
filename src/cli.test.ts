@@ -5,7 +5,7 @@ import { describe, expect, test } from "vite-plus/test";
 import pkg from "../package.json" with { type: "json" };
 import { run } from "./cli.ts";
 
-const blog = join(import.meta.dirname, "../test/sites/blog");
+const blog = join(import.meta.dirname, "../tests/sites/blog");
 
 async function sitez(argv: string[], cwd = blog) {
   const lines = { log: [] as string[], error: [] as string[] };
@@ -42,10 +42,10 @@ describe("sitez", () => {
 
   test("builds, printing Markz warnings named from where it runs", async () => {
     const root = mkdtempSync(join(tmpdir(), "sitez-"));
-    mkdirSync(join(root, "prose"));
+    mkdirSync(join(root, "text"));
     writeFileSync(join(root, "site.md"), "---\nname: Test\nurl: https://example.com\n---\n");
-    writeFileSync(join(root, "prose/index.md"), "# Home\n\nSome *stars*.\n");
-    const { code, log, error } = await sitez(["build"], join(root, "prose"));
+    writeFileSync(join(root, "text/index.md"), "# Home\n\nSome *stars*.\n");
+    const { code, log, error } = await sitez(["build"], join(root, "text"));
     expect(code).toBe(0);
     expect(error).toBe("index.md:3:6: `*emphasis*`, write `_emphasis_` instead (star-emphasis)");
     // A second or more, on a busy machine, reads as seconds.

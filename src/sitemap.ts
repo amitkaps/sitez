@@ -23,7 +23,7 @@ ${urls.join("")}</urlset>
 /** @prose
  * The pages with a `date`, whatever folder they're in, since only a post carries one. An entry is
  * the page's title, summary and date: whether the feed carries whole posts waits on the open
- * question of rendered bodies in `prose`. A site with no dated pages has no feed.
+ * question of rendered bodies in `pages`. A site with no dated pages has no feed.
  */
 export function feed(site: Metadata, siteUrl: string, pages: PageData[]): string | undefined {
   const dated = pages

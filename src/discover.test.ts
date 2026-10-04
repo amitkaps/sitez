@@ -20,47 +20,60 @@ function urls(root: string) {
 }
 
 describe("discover", () => {
-  test("gives every prose file and lowercase Svelte file a URL from its path", () => {
+  test("gives every text file and lowercase Svelte file a URL from its path", () => {
     const root = site(
-      "prose/index.md",
-      "prose/about.md",
-      "prose/blog/index.md",
-      "prose/blog/hello.md",
-      "pattern/tags.svelte",
-      "pattern/blog/archive.svelte",
+      "text/index.md",
+      "text/about.md",
+      "text/blog/index.md",
+      "text/blog/hello.md",
+      "code/tags.svelte",
+      "code/blog/archive.svelte",
     );
     expect(urls(root)).toEqual([
-      "/ prose/index.md",
-      "/about/ prose/about.md",
-      "/blog/ prose/blog/index.md",
-      "/blog/archive/ pattern/blog/archive.svelte",
-      "/blog/hello/ prose/blog/hello.md",
-      "/tags/ pattern/tags.svelte",
+      "/ text/index.md",
+      "/about/ text/about.md",
+      "/blog/ text/blog/index.md",
+      "/blog/archive/ code/blog/archive.svelte",
+      "/blog/hello/ text/blog/hello.md",
+      "/tags/ code/tags.svelte",
     ]);
   });
 
-  test("skips patterns, modules, other files and anything under a dot", () => {
+  test("skips layouts, components, modules, other files and anything under a dot", () => {
     const root = site(
-      "prose/index.md",
-      "prose/notes.txt",
-      "prose/.drafts/idea.md",
-      "pattern/Layout.svelte",
-      "pattern/CallOut.svelte",
-      "pattern/data.ts",
-      "pattern/.cache/page.svelte",
+      "text/index.md",
+      "text/.drafts/idea.md",
+      "text/.DS_Store",
+      "code/Layout.svelte",
+      "code/CallOut.svelte",
+      "code/data.ts",
+      "code/_card.svelte",
+      "code/blog/_list.svelte",
+      "code/style.css",
+      "code/.cache/page.svelte",
+      "data/talks.json",
     );
-    expect(urls(root)).toEqual(["/ prose/index.md"]);
+    expect(urls(root)).toEqual(["/ text/index.md"]);
   });
 
-  test("works with no prose/ or no pattern/", () => {
-    expect(urls(site("pattern/index.svelte"))).toEqual(["/ pattern/index.svelte"]);
+  test("fails on a file in text/ that isn't Markz, pointing to public/", () => {
+    const root = site("text/index.md", "text/blog/photo.png");
+    const error = catchError(() => discover(root));
+    expect(relative(root, error.file)).toBe("text/blog/photo.png");
+    expect(error.message).toBe(
+      "text/ holds only Markz (.md), so this file wouldn't reach the site. Move it to public/blog/photo.png, and link to it from there.",
+    );
+  });
+
+  test("works with no text/ or no code/", () => {
+    expect(urls(site("code/index.svelte"))).toEqual(["/ code/index.svelte"]);
     expect(urls(site())).toEqual([]);
   });
 
   test.each([
-    ["prose/about.md", "pattern/about.svelte", "/about/"],
-    ["prose/blog.md", "prose/blog/index.md", "/blog/"],
-    ["prose/index.md", "pattern/index.svelte", "/"],
+    ["text/about.md", "code/about.svelte", "/about/"],
+    ["text/blog.md", "text/blog/index.md", "/blog/"],
+    ["text/index.md", "code/index.svelte", "/"],
   ])("fails on two files for one URL: %s and %s", (first, second, url) => {
     const root = site(first, second);
     const error = catchError(() => discover(root));
@@ -70,27 +83,27 @@ describe("discover", () => {
     );
   });
 
-  test("fails on prose/site.md, but not on a site.md deeper in prose/", () => {
-    const error = catchError(() => discover(site("prose/site.md")));
+  test("fails on text/site.md, but not on a site.md deeper in text/", () => {
+    const error = catchError(() => discover(site("text/site.md")));
     expect(error.message).toMatch(/^site\.md is reserved/);
-    expect(urls(site("prose/notes/site.md"))).toEqual(["/notes/site/ prose/notes/site.md"]);
+    expect(urls(site("text/notes/site.md"))).toEqual(["/notes/site/ text/notes/site.md"]);
   });
 });
 
 describe("nearest", () => {
-  const root = site("pattern/Layout.svelte", "pattern/blog/Layout.svelte");
+  const root = site("code/Layout.svelte", "code/blog/Layout.svelte");
   const layout = (url: string) => relative(root, nearest(root, url, "Layout") ?? root);
 
   test("is the nearest Layout.svelte up the tree from the URL", () => {
-    expect(layout("/")).toBe("pattern/Layout.svelte");
-    expect(layout("/about/")).toBe("pattern/Layout.svelte");
-    expect(layout("/blog/")).toBe("pattern/blog/Layout.svelte");
-    expect(layout("/blog/2026/hello/")).toBe("pattern/blog/Layout.svelte");
-    expect(layout("/blogroll/")).toBe("pattern/Layout.svelte");
+    expect(layout("/")).toBe("code/Layout.svelte");
+    expect(layout("/about/")).toBe("code/Layout.svelte");
+    expect(layout("/blog/")).toBe("code/blog/Layout.svelte");
+    expect(layout("/blog/2026/hello/")).toBe("code/blog/Layout.svelte");
+    expect(layout("/blogroll/")).toBe("code/Layout.svelte");
   });
 
   test("is none when the site has no layout", () => {
-    expect(nearest(site("prose/index.md"), "/", "Layout")).toBeUndefined();
+    expect(nearest(site("text/index.md"), "/", "Layout")).toBeUndefined();
   });
 });
 

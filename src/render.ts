@@ -5,7 +5,7 @@
  * rendered around it (rule 2) and the whole wrapped in the document every page shares. The page
  * renders first, on its own, because a Svelte page's title can come from its own `<h1>` and the
  * layout needs that title. Everything awaits (rule 5), so the HTML is finished when it's written.
- * The head's title, description and links come from metadata, never from a pattern.
+ * The head's title, description and links come from metadata, never from a layout or component.
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, join, relative, sep } from "node:path";
@@ -17,7 +17,7 @@ import { asGiven, type SiteServer } from "./vite.ts";
 
 export interface Props {
   page: PageData;
-  prose: PageData[];
+  pages: PageData[];
   site: Metadata;
 }
 
@@ -116,7 +116,7 @@ ${body}
 }
 
 /** @prose
- * A pattern that throws while rendering is a mistake in the site, not in Sitez: the build fails
+ * A page, layout or component that throws while rendering is a mistake in the site, not in Sitez: the build fails
  * naming the file that was rendering, or the one an island's check names, since the error's own stack names the module it came from
  * (the data module, for a failed `await`), not the page.
  */
@@ -138,7 +138,7 @@ async function guard<T>(file: string, fn: () => PromiseLike<T>): Promise<T> {
 /** @prose
  * Svelte compiles a component used without an import into a name that was never defined, so it
  * fails only as it renders: `Badge is not defined`. The stack's first Svelte frame is the file
- * that uses it, which may be a component the page or layout renders; when `pattern/` has a
+ * that uses it, which may be a component the page or layout renders; when `code/` has a
  * component of that name, the message gives the line and the import to add.
  */
 export function missingImport(error: unknown, root: string, real: string): SiteError | undefined {
@@ -148,7 +148,7 @@ export function missingImport(error: unknown, root: string, real: string): SiteE
   const frame = /\((\/[^()]+\.svelte):\d+:\d+\)/.exec(stack ?? "")?.[1];
   if (!used || !frame) return undefined;
   const file = asGiven(root, real, frame);
-  const found = componentFiles(join(root, "pattern")).filter(
+  const found = componentFiles(join(root, "code")).filter(
     (candidate) => basename(candidate) === `${used}.svelte`,
   );
   // The one beside the file first, then the nearest by path.

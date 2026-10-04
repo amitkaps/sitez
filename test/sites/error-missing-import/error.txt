@@ -1,1 +1,0 @@
-pattern/Card.svelte: line 3: <Badge> is used here, but Badge isn't imported. Import it at the top of this file's <script>: import Badge from './ui/Badge.svelte';

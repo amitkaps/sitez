@@ -4,8 +4,8 @@
  * What a page's `<head>` says about it, written from its metadata and the site's: `<title>` is
  * the page's `title`, as written, the description its `summary`, and the canonical URL and Open
  * Graph tags follow from those and `url` in `site.md`. Twitter reads the Open Graph tags, so it
- * needs only its card. So a page's head changes with its metadata, never with its patterns, and a
- * pattern that writes one of these tags itself fails.
+ * needs only its card. So a page's head changes with its metadata, never with its code, and a page,
+ * layout or component that writes one of these tags itself fails.
  */
 import { NOT_FOUND } from "./discover.ts";
 import { SiteError } from "./errors.ts";
@@ -40,7 +40,7 @@ export function headTags(page: PageData, site: Metadata, feed: boolean): string 
 }
 
 /** @prose
- * A pattern's `<svelte:head>` can add anything else (a font, a script), but not a tag Sitez
+ * A page's, layout's or component's `<svelte:head>` can add anything else (a font, a script), but not a tag Sitez
  * writes: two titles or two descriptions is a page that says two things about itself. It fails,
  * naming the metadata key that sets the tag. `file` is the page or layout whose render wrote the
  * head, so for a page it may be a component the page renders.

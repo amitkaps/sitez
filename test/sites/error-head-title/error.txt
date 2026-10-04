@@ -1,1 +1,0 @@
-pattern/index.svelte: this writes a <title> in <svelte:head>, but Sitez writes it from metadata. Remove it, and set title in the page's metadata.

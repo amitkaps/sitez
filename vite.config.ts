@@ -10,7 +10,7 @@ import { defineConfig } from "vite-plus";
 
 // The example sites are inputs to the tests, formatted the way a site's author would leave them;
 // the snapshots are Sitez's output, exactly as written.
-const ignored = ["dist/**", "test/sites/**", "test/snapshots/**", "pnpm-lock.yaml"];
+const ignored = ["dist/**", "tests/sites/**", "tests/snapshots/**", "pnpm-lock.yaml"];
 
 export default defineConfig({
   // tsdown — `vp pack`. The CLI is the package: one ESM entry, run by Node, and the runtime
@@ -43,7 +43,7 @@ export default defineConfig({
   test: {
     expect: { requireAssertions: true },
     environment: "node",
-    include: ["src/**/*.test.ts", "test/**/*.test.ts"],
+    include: ["src/**/*.test.ts", "tests/**/*.test.ts"],
     testTimeout: 30_000,
     isolate: false,
   },

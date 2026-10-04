@@ -2,9 +2,9 @@
  * # Check
  *
  * `sitez check`: the site's files put right where that's safe, then whatever is left that needs
- * the author. oxlint applies its safe fixes to the patterns and oxfmt formats `prose/` and
- * `pattern/` in one style, its Markdown output being Markz's canonical form; then svelte-check
- * type-checks the patterns, and Markz's warnings, which `build` prints but never fails on, are
+ * the author. oxlint applies its safe fixes to `code/` and oxfmt formats `text/` and `code/` in
+ * one style, its Markdown output being Markz's canonical form; then svelte-check type-checks
+ * `code/`, and Markz's warnings, which `build` prints but never fails on, are
  * problems here. The files it formatted are named; every problem is one line,
  * `file:line:col: message`, named from where `sitez` runs, and any problem fails.
  *
@@ -41,11 +41,11 @@ export interface CheckResult {
 export async function check(root: string, { cwd = root } = {}): Promise<CheckResult> {
   const shown = shownFrom(cwd);
   const has = (folder: string) => existsSync(join(root, folder));
-  const folders = ["prose", "pattern"].filter(has);
+  const folders = ["text", "code"].filter(has);
   const config = ["-c", join(runtime, "oxfmtrc.json")];
 
   // Fixes first, one after the other, since each changes files: lint's, then formatting its result.
-  const lint = has("pattern") ? await tool("oxlint", ["-f", "unix", "--fix", "pattern"], root) : "";
+  const lint = has("code") ? await tool("oxlint", ["-f", "unix", "--fix", "code"], root) : "";
   let formatted: string[] = [];
   if (folders.length > 0) {
     formatted = lines(await tool("oxfmt", [...config, "--list-different", ...folders], root));
@@ -56,12 +56,12 @@ export async function check(root: string, { cwd = root } = {}): Promise<CheckRes
     [
       join(root, SITE_FILE),
       ...discover(root)
-        .filter((page) => page.kind === "prose")
+        .filter((page) => page.kind === "text")
         .map((page) => page.file),
     ]
       .flatMap((file) => markzWarnings(file, parse(readFileSync(file, "utf8"))))
       .map((warning) => formatWarning(warning, shown));
-  const types = has("pattern") ? await svelteCheck(root, shown) : [];
+  const types = has("code") ? await svelteCheck(root, shown) : [];
   const warnings = markz();
   const linted = lines(lint).flatMap((line) => {
     const found = /^(.+?):(\d+):(\d+): (.*)$/.exec(line);
@@ -75,7 +75,7 @@ export async function check(root: string, { cwd = root } = {}): Promise<CheckRes
 
 /** @prose
  * svelte-check needs no `tsconfig` or `node_modules` in the site: it resolves Svelte's types
- * itself. It runs in a folder of Sitez's, in the cache folder, holding a link to `pattern/`, a
+ * itself. It runs in a folder of Sitez's, in the cache folder, holding links to `code/` and `data/`, a
  * `tsconfig` and a Svelte config that compiles as Sitez does: svelte-check looks for a config up
  * the tree from each file, so a site inside a larger repo would otherwise be checked by that
  * repo's. It is strict, and plain-JS scripts are checked too, as strictly, except that nothing
@@ -90,7 +90,10 @@ async function svelteCheck(root: string, shown: (file: string) => string): Promi
   const workspace = join(cacheDir(real), "check");
   rmSync(workspace, { recursive: true, force: true });
   mkdirSync(workspace, { recursive: true });
-  symlinkSync(join(real, "pattern"), join(workspace, "pattern"), "dir");
+  for (const folder of ["code", "data"]) {
+    if (existsSync(join(real, folder)))
+      symlinkSync(join(real, folder), join(workspace, folder), "dir");
+  }
   writeFileSync(
     join(workspace, "tsconfig.json"),
     JSON.stringify({
@@ -108,7 +111,7 @@ async function svelteCheck(root: string, shown: (file: string) => string): Promi
         preserveSymlinks: true,
         types: [],
       },
-      include: ["pattern/**/*"],
+      include: ["code/**/*"],
     }),
   );
   writeFileSync(

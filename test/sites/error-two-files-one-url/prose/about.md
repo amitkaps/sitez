@@ -1,3 +1,0 @@
-# About
-
-From prose.

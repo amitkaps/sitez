@@ -4,9 +4,9 @@ import { join } from "node:path";
 import { parse } from "@amitkaps/markz";
 import { describe, expect, test } from "vite-plus/test";
 import { SiteError } from "./errors.ts";
-import { patternMetadata, proseMetadata, siteMetadata } from "./metadata.ts";
+import { codeMetadata, textMetadata, siteMetadata } from "./metadata.ts";
 
-const file = "/site/prose/page.md";
+const file = "/site/text/page.md";
 
 function problem(fn: () => unknown): string {
   try {
@@ -20,10 +20,10 @@ function problem(fn: () => unknown): string {
 
 const block = (lines: string) => parse(`---\n${lines}\n---\n\n# Heading\n`);
 
-describe("proseMetadata", () => {
+describe("textMetadata", () => {
   test("defaults the title to the first heading and the summary to the first paragraph", () => {
     const doc = parse("# Hello _there_\n\nThe first `post`.\n\nMore.\n");
-    expect(proseMetadata(file, "/hello/", doc)).toEqual({
+    expect(textMetadata(file, "/hello/", doc)).toEqual({
       url: "/hello/",
       title: "Hello there",
       summary: "The first post.",
@@ -34,7 +34,7 @@ describe("proseMetadata", () => {
     const doc = parse(
       "---\ntitle: Short\nsummary: Brief.\ndate: 2026-09-01\ndraft: true\ntags: [a, b]\n---\n\n# Long title\n\nText.\n",
     );
-    expect(proseMetadata(file, "/x/", doc)).toEqual({
+    expect(textMetadata(file, "/x/", doc)).toEqual({
       url: "/x/",
       title: "Short",
       summary: "Brief.",
@@ -46,19 +46,19 @@ describe("proseMetadata", () => {
 
   test("looks only at the top level, where a reader starts", () => {
     const doc = parse("> # Quoted\n>\n> Quoted text.\n\n## Real\n\nReal text.\n");
-    expect(proseMetadata(file, "/x/", doc)).toMatchObject({ title: "Real", summary: "Real text." });
+    expect(textMetadata(file, "/x/", doc)).toMatchObject({ title: "Real", summary: "Real text." });
   });
 
   test("leaves out what the page has none of", () => {
-    const page = proseMetadata(file, "/x/", parse("- a list\n"));
+    const page = textMetadata(file, "/x/", parse("- a list\n"));
     expect(page.title).toBeUndefined();
     expect(page.summary).toBeUndefined();
   });
 });
 
-describe("patternMetadata", () => {
+describe("codeMetadata", () => {
   test("is the exported metadata", () => {
-    expect(patternMetadata(file, "/blog/", { title: "Blog", tags: ["x"] })).toEqual({
+    expect(codeMetadata(file, "/blog/", { title: "Blog", tags: ["x"] })).toEqual({
       url: "/blog/",
       title: "Blog",
       tags: ["x"],
@@ -68,11 +68,11 @@ describe("patternMetadata", () => {
   test("falls back to the first <h1>'s text", () => {
     const body =
       '<!--[--><h1 class="big">Tom &amp; <em>Jerry&#39;s</em>\n  page</h1><h1>Second</h1>';
-    expect(patternMetadata(file, "/", undefined, body).title).toBe("Tom & Jerry's page");
+    expect(codeMetadata(file, "/", undefined, body).title).toBe("Tom & Jerry's page");
   });
 
   test("prefers the export to the <h1>", () => {
-    expect(patternMetadata(file, "/", { title: "Set" }, "<h1>Heading</h1>").title).toBe("Set");
+    expect(codeMetadata(file, "/", { title: "Set" }, "<h1>Heading</h1>").title).toBe("Set");
   });
 });
 
@@ -89,21 +89,21 @@ describe("the keys Sitez reads", () => {
       "url: /about/",
       "url is \"/about/\": a page's URL is its file's path: move the file instead, and remove url.",
     ],
-  ])("fail when wrong in a prose page: %s", (line, message) => {
-    expect(problem(() => proseMetadata(file, "/x/", block(line)))).toBe(message);
+  ])("fail when wrong in a text page: %s", (line, message) => {
+    expect(problem(() => textMetadata(file, "/x/", block(line)))).toBe(message);
   });
 
   test("fail when wrong in a Svelte page", () => {
-    expect(problem(() => patternMetadata(file, "/x/", { draft: "no" }))).toBe(
+    expect(problem(() => codeMetadata(file, "/x/", { draft: "no" }))).toBe(
       'draft is "no": write draft: true or draft: false.',
     );
-    expect(problem(() => patternMetadata(file, "/x/", "Blog"))).toBe(
+    expect(problem(() => codeMetadata(file, "/x/", "Blog"))).toBe(
       "metadata is exported but not an object: write { title: … }.",
     );
   });
 
   test("pass when right, and leave other keys alone", () => {
-    const page = proseMetadata(
+    const page = textMetadata(
       file,
       "/x/",
       block("title: T\nsummary: S\ndate: 2024-02-29\ndraft: false\ntags: [a]\norder: 3\nimage:"),

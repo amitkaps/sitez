@@ -1,7 +1,7 @@
 /** @prose
  * # Islands on the server
  *
- * Every component a pattern or prose page imports is rendered through `component()`, which
+ * Every component a Svelte page or text page imports is rendered through `component()`, which
  * decides what it is on this page (rule 6). The outermost component with browser behavior is the
  * island: it is written inside a `<sitez-island>` marker with its props serialized, so the page's
  * script can hydrate it. Everything inside an island renders as it is, since the browser runs all
@@ -19,7 +19,7 @@ import IslandWithChildren from "./IslandWithChildren.svelte";
 
 /** What the build knows about a component from its source. */
 export interface Info {
-  /** Its name in the marker: its path in `pattern/`, without `.svelte`. */
+  /** Its name in the marker: its path in `code/`, without `.svelte`. */
   name: string;
   /** The file, as error messages name it. */
   file: string;
@@ -40,7 +40,7 @@ const USED = "sitez:used";
 type Render = (renderer: unknown, props: Record<string, unknown>) => void;
 
 // Sitez gives every page, layout and element component these; an island gets only what it reads.
-const PAGE_PROPS = ["page", "prose", "site"];
+const PAGE_PROPS = ["page", "pages", "site"];
 
 export function component(
   renderer: unknown,
@@ -74,10 +74,10 @@ export function component(
     );
   }
   const { $$slots: _slots, $$events: _events, children, ...rest } = props;
-  if (info.reads?.includes("prose")) {
+  if (info.reads?.includes("pages")) {
     fail(
       info.file,
-      `${info.name} is an island and reads prose, which would ship every page's metadata to the browser. Compute what it needs in a page, a layout or a component without browser behavior, and pass that to ${info.name} as a prop.`,
+      `${info.name} is an island and reads pages, which would ship every page's metadata to the browser. Compute what it needs in a page, a layout or a component without browser behavior, and pass that to ${info.name} as a prop.`,
     );
   }
   const data = Object.fromEntries(

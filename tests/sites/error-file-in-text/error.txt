@@ -1,0 +1,1 @@
+text/photo.svg: text/ holds only Markz (.md), so this file wouldn't reach the site. Move it to public/photo.svg, and link to it from there.

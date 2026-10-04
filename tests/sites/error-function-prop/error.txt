@@ -1,0 +1,1 @@
+code/Clock.svelte: Clock is an island, and its prop format is a function, which can't reach the browser. Pass data instead, or make the function inside Clock.

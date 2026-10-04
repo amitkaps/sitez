@@ -8,10 +8,10 @@ const root = mkdtempSync(join(tmpdir(), "sitez-"));
 mkdirSync(join(root, ".git"));
 for (const file of [
   "site.md",
-  "prose/index.md",
-  "prose/404.md",
-  "prose/blog/hello.md",
-  "prose/blog/draft.md",
+  "text/index.md",
+  "text/404.md",
+  "text/blog/hello.md",
+  "text/blog/draft.md",
   "public/logo.svg",
   "src/code.ts",
   "docs/diagram.png",
@@ -30,7 +30,7 @@ const targets: LinkTargets = {
   ]),
   generated: new Set(["/sitemap.xml"]),
 };
-const from = join(root, "prose/blog/hello.md");
+const from = join(root, "text/blog/hello.md");
 const link = (destination: string, kind: LinkKind = "link", site = targets) =>
   linkTarget(site, from, destination, kind);
 
@@ -75,7 +75,7 @@ describe("linkTarget", () => {
 
   test("fails on what the build would ship broken", () => {
     expect(link("gone.md")).toEqual({
-      problem: "gone.md isn't there: no file at prose/blog/gone.md.",
+      problem: "gone.md isn't there: no file at text/blog/gone.md.",
     });
     expect(link("draft.md")).toEqual({
       problem:

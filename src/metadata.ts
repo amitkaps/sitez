@@ -1,14 +1,14 @@
 /** @prose
  * # Metadata
  *
- * What pages and layouts know about a page, the site and all the prose (rule 5). A prose page's
+ * What pages and layouts know about a page, the site and every page (rule 5). A text page's
  * metadata is its Markz block, with `title` defaulting to the first heading and `summary` to the
  * first paragraph, so most pages need no block. A Svelte page's is its exported `metadata`, with
  * `title` defaulting to its first `<h1>` once it has rendered.
  *
  * Sitez checks only the keys it reads itself, and a wrong one fails the build naming the file and
  * the key rather than being read some other way: `draft: yes` would otherwise publish a draft.
- * Every other key passes through unchecked, so a site can add its own (`tags`), and the pattern
+ * Every other key passes through unchecked, so a site can add its own (`tags`), and the code
  * that reads it is where it's checked.
  */
 import { readFileSync } from "node:fs";
@@ -19,7 +19,7 @@ import { SITE_FILE } from "./root.ts";
 
 export type Metadata = Record<string, MetadataValue | undefined>;
 
-/** A page as a pattern sees it: its URL and its metadata. */
+/** A page as code sees it: its URL and its metadata. */
 export interface PageData extends Metadata {
   url: string;
   title?: string;
@@ -39,7 +39,7 @@ export function siteMetadata(root: string): Metadata {
   return { lang: "en", ...block };
 }
 
-export function proseMetadata(file: string, url: string, doc: Document): PageData {
+export function textMetadata(file: string, url: string, doc: Document): PageData {
   const block: Metadata = { ...doc.metadata };
   check(file, block, pageKeys);
   const title = first(doc, "heading");
@@ -57,7 +57,7 @@ export function proseMetadata(file: string, url: string, doc: Document): PageDat
  * `<h1>` of its HTML when the export has none. Svelte writes text escaped, so the few entities
  * it produces are all there is to decode.
  */
-export function patternMetadata(
+export function codeMetadata(
   file: string,
   url: string,
   exported: unknown,

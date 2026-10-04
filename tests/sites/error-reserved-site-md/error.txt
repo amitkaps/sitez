@@ -1,0 +1,1 @@
+text/site.md: site.md is reserved for the site's metadata, next to text/, so it can't be a page. Rename it, or move its metadata into ../site.md.

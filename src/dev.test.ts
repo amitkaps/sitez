@@ -6,7 +6,7 @@ import { dev, type Dev } from "./dev.ts";
 
 // A copy of the blog, since the tests change its files as an author would.
 const site = join(mkdtempSync(join(tmpdir(), "sitez-dev-")), "blog");
-cpSync(join(import.meta.dirname, "../test/sites/blog"), site, { recursive: true });
+cpSync(join(import.meta.dirname, "../tests/sites/blog"), site, { recursive: true });
 
 let server: Dev;
 beforeAll(async () => {
@@ -32,7 +32,7 @@ describe("pages", () => {
 
   test("the page's scripts load the stylesheet, show the page and hydrate its islands", async () => {
     const styles = await (await get("/@sitez/styles.js?url=%2Fblog%2F")).text();
-    expect(styles).toContain("/pattern/style.css");
+    expect(styles).toContain("/code/style.css");
     expect(styles).toContain("TagFilter.svelte?svelte&type=style&lang.css");
     expect(styles).toContain("document.getElementById('sitez-hidden')?.remove();");
     const page = await (await get("/@sitez/page.js?url=%2Fblog%2F")).text();
@@ -85,8 +85,8 @@ describe("changes", () => {
     // The browser has loaded the page, so its modules are in Vite's graph.
     await (await get("/@sitez/styles.js?url=%2Fblog%2F")).text();
     await (await get("/@sitez/page.js?url=%2Fblog%2F")).text();
-    await (await get("/pattern/TagFilter.svelte")).text();
-    await (await get("/pattern/style.css")).text();
+    await (await get("/code/TagFilter.svelte")).text();
+    await (await get("/code/style.css")).text();
     // Only what this change causes: a reload from an earlier change may still be arriving.
     await new Promise((resolve) => setTimeout(resolve, 100));
     messages.length = 0;
@@ -105,37 +105,35 @@ describe("changes", () => {
   };
 
   test("CSS is replaced in place", async () => {
-    const message = await afterChange(edit("pattern/style.css", "40rem", "42rem"));
+    const message = await afterChange(edit("code/style.css", "40rem", "42rem"));
     expect(message.type).toBe("update");
   });
 
   test("an island is replaced in place", async () => {
-    const message = await afterChange(edit("pattern/TagFilter.svelte", ">All<", ">Every<"));
+    const message = await afterChange(edit("code/TagFilter.svelte", ">All<", ">Every<"));
     expect(message.type).toBe("update");
   });
 
-  test("prose reloads the page, which shows the change", async () => {
-    const message = await afterChange(edit("prose/about.md", "# About", "# About us"));
+  test("text reloads the page, which shows the change", async () => {
+    const message = await afterChange(edit("text/about.md", "# About", "# About us"));
     expect(message.type).toBe("full-reload");
     expect(await (await get("/about/")).text()).toContain(">About us</h1>");
   });
 
   test("a new file is a page at once", async () => {
-    await afterChange(() => writeFileSync(join(site, "prose/new.md"), "# New\n\nJust added.\n"));
+    await afterChange(() => writeFileSync(join(site, "text/new.md"), "# New\n\nJust added.\n"));
     expect((await get("/new/")).status).toBe(200);
   });
 
   test("a folder with a non-Latin name redirects with its URL encoded", async () => {
-    await afterChange(() => writeFileSync(join(site, "prose/博客.md"), "# 博客\n\nIn Chinese.\n"));
+    await afterChange(() => writeFileSync(join(site, "text/博客.md"), "# 博客\n\nIn Chinese.\n"));
     const response = await get("/博客");
     expect(response.status).toBe(301);
     expect(response.headers.get("location")).toBe("/%E5%8D%9A%E5%AE%A2/");
   });
 
   test("a page's script follows the islands it uses", async () => {
-    const message = await afterChange(
-      edit("pattern/blog/index.svelte", "<TagFilter {posts} />", ""),
-    );
+    const message = await afterChange(edit("code/blog/index.svelte", "<TagFilter {posts} />", ""));
     expect(message.type).toBe("full-reload");
     await (await get("/blog/")).text();
     const script = await (await get("/@sitez/page.js?url=%2Fblog%2F")).text();
@@ -143,27 +141,25 @@ describe("changes", () => {
   });
 
   test("a url() in the CSS that isn't there shows, and fixing it reloads", async () => {
-    edit("pattern/style.css", "./fonts/Serif.woff2", "./fonts/Serify.woff2")();
+    edit("code/style.css", "./fonts/Serif.woff2", "./fonts/Serify.woff2")();
     const broken = await get("/about/");
     expect(broken.status).toBe(500);
     expect(await broken.text()).toContain(
-      "pattern/style.css: url(./fonts/Serify.woff2) isn't there. Fix the path: relative to this file, or /… for a file in public/.",
+      "code/style.css: url(./fonts/Serify.woff2) isn't there. Fix the path: relative to this file, or /… for a file in public/.",
     );
     const message = await afterChange(
-      edit("pattern/style.css", "./fonts/Serify.woff2", "./fonts/Serif.woff2"),
+      edit("code/style.css", "./fonts/Serify.woff2", "./fonts/Serif.woff2"),
     );
     expect(message.type).toBe("full-reload");
     expect((await get("/about/")).status).toBe(200);
   });
 
   test("a mistake shows as build's message, in the page", async () => {
-    await afterChange(edit("prose/about.md", "the blog", "the [gone](gone.md) blog"));
+    await afterChange(edit("text/about.md", "the blog", "the [gone](gone.md) blog"));
     const response = await get("/about/");
     expect(response.status).toBe(500);
     const html = await response.text();
-    expect(html).toContain(
-      "prose/about.md: line 4: gone.md isn't there: no file at prose/gone.md.",
-    );
+    expect(html).toContain("text/about.md: line 4: gone.md isn't there: no file at text/gone.md.");
     expect(html).toContain("/@vite/client");
   });
 });
