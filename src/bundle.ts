@@ -2,9 +2,8 @@
  * # Bundling
  *
  * What the browser downloads besides the HTML, built by Rolldown once every page has rendered,
- * since only then is it known which components the site uses. A site has one stylesheet: Sitez's
- * reset, then `code/+style.css`, then every component's scoped styles. CSS is small and needed
- * before anything paints, so one file, cached by the first page and reused by every other, is
+ * since only then is it known which pages use live elements. A site has one stylesheet: Sitez's
+ * reset, then `code/+style.css`. CSS is small and needed before anything paints, so one file, cached by the first page and reused by every other, is
  * cheaper than a split that saves a few bytes per page. Everything it references (a font, an
  * image) is bundled beside it. JavaScript is only the live elements', only on the pages that have
  * them.
@@ -22,29 +21,22 @@ import {
   noOptimizer,
   runtime,
   siteError,
-  sveltePlugin,
 } from "./vite.ts";
 
 /** Files to write into `dist/`, by path. */
 export type Files = Map<string, string | Uint8Array>;
 
 /** @prose
- * The stylesheet, and the file it is written to. The reset is a layer of its own, so the order
- * that matters is the site's: `code/+style.css` first, then components in a fixed order, so a
- * component's rule wins over the site's at equal specificity. A `url()` that doesn't resolve
- * fails the build rather than shipping as written, as a broken link would. The build has no code
- * splitting, so its CSS is one file even when a component imports something dynamically.
+ * The stylesheet, and the file it is written to. The reset is a layer of its own, so what the site
+ * writes follows it whatever its specificity. A `url()` that doesn't resolve fails the build
+ * rather than shipping as written, as a broken link would. The build has no code splitting, so its
+ * CSS is one file even when the site's CSS imports others.
  */
 export async function stylesheet(
   root: string,
   real: string,
-  components: string[],
 ): Promise<{ href: string; files: Files }> {
-  const imports = [
-    ...styleImports(real, `/code/+style.css`),
-    // Only a component's module brings its styles, so each is kept by exporting it.
-    ...components.map((file, i) => `export { default as c${i} } from ${JSON.stringify(file)};`),
-  ];
+  const imports = styleImports(real, `/code/+style.css`);
   const { output, unresolved } = await bundle(
     root,
     real,
@@ -59,11 +51,8 @@ export async function stylesheet(
   );
   const [url] = unresolved;
   if (url) {
-    // Vite's warning names only the URL, so the file is the one whose source has it.
-    const file = [join(real, "code", "+style.css"), ...components].find(
-      (file) => existsSync(file) && readFileSync(file, "utf8").includes(url),
-    );
-    throw urlError(asGiven(root, real, file ?? join(real, "code", "+style.css")), url);
+    // Vite's warning names only the URL, and the site's own CSS is the one stylesheet it reads.
+    throw urlError(asGiven(root, real, join(real, "code", "+style.css")), url);
   }
   const files: Files = new Map();
   let href = "";
@@ -79,16 +68,12 @@ export async function stylesheet(
  * The first `url()` in the site's CSS that points at nothing, resolved as `build` resolves it:
  * relative to its file, or from `public/` and then the site's root when it starts with `/`.
  * `dev` checks with this, since there Vite hands a `url()` to the browser unchecked and a missing
- * font falls back without a word; `build` has Vite's own check. `files` are stylesheets and
- * components, whose `<style>` is what's read.
+ * font falls back without a word; `build` has Vite's own check. `files` are the stylesheets read.
  */
 export function missingUrl(root: string, files: string[]): SiteError | undefined {
   for (const file of files) {
     if (!existsSync(file)) continue;
-    let css = readFileSync(file, "utf8");
-    if (file.endsWith(".svelte"))
-      css = [...css.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/g)].map((m) => m[1]).join("\n");
-    css = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    const css = readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
     for (const [, , url = ""] of css.matchAll(/url\(\s*(['"]?)([^'")]*)\1\s*\)/g)) {
       if (url === "" || /^(?:[a-z]+:|\/\/|#)/i.test(url)) continue;
       const path = decodeURI(url.split(/[?#]/)[0]!);
@@ -142,19 +127,13 @@ export async function scripts(
   process.env.NODE_ENV = "production";
   let output: Rolldown.RolldownOutput["output"];
   try {
-    ({ output } = await bundle(
-      root,
-      real,
-      entries,
-      {
-        entryFileNames: "[name].[hash].js",
-        chunkFileNames: (chunk) =>
-          chunk.name === "common" ? "common.[hash].js" : "assets/[name].[hash].js",
-        assetFileNames: "assets/[name].[hash][extname]",
-        codeSplitting: { groups: [{ name: "common", minShareCount: 2 }] },
-      },
-      { css: false },
-    ));
+    ({ output } = await bundle(root, real, entries, {
+      entryFileNames: "[name].[hash].js",
+      chunkFileNames: (chunk) =>
+        chunk.name === "common" ? "common.[hash].js" : "assets/[name].[hash].js",
+      assetFileNames: "assets/[name].[hash][extname]",
+      codeSplitting: { groups: [{ name: "common", minShareCount: 2 }] },
+    }));
   } finally {
     if (mode === undefined) delete process.env.NODE_ENV;
     else process.env.NODE_ENV = mode;
@@ -198,7 +177,6 @@ async function bundle(
   real: string,
   entries: Record<string, string>,
   output: Rolldown.OutputOptions,
-  { css = true } = {},
 ): Promise<{ output: Rolldown.RolldownOutput["output"]; unresolved: string[] }> {
   const unresolved: string[] = [];
   const logger = quietLogger((message) => {
@@ -211,13 +189,7 @@ async function bundle(
     cacheDir: cacheDir(real),
     logLevel: "silent",
     customLogger: logger,
-    plugins: [
-      fromSitez(),
-      liveBoundary(root, real),
-      entryModules(entries),
-      sveltePlugin(real, { css }),
-      noOptimizer(),
-    ],
+    plugins: [fromSitez(), liveBoundary(root, real), entryModules(entries), noOptimizer()],
     build: {
       write: false,
       assetsInlineLimit: 0,

@@ -17,7 +17,7 @@ line here. Finished steps shrink to one line each.
   `metadata.ts`, `links.ts`, `head.ts`, `sitemap.ts`, `report.ts`, `preview.ts`, `deploy.ts`,
   check's oxfmt and oxlint, the reset, and the error fixtures.
 - **The redesign's spike.** amitkaps.github.io's `/teaching/` page was built without Svelte
-  ([spike/](../spike/README.md)). It loads 2 KB of JavaScript against 206 KB, sends no data
+  ([spike/](https://github.com/amitkaps/sitez/tree/465e738/spike), since removed). It loads 2 KB of JavaScript against 206 KB, sends no data
   twice, and has no layout shift once the build writes the island's buttons. idea.md and
   design.md were rewritten from it.
 - **11. The new folders, on Svelte.** `text/`, `code/` and `data/` replace `prose/` and
@@ -36,23 +36,15 @@ line here. Finished steps shrink to one line each.
 - **15. Live elements.** A page's HTML is scanned for tags with an `@name.live.js` file, and each
   page loads its own, split with `common.js`. Build code importing a live file fails, and so does
   a live file importing a component or layout. `live.test.ts` runs the pages in happy-dom.
+- **16. Svelte goes.** `islands.ts`, the Island files, the Svelte plugin and the four Svelte
+  dependencies are deleted, with `spike/`, whose findings are in design.md. `dev` hot-replaces CSS
+  and reloads for anything else, and the report lists live elements by tag.
 
 ## Open work, in order
 
 Each step ends in something a fixture site shows. So a step is done when its fixture builds and
 its tests pass, not when the code is written. Error cases are fixtures too, each a site that must
 fail with the message it must fail with.
-
-The order keeps the tests green throughout. The mechanical changes came while Svelte still
-rendered. Next the renderer is swapped, then Svelte is deleted.
-
-### 16. Svelte goes
-
-- [ ] Delete `islands.ts`, `runtime/server.ts`, `runtime/client.ts` and the `Island*.svelte`
-      files. Drop `svelte`, its Vite plugin, `svelte-check` and `devalue`.
-- [ ] The report lists live elements by tag.
-- [ ] `dev` hot-replaces CSS and reloads for anything else.
-- [ ] `spike/` goes, its findings already in design.md.
 
 ### 17. amitkaps.github.io
 

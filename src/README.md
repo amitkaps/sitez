@@ -22,7 +22,6 @@ stage gets a file here, or a folder once it needs more than one, as its step in
 - `site.ts` is what `build` and `dev` share: reading the site, and rendering one page.
 - `head.ts` is what a page's `<head>` says about it, from its metadata.
 - `sitemap.ts` writes `sitemap.xml` and `feed.xml`.
-- `islands.ts` is Sitez 0.1's Svelte islands, unused since pages became JS. It goes in step 15.
 - `bundle.ts` builds what the browser downloads besides the HTML: the site's one stylesheet, and
   the live elements' JavaScript.
 - `build.ts` renders every page and writes `dist/`.

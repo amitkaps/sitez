@@ -7,7 +7,7 @@ something besides Sitez wants it ([design.md](../../docs/design.md#the-runtime))
 The `sitez` import comes in two halves, which the package builds with their types
 (`dist/runtime/`).
 
-- `index.ts` is `sitez` at build time, and `browser.ts` is `sitez` in an island.
+- `index.ts` is `sitez` at build time, and `browser.ts` is `sitez` in a live element's file.
 - `html.ts` is the template value that `html` makes at build time.
 - `render.ts` turns a template value into HTML. The build imports it, and a site never does.
 
@@ -17,5 +17,3 @@ The other files are copied into the package as they are.
   override.
 - `oxfmtrc.json` is the style `sitez check` formats a site's files in, which is oxfmt's defaults.
   Naming it keeps a config further up the tree from applying.
-- `server.ts`, `client.ts` and the `.svelte` files are Sitez 0.1's islands. Nothing renders
-  through them since pages became JS, and they go with Svelte (plan step 15).

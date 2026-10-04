@@ -91,7 +91,7 @@ export async function dev(
     const found = run.pages.find((page) => page.url === url);
     if (!found) return undefined;
     const out = await renderPage(run, found);
-    const styles = [join(root, "code", "+style.css"), ...server.components()];
+    const styles = [join(root, "code", "+style.css")];
     const missing = missingUrl(
       root,
       styles.map((file) => asGiven(root, server.real, file)),
@@ -115,19 +115,14 @@ export async function dev(
   /** @prose
    * A page's two scripts in dev. `styles.js` imports the stylesheet as modules, so Vite replaces
    * them as they change, then shows the page, which stays hidden until then so it never flashes
-   * unstyled. A component's styles come from the module Svelte compiled them into, never from the
-   * component itself, which may import what only runs on the server. `page.js` loads the
-   * page's live files, as in `build`; it is a script of its own, so a broken one can't keep the
-   * styles from loading.
+   * unstyled. `page.js` loads the page's live files, as in `build`. It is a script of its own, so
+   * a broken one can't keep the styles from loading.
    */
   const script = (name: string, url: string): string | undefined => {
     if (name === "page.js") return liveEntry(rendered.get(url) ?? []);
     if (name !== "styles.js") return undefined;
     return [
       ...styleImports(server.real, join(server.real, "code", "+style.css")),
-      ...server
-        .components()
-        .map((file) => `import ${JSON.stringify(`${file}?svelte&type=style&lang.css`)};`),
       // The reset has the view-transition rule now, so only the hiding goes.
       `document.getElementById('sitez-hidden')?.remove();`,
     ].join("\n");

@@ -370,10 +370,4 @@
   summary {
     cursor: pointer;
   }
-
-  /* An island's markers wrap its HTML without being part of the layout. */
-  sitez-island,
-  sitez-children {
-    display: contents;
-  }
 }

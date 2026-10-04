@@ -2,4 +2,4 @@ favicon.svg
 index.html
 lantern.txt
 sitemap.xml
-style.BnHZIsnK.css
+style.BUfflXkt.css

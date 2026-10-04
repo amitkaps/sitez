@@ -44,7 +44,7 @@ describe("discover", () => {
       "text/.DS_Store",
       "code/+layout.js",
       "code/@call-out.ts",
-      "code/page.svelte",
+      "code/notes.txt",
       "code/.cache/page.js",
       "data/talks.json",
     );

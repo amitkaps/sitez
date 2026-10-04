@@ -376,7 +376,7 @@ Sitez's real site didn't need it. amitkaps.github.io has one kind of interactivi
 filtered by category, and the grid is already complete HTML. A Svelte island for it shipped about
 11 KB of runtime. It sent the grid's data twice, as HTML and again as props, so the browser could
 draw what the build already had. What leaving gives up is Svelte's editor support inside
-templates. The spike that decided it is in [spike/](../spike/README.md).
+templates. The spike that decided it is in the repo's history, at [spike/](https://github.com/amitkaps/sitez/tree/465e738/spike).
 
 ## Why not SvelteKit, Astro or Ogygia
 

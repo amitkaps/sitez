@@ -10,13 +10,11 @@ import { createHash } from "node:crypto";
 import { realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { extname, join, sep } from "node:path";
-import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { createServer, type Plugin, type ViteDevServer } from "vite";
 import { SiteError } from "./errors.ts";
 import { posix } from "./discover.ts";
-import { islandModules, type Islands } from "./islands.ts";
 
-/** Sitez's own files a site's pages and bundles load: the reset, and the islands' runtime. */
+/** Sitez's own files a site's pages and bundles load: the reset, and the `sitez` import. */
 export const runtime = join(import.meta.dirname, "runtime");
 
 export interface SiteServer {
@@ -25,8 +23,6 @@ export interface SiteServer {
   root: string;
   /** The site's root as Vite names its modules: its real path. */
   real: string;
-  /** The site's islands, found as the server loads components. */
-  islands: Islands;
   /** @prose
    * Imports a site file (absolute path) through the module runner. It's `ssrLoadModule`, not the
    * SSR environment's own runner: that one keeps what it has run until a hot update reaches it,
@@ -34,19 +30,13 @@ export interface SiteServer {
    * checks Vite's module graph on every import.
    */
   load(file: string): Promise<Record<string, unknown>>;
-  /** @prose
-   * Every Svelte component a render has loaded, in a fixed order: pages, layouts and what they
-   * import, from the site or a library. They are the components whose styles the site uses.
-   */
-  components(): string[];
   close(): Promise<void>;
 }
 
 /** @prose
  * For `build`, a server with no HTTP listener and no watcher, only for rendering. For `dev`, the
  * same server listening on `port`, watching the site and hot-replacing what the browser loads,
- * with `dev.ts`'s plugin serving the pages. Svelte's dev checks are off either way, as they cost
- * time and don't change the HTML.
+ * with `dev.ts`'s plugin serving the pages.
  *
  * Vite names modules by their real path, so a site reached through a symlink (macOS's `/var` is
  * `/private/var`) is served from its real path, and an error names the file by the path the
@@ -57,37 +47,24 @@ export async function siteServer(
   dev?: { port: number; plugin: Plugin },
 ): Promise<SiteServer> {
   const real = realpathSync(root);
-  const islands: Islands = new Map();
   const vite = await createServer({
     configFile: false,
     root: real,
     cacheDir: cacheDir(real),
     logLevel: "silent",
     appType: "custom",
-    // A site's modules import Sitez's runtime and Svelte from outside the site's folder.
+    // A site's modules import Sitez's runtime from outside the site's folder.
     server: dev
       ? { port: dev.port, host: "localhost", fs: { strict: false } }
       : { middlewareMode: true, hmr: false, watch: null },
     // A site that installs `sitez` would otherwise load its own copy, past `fromSitez`.
     ssr: { noExternal: ["sitez"] },
-    plugins: [
-      fromSitez(),
-      liveBoundary(root, real),
-      islandModules(root, real, islands),
-      sveltePlugin(real, { hmr: dev !== undefined }),
-      noOptimizer(),
-      ...(dev ? [dev.plugin] : []),
-    ],
+    plugins: [fromSitez(), liveBoundary(root, real), noOptimizer(), ...(dev ? [dev.plugin] : [])],
   });
   return {
     vite,
     root,
     real,
-    islands,
-    components: () =>
-      [...vite.environments.ssr.moduleGraph.idToModuleMap.keys()]
-        .filter((id) => id.endsWith(".svelte") && !id.startsWith("\0") && !id.startsWith(runtime))
-        .sort(),
     load: async (file) => {
       try {
         return await vite.ssrLoadModule(`/${posix(root, file)}`);
@@ -100,34 +77,12 @@ export async function siteServer(
 }
 
 /** @prose
- * Vite and vite-plugin-svelte keep a cache in `node_modules/.vite` of the nearest package, which
+ * Vite keeps a cache in `node_modules/.vite` of the nearest package, which
  * for a site with none may be a folder that isn't the site's. Sitez keeps it in the system's temp
  * folder instead, one per site, so a site's folder only ever gets `dist/`.
  */
 export function cacheDir(real: string): string {
   return join(tmpdir(), "sitez", createHash("sha256").update(real).digest("hex").slice(0, 12));
-}
-
-/** How Svelte compiles a site's files everywhere: without dev checks, with `await` in markup. */
-export const svelteOptions = { dev: false, experimental: { async: true } };
-
-/** @prose
- * Svelte as every build of a site compiles it. A component's scoping class is hashed from its
- * path in the site, not on the disk, so the server render and the client build agree on it, and
- * a site builds to the same files wherever it is checked out.
- */
-export function sveltePlugin(real: string, { hmr = false, css = true } = {}): Plugin[] {
-  return svelte({
-    configFile: false,
-    // Without CSS, a component's styles are neither emitted nor injected: they are dropped.
-    emitCss: css,
-    compilerOptions: {
-      ...svelteOptions,
-      css: "external",
-      hmr,
-      cssHash: ({ hash, filename }) => `svelte-${hash(posix(real, filename ?? ""))}`,
-    },
-  });
 }
 
 /** @prose
@@ -157,7 +112,7 @@ export function asGiven(root: string, real: string, file: string): string {
 /** @prose
  * Bare imports from a site's files resolve from the site first, so a site with its own
  * `package.json` gets its own libraries, then as if imported from inside Sitez, which is where
- * `svelte` is for a site without one.
+ * Sitez's own dependencies are for a site without one.
  *
  * `sitez` itself is the one exception. It is always the runtime of the Sitez that is running, even
  * when the site installs another version. Its templates go to this Sitez's renderer, which
@@ -182,11 +137,9 @@ export function fromSitez(): Plugin {
 }
 
 /** @prose
- * Vite's dependency optimizer resolves from the site root, where there are no packages, and
- * vite-plugin-svelte adds `svelte/*` to its list in a config hook. Svelte and Sitez's other
- * dependencies are ESM and need no pre-bundling, so the lists are cleared once resolved, and
- * `dev` doesn't discover more: it would write its cache into a `node_modules` the site doesn't
- * have.
+ * Vite's dependency optimizer resolves from the site root, where there are no packages. Sitez's
+ * dependencies are ESM and need no pre-bundling, so the lists are cleared, and `dev` doesn't
+ * discover more: it would write its cache into a `node_modules` the site doesn't have.
  */
 export function noOptimizer(): Plugin {
   return {

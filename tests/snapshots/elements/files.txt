@@ -4,4 +4,4 @@ docs/index.html
 index.html
 index.n8fiHzGv.js
 sitemap.xml
-style.BnHZIsnK.css
+style.BUfflXkt.css

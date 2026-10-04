@@ -23,9 +23,7 @@ export default defineConfig({
       "runtime/browser": "src/runtime/browser.ts",
     },
     dts: true,
-    copy: ["src/runtime/*.{css,json,svelte}", "src/runtime/server.ts", "src/runtime/client.ts"].map(
-      (from) => ({ from, to: "dist/runtime" }),
-    ),
+    copy: [{ from: "src/runtime/*.{css,json}", to: "dist/runtime" }],
     format: ["esm"],
     platform: "node",
     clean: true,
@@ -33,9 +31,8 @@ export default defineConfig({
   },
 
   // Oxfmt — `vp fmt` / `vp check`.
-  // oxfmt's defaults, with Svelte turned on, as for every site.
+  // oxfmt's defaults, as for every site.
   fmt: {
-    svelte: {},
     ignorePatterns: ignored,
   },
 

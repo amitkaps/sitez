@@ -1,7 +1,7 @@
 {
   "name": "sitez",
   "version": "0.1.0",
-  "description": "A zero-config static site generator: Markz in text/, JavaScript in code/, files in public/.",
+  "description": "A zero-config static site generator: Markz in text/, JavaScript in code/, JSON in data/, files in public/.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -37,11 +37,7 @@
   "dependencies": {
     "@amitkaps/markz": "^0.2.0",
     "@preact/signals-core": "^1.14.4",
-    "@sveltejs/vite-plugin-svelte": "^7.3.1",
-    "devalue": "^6.0.2",
     "htl": "^1.0.0",
-    "svelte": "^5.57.1",
-    "svelte-check": "^4.7.6",
     "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0",
     "vite-plus": "1.0.0"
   },

@@ -57,11 +57,9 @@ export async function build(
   const server = await siteServer(root);
   let run: Run;
   let rendered: Rendered[];
-  let components: string[];
   try {
     run = await readRun(server);
     rendered = await Promise.all(run.pages.map((page) => renderPage(run, page)));
-    components = server.components();
   } finally {
     await server.close();
   }
@@ -77,7 +75,7 @@ export async function build(
         page.live.map((live) => inReal(root, server.real, live.file)),
       ]),
   );
-  const css = await stylesheet(root, server.real, components);
+  const css = await stylesheet(root, server.real);
   const js = await scripts(root, server.real, used);
   const files: Files = new Map([...css.files, ...js.files]);
   const pagesBuilt: Built[] = [];
