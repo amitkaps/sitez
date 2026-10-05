@@ -3,9 +3,10 @@
 How Sitez is built. What it promises is in [idea.md](idea.md). Everything here can change
 underneath without changing those promises.
 
-Sitez 0.2 is a CLI with `+layout.js`, `.live` files and a reset. Step 21 of the plan moves it to a
-Vite plugin, and step 22 to `code/index.html`, `.html` and `.browser.js` names, and explicit
-metadata. This page describes where those steps end.
+Sitez 0.2 was a CLI with `+layout.js`, `.live` files and a reset. Step 21 of the plan made it a
+Vite plugin, which the code now is. Step 22 moves it to `code/index.html`, `.html` and `.browser.js`
+names, and explicit metadata. This page describes where that step ends, and says so where the code
+is still behind.
 
 ## Toolchain
 
@@ -30,8 +31,29 @@ Those imports need a bundler that resolves `node_modules`, so Vite stays. That r
 without Vite that step 21 of the plan had planned. A plugin then costs the site one small file,
 and saves Sitez its CLI, its preview server, `check`, `deploy` and finding the site's root.
 
+**How `build` renders.** Vite's `buildApp` hook runs the plugin's build in place of Vite's own,
+since a site has no `index.html` for Vite to build from yet. The plugin starts a Vite server
+with no listener or watcher, made from the site's own config file, and renders every page through
+its module runner, as `build` did before the plugin. Then two more Vite builds, from the same
+config file, bundle the CSS and the script. So a plugin the site adds applies to rendering, to its
+CSS and to its script alike. The plugin marks Vite's environments built, so Vite doesn't build
+them again. `vite preview` serves `dist/`, and the plugin adds the two things a static host does
+that Vite doesn't, a redirect from a folder to its slash and `404.html` with a 404 status.
+
+**The site must name Sitez.** The check that the site's `package.json` named Sitez went with the
+CLI. A site's `vite.config.js` imports `@amitkaps/sitez/vite`, and Vite fails to load a config
+whose import isn't installed. So the import is the check, and it says which package is missing.
+
 Ruled out:
 
+- **Rendering in Vite's environments.** A build environment bundles modules and a dev server runs
+  them where they are. Rendering from a bundle would move every module, and `import.meta.url`
+  with it. The Markz site's Quality page reads its test cases relative to its own file. The plugin
+  would also have to name every layout and component as an entry before it had read the site,
+  when the site's files say which of them a page needs. The server costs a second config load.
+- **Bundling the CSS and script in the one client build.** It would be fewer builds, but both come
+  from what the pages rendered, and the stylesheet has no code splitting where the script has
+  chunks. Two builds keep `dist/`'s files and hashes as they were.
 - **Vite+** (`vite-plus`). It bundles oxlint, oxfmt and a test runner with Vite, and makes a
   site's `node_modules` 137 MB. A site installs plain `vite`, about 31 MB, and the linters only if
   it wants them. Sitez itself still builds and tests with Vite+.
@@ -250,8 +272,8 @@ file reloads it, CSS included. A `url()` in the site's CSS that points at nothin
 failure. Vite hands it to the browser unchecked in dev, so `dev` checks the stylesheets itself as
 a page is served, as `build` would fail on them.
 
-Vite's dependency optimizer doesn't run, and its cache lives in the system's temp folder. So `dev`
-writes nothing into the site.
+`dev` is Vite's own server, so its dependency optimizer pre-bundles the packages a `.browser.js`
+file imports, in the site's `node_modules/.vite`. The server `build` renders with turns it off.
 
 ## Build
 
@@ -504,7 +526,7 @@ Ruled out:
   toolchain was Sitez's to swap. Once `.browser.js` files import npm packages, Vite isn't
   swappable, and the CLI was a second name for each of Vite's commands. It also needed its own
   check that the site's `package.json` named Sitez, which the plugin's import in `vite.config.js`
-  makes. The cost of the plugin is that a site sees Vite, and can add other plugins to its config.
+  makes ([Toolchain](#toolchain)). The cost of the plugin is that a site sees Vite, and can add other plugins to its config.
 - **A version in `site.md`.** It holds metadata, never settings, and npm already pins packages.
 
 ## Deploy
@@ -521,9 +543,6 @@ Ruled out:
   for several. GitHub Pages was the other host, and Sitez's sites are moving off it.
 - **A deploy target in `site.md`** (`deploy.github`, `deploy.cloudflare`). Markz reads dotted
   keys, but a target is a setting, and `site.md` holds metadata.
-
-`sitez deploy` still exists until the CLI goes in step 21 of the plan. It pushes `dist/` and a
-`.nojekyll` to the `gh-pages` branch when the remote is on GitHub (`deploy.ts`).
 
 ## Release
 

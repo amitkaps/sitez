@@ -111,17 +111,22 @@ at the end, from the 0.2.0 baseline below.
 - [ ] elementz, later, in its own repo as `@amitkaps/elementz`. `element(setup)` returns a light-DOM
       element class that runs `setup` once per element, and calls the cleanup it returns on
       disconnect. It adds signals or templates only when a page needs them.
-- [ ] Sitez as a Vite plugin (`docs/design.md#toolchain`). A site's `vite.config.js` adds
+- [x] Sitez as a Vite plugin (`docs/design.md#toolchain`). A site's `vite.config.js` adds
       `sitez()` from `@amitkaps/sitez/vite`, and its `package.json` runs `vite`, `vite build` and
-      `vite preview`. `vite` becomes a peer dependency and `vite-plus` a devDependency.
-  - `cli.ts`, `check.ts`, `preview.ts`, `deploy.ts` and `root.ts` go, with their tests, about 500
-    lines. `vite.ts` loses the config nobody writes, the resolver and the cache folder, and
-    `dev.ts` its server.
-  - The spike settles how `build` renders. Either Vite's environments run the site's modules, or
-    the plugin starts a server for them, as `build` does today.
-  - Every fixture gets a `vite.config.js`, and the tests run Vite's `build` and `createServer`.
-- [ ] Measure again: a site installs `vite`, Sitez and markz, near 40 MB against 137 MB, and the
-      linters only if it wants them.
+      `vite preview`. `vite` is a peer dependency and `vite-plus` a devDependency.
+  - `cli.ts`, `check.ts`, `preview.ts`, `deploy.ts` and `root.ts` went, with their tests and the
+    `bin` entry. `vite.ts` lost the config nobody writes, the resolver and the cache folder, and
+    `dev.ts` its server, which is now Vite's own.
+  - The spike settled how `build` renders: the plugin starts a Vite server from the site's config
+    file, as `build` did before, in Vite's `buildApp` hook. Vite's environments were ruled out.
+  - The site-must-name-sitez check went, since the import in `vite.config.js` is the check.
+  - Every fixture has a `vite.config.js`, and the tests run `createBuilder` and `createServer`.
+    `dist/` is byte for byte what 0.2.0 built for them.
+- [x] Measured again, with the packed tarball in the blog fixture. A site's `node_modules` is
+      31 MB (`vite`, Sitez and markz) against 137 MB. Sitez's source without tests is 2,887
+      lines against 3,258, and 3,344 when this step began. idea.md grew to 3,528 words from 2,952,
+      with the plan for 22. The blog's script is 0.3 KB gzipped. amitkaps.github.io's `common`
+      isn't remeasured, since the site moves in 22.
 - [ ] Whatever else 20 shows that Sitez needn't do.
 
 ### 22. Pages from `code/index.html`
