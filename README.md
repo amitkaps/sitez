@@ -15,7 +15,7 @@ export default { plugins: [sitez()] };
 ```json
 {
   "scripts": { "dev": "vite", "build": "vite build", "preview": "vite preview" },
-  "devDependencies": { "@amitkaps/sitez": "0.2.0", "vite": "^8.0.0" }
+  "devDependencies": { "@amitkaps/sitez": "0.3.0", "vite": "^8.0.0" }
 }
 ```
 
