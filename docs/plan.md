@@ -165,10 +165,13 @@ design is in [design.md](design.md#the-frame) and [Names in `code/`](design.md#n
       `_headers` and `_redirects`. The question is open in [design.md](design.md#open-questions).
 - [x] Every fixture moves to the new names, with an error fixture for each new failure. An
       `error.txt` is a file snapshot now, so `vp test -u` writes it and the diff is the review.
-- [ ] amitkaps.github.io moves on a branch. Its `+layout.js`, `heading.js` and `head` export
-      become `code/index.html`. Each page writes its `# Title` and tagline, the grids become
-      `.html.js`, the two `.live` files `.browser.js`, and `+style.css` loses the rules that
-      undid the reset.
+- [x] amitkaps.github.io moves on a branch, `sitez-22`, unpushed. Its `+layout.js`, `heading.js`
+      and `head` export become `code/index.html`. Each page writes its `# Title` and tagline, the
+      grids become `.html.js`, the two `.live` files `.browser.js`, and `+style.css` loses the
+      rules that undid the reset.
+  - Its pages' text and styles match 0.2's, checked against a headless browser. The few rules the
+    reset gave it that it relied on are in its `style.css` now.
+  - Before it can merge, Sitez 0.3.0 is published, and the site's lockfile is made again.
 
 ### 23. Docs for users
 

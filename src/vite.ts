@@ -88,7 +88,6 @@ export function inReal(root: string, real: string, file: string): string {
 
 const BROWSER = /\.browser\.[jt]s$/;
 const MARKUP = /(?:^|\/)@[^/]+\.html(?:\.[jt]s)?$/;
-const FRAME = /(?:^|\/)index\.html$/;
 
 /** @prose
  * Fails an import that crosses the line, in whichever environment makes it. In the server render,
@@ -119,15 +118,10 @@ export function browserBoundary(): Plugin {
         );
       }
       if (this.environment.name === "client" && !BROWSER.test(path)) {
-        const what = MARKUP.test(path)
-          ? "an element's markup"
-          : FRAME.test(path)
-            ? "the frame"
-            : undefined;
-        if (what) {
+        if (MARKUP.test(path)) {
           throw new SiteError(
             from,
-            `this imports ${id}, ${what}, which is written at build time. A .browser.js file enhances HTML the build wrote, so it can't use it. Move what both need into a module in code/.`,
+            `this imports ${id}, an element's markup, which is written at build time. A .browser.js file enhances HTML the build wrote, so it can't use it. Move what both need into a module in code/.`,
           );
         }
       }

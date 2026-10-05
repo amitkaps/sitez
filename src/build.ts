@@ -200,7 +200,7 @@ export async function build(config: ResolvedConfig): Promise<BuildResult> {
       file: page.file,
       ms: page.ms,
       html: gzipped(html),
-      notes: [...page.browser.map((browser) => browser.tag), ...notes(html)],
+      notes: [...page.browser.map((browser) => browser.tag), ...notes(page.frame + page.body)],
     });
   }
   write(root, outDir, files);

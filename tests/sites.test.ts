@@ -68,3 +68,20 @@ describe.each(names.filter((name) => name.startsWith("error-")))("%s", (name) =>
     );
   });
 });
+
+describe("the build report", () => {
+  test("names the elements with behavior, and a raw script only where the page has one", async () => {
+    const outDir = join(mkdtempSync(join(tmpdir(), "sitez-")), "dist");
+    const blog = await buildSite(join(sites, "blog"), outDir);
+    const row = (info: string[], url: string) =>
+      info
+        .join("\n")
+        .split("\n")
+        .find((line) => line.startsWith(`${url} `))!;
+    expect(row(blog.info, "/blog/")).toMatch(/tag-filter$/);
+    const elements = await buildSite(join(sites, "elements"), outDir);
+    expect(row(elements.info, "/")).toMatch(/fold-out, raw <script>$/);
+    expect(row(elements.info, "/docs/")).toMatch(/fold-out$/);
+    expect(elements.info.join("\n")).toContain("behavior: fold-out");
+  });
+});

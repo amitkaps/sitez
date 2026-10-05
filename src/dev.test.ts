@@ -151,6 +151,26 @@ describe("changes", () => {
     expect(await (await get("/blog/")).text()).toContain(">Every</button>");
   });
 
+  test("the frame reloads the page, which shows the change", async () => {
+    const message = await afterChange(
+      edit("code/index.html", '<a href="/">Field Notes</a>', '<a href="/">Notes, Field</a>'),
+    );
+    expect(message.type).toBe("full-reload");
+    expect(await (await get("/about/")).text()).toContain(">Notes, Field</a>");
+  });
+
+  test("a frame that breaks the rules shows as build's message, and fixing it reloads", async () => {
+    edit("code/index.html", "<title>Field Notes</title>", "")();
+    const broken = await get("/about/");
+    expect(broken.status).toBe(500);
+    expect(await broken.text()).toContain("code/index.html: there's no &lt;title&gt;.");
+    const message = await afterChange(
+      edit("code/index.html", "<head>", "<head><title>Field Notes</title>"),
+    );
+    expect(message.type).toBe("full-reload");
+    expect((await get("/about/")).status).toBe(200);
+  });
+
   test("text reloads the page, which shows the change", async () => {
     const message = await afterChange(edit("text/about.md", "# About", "# About us"));
     expect(message.type).toBe("full-reload");
