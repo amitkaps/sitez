@@ -48,5 +48,8 @@ export default defineConfig({
     expect: { requireAssertions: true },
     environment: "node",
     include: ["src/**/*.test.ts", "tests/**/*.test.ts"],
+    // Node loads `src/` as it is, so the tests share one copy of it with the plugin that the
+    // example sites' configs load (`tests/sitez.ts`).
+    server: { deps: { external: [/\/src\/(?!.*\.test\.ts)/] } },
   },
 });

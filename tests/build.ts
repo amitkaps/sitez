@@ -16,7 +16,7 @@ export async function buildSite(
   const builder = await createBuilder(
     {
       root,
-      // Native, so the plugin from `src/` is one module, not a copy bundled into each config.
+      // Native, so the config's imports run as Node runs them, not as a copy bundled into it.
       configLoader: "native",
       build: { outDir },
       customLogger: {

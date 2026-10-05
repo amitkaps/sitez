@@ -66,12 +66,9 @@ export function siteServer(vite: ViteDevServer): SiteServer {
  */
 export function siteError(error: unknown, file: string, root: string, real: string): SiteError {
   // A plugin's own SiteError, which Rolldown wraps in a list. The module runner copies one into
-  // a plain object with a `frame`, which is read as Vite's error below. Another copy of this file,
-  // as the plugin Vite loads from a config may be, is found by name.
+  // a plain object with a `frame`, which is read as Vite's error below.
   const own = [error, ...((error as { errors?: unknown[] }).errors ?? [])].find(
-    (item) =>
-      item instanceof SiteError ||
-      ((item as Error | undefined)?.name === "SiteError" && !("frame" in (item as object))),
+    (item) => item instanceof SiteError,
   );
   if (own) return own as SiteError;
   const { message, id, frame } = error as { message?: string; id?: string; frame?: string };

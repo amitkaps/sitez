@@ -11,7 +11,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { describe, expect, test } from "vite-plus/test";
-import type { SiteError } from "../src/errors.ts";
+import { SiteError } from "../src/errors.ts";
 import { buildSite } from "./build.ts";
 
 const sites = join(import.meta.dirname, "sites");
@@ -61,8 +61,7 @@ describe.each(names.filter((name) => name.startsWith("error-")))("%s", (name) =>
       () => undefined,
       (error: unknown) => error,
     );
-    // By name: the plugin that threw is Node's copy of `src/`, not the one this test imports.
-    expect((error as Error).name).toBe("SiteError");
+    expect(error).toBeInstanceOf(SiteError);
     const { file, message } = error as SiteError;
     const expected = readFileSync(join(root, "error.txt"), "utf8").trim();
     expect(`${relative(root, file)}: ${message}`).toBe(expected);
