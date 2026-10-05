@@ -197,6 +197,10 @@ They are elements now, drawn with d3 at build time, and that port found two gaps
 - [ ] `url()` in a `style` attribute an element writes isn't checked, as a stylesheet's is
       (`bundle.ts`'s `missingUrl`). A treemap box's background image that points at nothing
       ships as written.
+- [ ] The report says what each element adds to the script, such as `notes-treemap 2.1 KB`.
+      Importing `d3` at the top of a `.browser.js` file grew the script from 3 KB to 15 KB gzipped
+      on every page with behavior. The `common` row showed it, but not which element did it. The
+      fix was the one the design gives, `await import()` inside the element.
 
 ## Parked
 
