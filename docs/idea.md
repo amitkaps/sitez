@@ -1,14 +1,15 @@
 # Sitez
 
-**Sitez is a zero-config static site generator. Markz goes in `text/`, JavaScript in `code/`,
-JSON in `data/` and files in `public/`. Run `sitez build`, get complete HTML.**
+**Sitez is a static site generator, a Vite plugin with no options. Markz goes in `text/`,
+JavaScript in `code/`, JSON in `data/` and files in `public/`. Run `vite build`, get complete
+HTML.**
 
 ## Promises
 
-1. **Four folders and two files.** `text/` is what you write, and `code/` is what renders and
+1. **Four folders and three files.** `text/` is what you write, and `code/` is what renders and
    styles it. `data/` is the JSON the code reads, and `public/` is files copied as they are.
-   `site.md` is the site's metadata, and `package.json` names the Sitez that builds it. There is
-   no configuration.
+   `site.md` is the site's metadata, `package.json` names the Sitez that builds it, and
+   `vite.config.js` adds it to Vite. Sitez takes no options.
 2. **A text file is a page.** Its path is its URL. There is no route file.
 3. **Every page is complete HTML.** The build does the work so the browser doesn't.
 4. **Links are checked.** Text links to files, and Sitez turns them into URLs. A broken link
@@ -23,7 +24,8 @@ behave in the browser. Anything that needs more is a different tool.
 ```text
 site/
 ├── site.md                  the site's metadata
-├── package.json             the version of Sitez
+├── package.json             the version of Sitez, and the commands
+├── vite.config.js           adds Sitez to Vite
 ├── text/
 │   ├── index.md             → /
 │   ├── about.md             → /about/
@@ -161,20 +163,39 @@ hyphen, which no element could use.
      and the tag.
 
 6. **Browser behavior lives in `.live` files.** `code/@tag-filter.live.js` is the behavior of
-   `<tag-filter>`, a custom element, and runs only in the browser. Its default export is a
-   function, which gets the element once, when it first connects. The file's name says which
-   element it is, so the file never names it. It ships only to pages whose HTML has a
-   `<tag-filter>`. A page with no live element loads no JavaScript.
+   `<tag-filter>`, a custom element, and runs only in the browser. Its default export is the
+   element's class. The file's name says which tag it is, so Sitez defines the class under that
+   tag and the file never names it. It ships only to pages whose HTML has a `<tag-filter>`. A page
+   with no live element loads no JavaScript.
 
    ```js
    // code/@tag-filter.live.js
-   export default (el) => {
+   export default class extends HTMLElement {
+     connectedCallback() {
+       for (const b of this.querySelectorAll("button")) b.onclick = () => this.show(b.value);
+     }
+     show(tag) {
+       for (const post of this.querySelectorAll("[data-tag]"))
+         post.hidden = !!tag && post.dataset.tag !== tag;
+     }
+   }
+   ```
+
+   A class is the web platform's own way to write an element, and any way of making one works.
+   [elementz](https://github.com/amitkaps/elementz) is a small library for the common case, an
+   element in light DOM set up once.
+
+   ```js
+   // code/@tag-filter.live.js
+   import { element } from "@amitkaps/elementz";
+
+   export default element((el) => {
      const show = (tag) => {
        for (const post of el.querySelectorAll("[data-tag]"))
          post.hidden = !!tag && post.dataset.tag !== tag;
      };
      for (const b of el.querySelectorAll("button")) b.onclick = () => show(b.value);
-   };
+   });
    ```
 
    - **A live element enhances HTML the build wrote.** It finds its content and controls in the
@@ -184,19 +205,21 @@ hyphen, which no element could use.
    - **A live element reads its children and its attributes.** No data is sent to it besides the
      page's HTML, so nothing is sent twice.
    - **A live file works on the DOM.** It imports nothing from Sitez, whose `html` renders at
-     build time. A node it adds, it makes with `document.createElement`.
-   - **Its default export is its element, and nothing else.** A file with no default export, a
-     default that isn't a function written in the export, or any other export fails the build.
+     build time.
+   - **Its default export is its element's class, and nothing else.** The class is written in the
+     export, or made by a call such as elementz's `element`. A file with no default export, a
+     default that is a value, a bare function or a name, or any other export fails the build.
      Code two files share goes in a module.
    - **The two sides stay apart.** Build-time code that imports a `.live` file fails the build,
      naming the import. So does a `.live` file that imports a component, a layout or `sitez`.
-   - **A live element is small.** It adds a little interactivity, which needs no library. Every
-     live element a site's pages use goes in one script, which a page with a live element loads.
-     So a tag has one `.live` file across the site, and two fail the build.
-   - **A library loads inside the element.** A `.live` file imports the site's own `code/`. A
-     library such as D3 loads in the browser as an ES module from its URL, never from
-     `node_modules`. It comes in with `await import(url)` inside the element's function, so only
-     a page where the element is fetches it. A library imported at the top fails the build.
+   - **A live element is small.** Every live element a site's pages use goes in one script, which
+     a page with a live element loads. So a tag has one `.live` file across the site, and two fail
+     the build.
+   - **Libraries come from npm.** A `.live` file imports the site's own `code/` and the ES-module
+     packages in its `package.json`, and the script bundles them. A large library, such as D3,
+     loads with `await import("d3")` inside the element, so only a page where the element is
+     fetches it. A library imported by URL at the top fails the build, since every page with a
+     live element would fetch it.
 
 7. **HTML before JavaScript.** Pages link with `<a>`, and Sitez's reset turns on cross-document
    View Transitions. `<details>`, `popover` and `<dialog>` open, close and toggle without
@@ -246,8 +269,8 @@ Notes for whoever maintains the site. Sitez reads only the block above.
 The sitemap, the feed and every page's canonical link are full addresses, so `build` fails
 without it rather than writing relative ones.
 
-`site.md` is also how Sitez finds the site. The folder holding it is the root, from wherever
-`sitez` runs inside it. So the name is reserved, and `text/site.md` is an error, not a page.
+`site.md` sits at the site's root, beside `vite.config.js`. So the name is reserved, and
+`text/site.md` is an error, not a page.
 
 From that metadata, Sitez writes `<title>`, the meta description, canonical URLs and Open Graph
 tags. Twitter reads the Open Graph tags. It also writes `sitemap.xml` and `feed.xml`. The nearest
@@ -285,13 +308,29 @@ An element from text is `display: inline` until the site's CSS says otherwise, a
 element. That includes an element whose component writes its markup. So `<call-out>` needs
 `call-out { display: block }`, and without it the callout runs into its paragraph, visibly.
 
-## The CLI
+## Commands
+
+Sitez is a Vite plugin, so a site runs Vite. `vite.config.js` adds Sitez, and `package.json`
+holds the commands.
+
+```js
+// vite.config.js
+import sitez from "@amitkaps/sitez/vite";
+
+export default { plugins: [sitez()] };
+```
+
+```json
+{
+  "scripts": { "dev": "vite", "build": "vite build", "preview": "vite preview" },
+  "devDependencies": { "@amitkaps/sitez": "0.3.0", "vite": "^8.0.0" }
+}
+```
 
 ```bash
-sitez dev      # serve with live reload
-sitez build    # write dist/
-sitez preview  # serve dist/ as it will be deployed
-sitez check    # fix what's safe (format, lint fixes), then report the rest
+npm run dev      # serve with live reload
+npm run build    # write dist/
+npm run preview  # serve dist/ as it will be deployed
 ```
 
 `dist/` is ordinary static files and can be hosted anywhere. `build` ends with what each page
@@ -311,23 +350,21 @@ that names a live element loads the script, and any other page loads no JavaScri
 grows heavy or slow is visible where the cost is. A note says what the numbers can't, such as a
 raw `<script>` that loads whatever it loads.
 
-**A site names its version of Sitez.** Its `package.json` holds one line that matters, and the
-lockfile beside it pins the rest.
+**A site names its version of Sitez.** `package.json` names Sitez and Vite, and the lockfile
+beside it pins the rest. `npm install` puts those versions in the site, so your machine and the
+host always build with the same Sitez. The report's last line names the version that ran. An npm
+library the site's code imports goes in the same `package.json`, at build time or in a `.live`
+file.
 
-```json
-{ "devDependencies": { "@amitkaps/sitez": "0.2.0" } }
-```
+**Formatting and linting are the site's own.** A site that wants them adds oxfmt and oxlint to
+its `package.json` and a script for each. oxfmt formats `text/` in Markz's canonical form, and
+formats the HTML inside `html` templates. Markz's warnings print with `build`, and never fail it.
 
-`npm install` puts that version in the site. Its command is `sitez`, so `npx sitez build` or
-`pnpm sitez build` runs it.
-Nothing is installed globally, so your machine and the host always build with the same Sitez. A
-site whose `package.json` doesn't name `@amitkaps/sitez` fails every command, naming the line to add. The
-report's last line names the version that ran. An npm library that build-time code imports goes in the
-same `package.json`. A site in a folder of a larger repo can use the repo's `package.json`, the nearest
-one above it.
+**A config file is a door.** A site can add other Vite plugins to `vite.config.js`. Sitez
+promises nothing about how they behave with it, and a site with none builds as this page says.
 
 **A site deploys from its host, not from Sitez.** Sitez's host is Cloudflare. Create a Worker from
-the repo in Cloudflare, with `npx sitez build` as its build command and `npx wrangler deploy` as
+the repo in Cloudflare, with `npm run build` as its build command and `npx wrangler deploy` as
 its deploy command. Every push to the production branch deploys. Cloudflare installs from the lockfile
 first, so it builds with the site's own version. A `wrangler.jsonc` in the repo points the Worker
 at `dist/` and serves `404.html` for a missing address, and the domain is set in Cloudflare.
@@ -340,11 +377,11 @@ at `dist/` and serves `404.html` for a missing address, and the domain is set in
 - Markz expressions. `${…}` stays code, as Markz writes it.
 - Dynamic routes, pagination and tags.
 - Image processing, i18n and content schemas.
-- Themes, plugins, and settings in `site.md` beyond metadata.
+- Options for Sitez, themes, and settings in `site.md` beyond metadata.
 - A deploy command, and steps for hosts other than Cloudflare. Each host has its own one-time
   setup, which a command can't cover.
 
-Each one is a way to add configuration, which is the thing Sitez removes. A site that needs a
+Each one would be an option, and Sitez takes none. A site that needs a
 client router, `load`, endpoints or server output should use SvelteKit.
 
 ## Parked ideas
@@ -357,10 +394,10 @@ Ideas with a shape already, kept here until a site needs them. None is a promise
   wouldn't make slugs from titles. A template would have one placeholder. Without Markz expressions,
   its body could only hold components that read `page`.
 - **CSV in `data/`,** read as rows, as JSON is.
-- **`sitez create .`** would write a starter site: `site.md`, a `package.json` naming the running
-  version, and a first page in `text/`.
-- **A dashboard at `/__sitez/`,** so nobody needs the terminal to understand their site. `sitez dev`
-  would open it. It would list every page with its cost and build time, the `+`, `@` and `.live`
+- **`npm create @amitkaps/sitez`** would write a starter site: `site.md`, `package.json`,
+  `vite.config.js`, and a first page in `text/`.
+- **A dashboard at `/__sitez/`,** so nobody needs the terminal to understand their site. `dev` would
+  open it. It would list every page with its cost and build time, the `+`, `@` and `.live`
   files that shaped it, the data it read, its links in and out, and its errors. Recently edited
   pages would sit at the top.
 

@@ -90,7 +90,7 @@ the site can't do without it.
 - [ ] Preloading a font the stylesheet names.
 - [ ] Markz: a quote closing after a single quote, and `\` as a line break. Those changes go to
       markz.
-- [ ] `sitez check` reformats JavaScript in code fences, which a page may show on purpose.
+- [ ] oxfmt reformats JavaScript in code fences, which a page may show on purpose.
 - [ ] Deploy from Cloudflare's git integration, as idea.md describes, in place of
       `wrangler-action` in CI. The CI then only checks.
 
@@ -109,34 +109,33 @@ at the end, from the 0.2.0 baseline below.
 - [x] One script for the site. Every live element a page uses goes in `script.[hash].js`, which
       only a page with a live element loads. `common.js`, page scripts and `modulepreload` went.
       A library loads with `await import()` inside its element, and two live files for one tag fail.
-  - amitkaps.github.io's two `.live` files move to `export default` when it installs the release
-    after 0.2.0, and `@talk-grid.live.js` makes its player with `document.createElement`.
-- [ ] Fewer and smaller dependencies, judged by what a site installs and what a page loads. A
-      site's `node_modules` is 137 MB today, and almost all of it comes through `vite-plus`. Sitez
-      uses only Vite's API at build and oxfmt and oxlint in `check`. Measured alone, `vite` is
-      31 MB with Rolldown, oxlint 15 MB and oxfmt 16 MB.
-  - Sitez depends on `vite`, `oxlint`, `oxfmt` and `@amitkaps/markz`, about 62 MB. `vite-plus`
-    becomes a devDependency, for building and testing Sitez itself, so no site installs its
-    tests or type-aware linting. Go from there.
-  - `check` runs oxfmt and oxlint as its own dependencies. Ruled out: Biome (60 MB measured, not lighter), and ESLint,
-    Prettier or `tsc`, which add packages or a JavaScript runtime for what oxc does natively.
+- [ ] A `.live` file default-exports its element's class, and imports npm packages
+      (`docs/idea.md#the-rules`, rule 6). `checkLive` takes a class or a call in the export, and
+      fails a bare function, pointing to a class or to elementz. The script defines each class
+      with one `customElements.define`, and `define.ts` goes. A package imported with
+      `await import()` becomes a chunk of its own.
+  - amitkaps.github.io's two `.live` files move to elementz's `element` when it installs the
+    release after 0.2.0, and `@talk-grid.live.js` makes its player with `document.createElement`.
+- [ ] elementz, in its own repo as `@amitkaps/elementz`. `element(setup)` returns a light-DOM
+      element class that runs `setup` once per element, and calls the cleanup it returns on
+      disconnect. It adds signals or templates only when a page needs them.
+- [ ] Sitez as a Vite plugin (`docs/design.md#toolchain`). A site's `vite.config.js` adds
+      `sitez()` from `@amitkaps/sitez/vite`, and its `package.json` runs `vite`, `vite build` and
+      `vite preview`. `vite` becomes a peer dependency and `vite-plus` a devDependency.
+  - `cli.ts`, `check.ts`, `preview.ts`, `deploy.ts` and `root.ts` go, with their tests, about 500
+    lines. `vite.ts` loses the config nobody writes, the resolver and the cache folder, and
+    `dev.ts` its server.
+  - The spike settles how `build` renders. Either Vite's environments run the site's modules, or
+    the plugin starts a server for them, as `build` does today.
+  - Every fixture gets a `vite.config.js`, and the tests run Vite's `build` and `createServer`.
+- [ ] Measure again: a site installs `vite`, Sitez and markz, near 40 MB against 137 MB, and the
+      linters only if it wants them.
 - [ ] Whether `sitemap.xml` stays. Every site gets it, with no way out, and search engines find a
       small site's pages by its links. A sitemap page for humans, written from `pages`, would be
       the site's own.
 - [ ] Whether `feed.xml` stays. Any page with a `date` joins it, so `date` both orders pages and
       publishes them. amitkaps.com's essays are dated only for order.
-- [ ] Remove `sitez deploy` and `deploy.ts`, once amitkaps.github.io has run on Cloudflare for a
-      week. idea.md already has one way to deploy: Cloudflare builds the repo with its own
-      Wrangler, as prose's site does ([docs/design.md#deploy](design.md#deploy)).
 - [ ] Whatever else 20 shows that Sitez needn't do.
-- [ ] A spike without Vite, last. Node 24 runs a site's modules and strips TypeScript itself, and its
-      module hooks can do the resolver's job. The work is in dev, where changed code must rerun,
-      perhaps in a fresh worker per rebuild, and in hashing unbundled browser modules. It gives
-      up nothing idea.md promises, since a `.live` file imports a library by its URL, never from
-      `node_modules`.
-      Build amitkaps.github.io with it behind the same tests, and compare it with the
-      three-dependency Sitez: lines added against the ~700 in `vite.ts`, `bundle.ts` and
-      `dev.ts`, install size, and reload time in dev. Vite goes if it wins on all three.
 
 ### 22. Docs for users
 

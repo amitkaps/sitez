@@ -9,7 +9,7 @@ is built. **`docs/plan.md`** is the order the work happens in.
 - `idea.md` is the spec. Its promises and rules are what users rely on, and `design.md` can
   change underneath them. A change that breaks a promise, or builds something listed in "Not in
   v1", is the human's decision. Say so instead of building it.
-- Sitez has no configuration. When a feature seems to need an option, look for the convention
+- Sitez takes no options. When a feature seems to need one, look for the convention
   that makes it unnecessary, or ask. `site.md` holds metadata, never settings.
 - Every failure a user can cause (a broken link, a function in a build-time template, a reserved
   file name) fails the build. Its message names the file and what to change. Never guess silently.

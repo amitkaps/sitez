@@ -5,28 +5,35 @@ underneath without changing those promises.
 
 ## Toolchain
 
-Sitez is an npm package built on [Vite+](https://vite-plus.dev). Vite+ is the toolchain, and
-Sitez is a Vite plugin plus the config nobody writes. Users never see a `vite.config.ts`, and
-nothing in a site names Vite. So the toolchain is Sitez's to swap. Vite+ may give way to Vite,
-oxfmt and oxlint as separate packages, or to something else, and a site doesn't change.
+Sitez is a Vite plugin. A site adds it in `vite.config.js` and runs Vite's own commands from its
+`package.json` (`docs/idea.md#commands`). The plugin takes no options. It reads the site, renders
+every page, and has Vite build the stylesheet and the script. Sitez 0.2 is still a CLI, and step 21 of
+the plan moves it to this.
 
 ```text
-@amitkaps/sitez (npm)
-├── vite                  Vite+'s core (@voidzero-dev/vite-plus-core): dev server, Rolldown
-├── vite-plus             oxfmt, oxlint
-└── @amitkaps/markz       parser
+site
+├── vite                  dev server, preview, Rolldown
+└── @amitkaps/sitez       the plugin, and html for build code
+    └── @amitkaps/markz   parser
 ```
 
-Sitez calls `createServer` and `build` itself, with `configFile: false`.
+`vite` is a peer dependency, which the site installs and pins beside Sitez. Its imports resolve as
+Node's do, from the site's own `node_modules`, at build time and in `.live` files alike. Vite
+strips TypeScript's types with no setup, so `code/` takes `.ts` as well as `.js`.
 
-A site's `package.json` names its version of Sitez, and any npm library its code imports. A
-resolver plugin resolves a bare import from the site first, then as if imported from inside Sitez.
-`@amitkaps/sitez` itself resolves to the running Sitez's runtime, so its templates go to the renderer that
-has to agree with them. Since `npx` and `pnpm` run the site's copy ([Install](#install)), the
-running Sitez and the site's are one.
+Sitez began as a CLI that ran Vite itself, with the config nobody writes, and then as a plugin was
+ruled out ([Install](#install)). It became one once `.live` files could import npm packages. Those
+imports need a bundler that resolves `node_modules`, so Vite stays. That ruled out the spike
+without Vite that step 21 of the plan had planned. A plugin then costs the site one small file,
+and saves Sitez its CLI, its preview server, `check`, `deploy` and finding the site's root.
 
-Vite's dependency optimizer is off. Sitez's dependencies are ESM and need no pre-bundling. Vite strips TypeScript's types
-with no setup, so `code/` takes `.ts` as well as `.js`.
+Ruled out:
+
+- **Vite+** (`vite-plus`). It bundles oxlint, oxfmt and a test runner with Vite, and makes a
+  site's `node_modules` 137 MB. A site installs plain `vite`, about 31 MB, and the linters only if
+  it wants them. Sitez itself still builds and tests with Vite+.
+- **Options for the plugin.** Every option is configuration, which idea.md leaves out. When a
+  feature seems to need one, the convention that makes it unnecessary comes first.
 
 ## Names in `code/`
 
@@ -123,26 +130,36 @@ The renderer's job is correctness, not defense. The site's author writes all of 
 title with `&` must not break the page. The browser's Sanitizer API doesn't apply. It doesn't
 exist in Node, and it strips what it finds dangerous from HTML that's meant to be kept.
 
-**In the browser**, there is no `sitez`. A page's script imports its live files and defines each
-under the tag its file's name gives, with Sitez's own `define` (`src/runtime/define.ts`). `define`
-calls the element's function once per element, on its first connect. `connectedCallback` runs
-again when an element moves, and running the function twice would bind everything twice.
+**In the browser**, there is no `sitez`. A `.live` file default-exports a custom element's class,
+and the site's script defines each under the tag its file's name gives. That's one
+`customElements.define` line per element, which is all Sitez does in the browser.
 
-The browser had three more names, and each went because no live element needed it.
+A class is the web platform's own element, so the file says what it is with nothing from Sitez.
+Writing one by hand repeats a few lines, and running setup twice when an element moves is easy to
+get wrong. That boilerplate goes in [elementz](https://github.com/amitkaps/elementz), a separate
+library for light-DOM elements. Its `element(setup)` returns a class that runs `setup` once per
+element and calls the cleanup `setup` returns on disconnect. elementz knows nothing of Sitez, and a
+site uses it like any other npm package.
 
+Earlier ways went or were ruled out.
+
+- **A function as the default export**, which Sitez wrapped in a class with a once-guard. Nothing
+  in the file said where its argument came from, or that it was an element at all.
+- **`element` from `sitez`.** It would label the function and check nothing. It would bring back
+  an import from Sitez in the browser, and `{html, element}` would read as a server half and a
+  browser half of one library, which they aren't.
 - **`define(name, setup)`** named the element a second time, after its file, and nothing checked
-  that the two agreed. The file's default export is the element now.
+  that the two agreed. A file calling `customElements.define` itself has the same flaw.
 - **`html` in the browser** was htl's, which made DOM nodes. So one name meant a string at build
   time and nodes in the browser. A live element enhances HTML the build wrote, so it seldom makes
-  nodes, and `document.createElement` does when it must. One that wants templates loads a library
-  by its URL.
+  nodes. One that renders in the browser imports a renderer from npm.
 - **`signal` and `effect`** held one value per element in every live element written, which a
-  function's variable holds as well. They cost each page with a live element 1.5 KB. They come
-  back when a site has state that crosses elements.
+  field or a variable holds as well. A site whose state crosses elements imports a signals library
+  from npm. elementz takes on signals or templates only when a real page needs them.
 
 ## Dev server
 
-`sitez dev` is the same Vite server `build` renders through, listening and watching (`dev.ts`).
+`vite` serves the site with Sitez's middleware in front (`dev.ts`).
 It renders a page when it's asked for, with the code `build` uses (`site.ts`), so the two can't
 disagree. Drafts are pages like any other. The site is read again for every page, so a new or
 deleted file is a new or missing URL without a restart.
@@ -340,6 +357,12 @@ fail the build, naming the import. A module with no Node imports can be used by 
 `slug.js` that turns a title into an id. One that imports `sitez` is build code, since `html`
 renders at build time, and a `.live` file that imports it fails.
 
+Sitez checks a `.live` file's shape by reading its syntax, since it can't run the file in Node.
+A class written in the export passes, and so does a call, such as elementz's `element(…)`. A
+call that returns something else fails only in the browser, where `customElements.define` throws.
+A value, a bare function or a name fails the build. The message for a bare function points to
+writing a class, or to elementz.
+
 ## Bundling
 
 Once every page has rendered, Rolldown builds what the browser downloads besides the HTML
@@ -356,7 +379,7 @@ mean. A `url()` in it is bundled as `assets/[name].[hash][ext]`. Vite would ship
 resolve as written, with only a warning, so Sitez fails the build instead.
 
 A site has at most one script, `script.[hash].js`, for the same reason. It defines every live
-element a built page uses, each under the tag its file's name gives, with `define` first. Only a
+element a built page uses, each under the tag its file's name gives. Only a
 page with a live element loads it, so a page with none loads no JavaScript. Defining a tag the
 page doesn't have registers a class that never runs, which costs nothing worth counting. The
 report shows the script once, on the `common` row, and each page's notes name its live elements.
@@ -365,10 +388,12 @@ One script has two consequences, and each fails the build rather than doing some
 
 - **A tag has one `.live` file.** Two used live files for one tag, in different folders, would
   define the tag twice. Behavior that differs by section is two elements.
-- **A library loads inside its element.** A static import is fetched before the script runs, so
-  a URL imported at the top of any module in the script would be fetched by every page with a
-  live element. `await import(url)` inside the element's function fetches it only where the
-  element connects. Rolldown leaves those imports as they are, and the report names their hosts.
+- **A large library loads inside its element.** A package imported at the top goes into the
+  script, which every page with a live element loads. That's right for a small one, such as
+  elementz, and the report's `common` row shows what it costs. `await import("d3")` inside the
+  element becomes a hashed chunk of its own, fetched only where the element connects. A URL
+  imported at the top fails, since the browser would fetch it before the script runs on every
+  page with a live element. One imported inside is left as it is, and the report names its host.
 
 Two other ways were ruled out.
 
@@ -382,63 +407,46 @@ File names carry a content hash (`script.3f9a1c.js`), so a new deploy is never s
 stale cache. `dev` still loads each page's own live files, since it serves modules as they are
 and has no file to cache. The build sets production mode itself.
 
-## Check
+## Check, preview and deploy
 
-`sitez check` runs oxfmt over `text/` and `code/` and oxlint over `code/` (`check.ts`). It also
-reports Markz's warnings, which `build` prints but never fails on.
+Sitez has no commands of its own. `vite preview` serves `dist/`, and Sitez's plugin adds what a
+static host does that Vite doesn't, such as serving `404.html` with a 404. Formatting and linting
+are the site's own scripts, with oxfmt and oxlint as its own dependencies. oxfmt formats the HTML
+inside `html` templates, and its Markdown output is Markz's canonical form.
 
-oxfmt formats the HTML inside `html` templates, as Prettier does. Its Markdown output is Markz's
-canonical form, so one tool formats both folders.
+Ruled out:
 
-What is safe to fix, `check` fixes first, without asking. That means oxlint's safe fixes, then
-formatting, naming the files it formatted. Every problem left is one `file:line:col: message`
-line, and any problem fails. The style is oxfmt's defaults (`runtime/oxfmtrc.json`), so an editor
-running oxfmt without a config agrees with it. The tools are Sitez's own dependencies, run with
-the Node running Sitez.
-
-## Preview
-
-`sitez preview` serves `dist/` as a static host does (`preview.ts`). A folder's URL serves its
-`index.html`, and a folder without its slash redirects to it. What isn't there gets `404.html`
-with a 404. It renders nothing, so it shows exactly what will deploy.
+- **`sitez check`.** It ran oxfmt and oxlint as Sitez's dependencies, and reported Markz's
+  warnings as problems. That put two linters in every site's install, and a wrapper between the
+  author and tools they can run directly. `build` prints Markz's warnings.
+- **`sitez preview`.** It was a static server of Sitez's own, beside Vite's.
 
 ## Install
 
-Sitez is installed in each site, never globally. `npm install` puts the version the site's
-`package.json` names in `node_modules`, and `npx sitez dev` or `pnpm sitez dev` runs that copy.
-So the author's machine and the host build with the same Sitez by construction. Without a pinned
-version, a release of Sitez could change a live site on its next deploy with nothing in the repo
-changed.
+Sitez is installed in each site, never globally. `package.json` names Sitez and Vite, and
+`npm install` puts those versions in `node_modules`. So the author's machine and the host build
+with the same Sitez by construction. The report's last line names the version that ran.
 
-Sitez checks one thing, that the site's `package.json` names `@amitkaps/sitez`. Run in a site that doesn't,
-`npx` downloads the newest release, and nothing in the repo would record it. So every command
-fails there, naming the line to add. It never compares versions. Keeping `node_modules` in step
-with `package.json` is the package manager's job. The report's last line names the version that
-ran.
-
-The site's `package.json` is the nearest one at or above `site.md`, as Node finds packages. So a
-site in a folder of a larger repo, or several sites in one repo, share the repo's. Sitez still
-finds the site by walking up from where it runs, so its commands run inside the site's folder.
+`vite.config.js` sits at the site's root, beside `site.md`, and Vite's root is the site's. So
+several sites in one repo are several folders, each with its own config.
 
 Ruled out:
 
 - **A global install.** It was the first design, with no `package.json`, and nothing in the repo
-  said which version built the site. A global command that hands off to the site's copy, as
-  ESLint's does, was ruled out next. `npx` and `pnpm` already run the site's copy, so the
-  launcher would be machinery for a path nobody needs. `mise use -g npm:sitez` went with it.
+  said which version built the site.
 - **A single binary.** It was for installing without Node, and a site with a `package.json` needs
   Node anyway.
-- **A Vite plugin the site configures.** It would pin the version, but every site would write a
-  `vite.config.js`. Vite's API would become Sitez's public surface, and `check`, `deploy` and the
-  report would be scripts each site wires up.
+- **A CLI that runs Vite itself.** It was Sitez 0.2, and it kept Vite out of sight so the
+  toolchain was Sitez's to swap. Once `.live` files import npm packages, Vite isn't swappable,
+  and the CLI was a second name for each of Vite's commands. It also needed its own check that
+  the site's `package.json` named Sitez, which the plugin's import in `vite.config.js` makes.
+  The cost of the plugin is that a site sees Vite, and can add other plugins to its config.
 - **A version in `site.md`.** It holds metadata, never settings, and npm already pins packages.
-- **Scripts in `package.json`.** `"dev": "sitez dev"` repeats the CLI under a second name, which
-  drifts. A site can add them, and Sitez never writes or reads them.
 
 ## Deploy
 
 A site deploys from Cloudflare, which builds the repo itself, as prose's site does. Its build
-command is `npx sitez build`, and its deploy command `npx wrangler deploy` runs Wrangler on
+command is `npm run build`, and its deploy command `npx wrangler deploy` runs Wrangler on
 Cloudflare's machine. So neither Sitez nor a site depends on Wrangler, and a site needs no Sitez
 command or setting to deploy.
 
@@ -450,13 +458,13 @@ Ruled out:
 - **A deploy target in `site.md`** (`deploy.github`, `deploy.cloudflare`). Markz reads dotted
   keys, but a target is a setting, and `site.md` holds metadata.
 
-`sitez deploy` still exists until step 21 of the plan removes it. It pushes `dist/` and a
+`sitez deploy` still exists until the CLI goes in step 21 of the plan. It pushes `dist/` and a
 `.nojekyll` to the `gh-pages` branch when the remote is on GitHub (`deploy.ts`).
 
 ## Release
 
-Sitez is published to npm as `@amitkaps/sitez`, the name a site's code imports, and its command
-is `sitez`. A release tags a version,
+Sitez is published to npm as `@amitkaps/sitez`, the name a site's code and `vite.config.js`
+import. A release tags a version,
 and the `release` workflow does the rest (`.github/workflows/release.yml`). It runs the checks,
 packs the tarball, stages it on npm, and attaches it to a GitHub Release.
 
@@ -483,7 +491,7 @@ pnpm pack && cd /tmp && npm login && npm publish ~/code/sitez/amitkaps-sitez-<ve
 Ruled out:
 
 - **The plain name `sitez`.** npm refuses it as too similar to `vite`, which also keeps anyone
-  else from taking it, so `npx sitez` can't reach someone else's package. Publishing the scoped
+  else from taking it. Publishing the scoped
   package for sites to install as `"sitez": "npm:@amitkaps/sitez"` was ruled out too. Every site
   would need that line, and the error naming it would have to explain it.
 - **Installing from GitHub** (`github:amitkaps/sitez#v0.2.0`). `dist/` isn't committed, so each
@@ -541,7 +549,7 @@ and static output.
 
 ## Open questions
 
-- **Types.** `sitez check` has had no type checker since svelte-check went with Svelte. The likely
+- **Types.** A site has had no type checker since svelte-check went with Svelte. The likely
   one is `tsc` with `checkJs` over `code/`, strict but asking for no annotations. It comes once a
   site's mistakes call for it.
 - **Misspelled elements.** An element with no `@` file and no `.live` file is a plain HTML
@@ -550,13 +558,9 @@ and static output.
   isn't too fragile.
 - **Per-component CSS.** An `@call-out.css` beside `@call-out.js` would keep an element's styles
   with it. It would join the one stylesheet, so its order against `+style.css` needs deciding.
-- **Cleaning up.** A live element's listeners live as long as its page. Cross-document View
-  Transitions mean a full load each time, so nothing cleans them up yet. A live element that
-  removes elements would need its function to return a cleanup, which `define` calls in
-  `disconnectedCallback`.
 - **Re-rendering in live elements.** A live element changes the nodes the build wrote. That covers
   hiding, toggling and text. One that re-renders a list would lose focus and input state, and
-  would load a diffing renderer, such as uhtml, by its URL.
+  would import a diffing renderer, such as uhtml, from npm.
 - **Meaning.** `<call-out>` means nothing to a screen reader, where `<aside>` is a landmark.
   `{@call-out role="note"}` works for one use. When the meaning matters on every use, that's what
   a component is for. Whether the docs should say so more strongly waits for a site that needs it.
