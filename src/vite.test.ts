@@ -1,8 +1,8 @@
 /** @prose
  * # Resolving `sitez`
  *
- * A site's `import "@amitkaps/sitez"` gets the running Sitez's runtime, the build-time half on the server and
- * the browser half in the client, even when the site installs its own copy.
+ * A site's `import "@amitkaps/sitez"` gets the running Sitez's runtime, even when the site installs
+ * its own copy. Only build code gets it, and the browser can't.
  */
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -31,13 +31,13 @@ test("build code gets the build-time runtime, whose templates the build renders"
   expect(await render(card("Fish & Chips"))).toBe("<li>Fish &amp; Chips</li>");
 });
 
-test("the browser gets the browser runtime", async () => {
+test("only build code gets the runtime, and a live file's import fails", async () => {
   const { client, ssr } = site.vite.environments;
   const importer = join(site.real, "code/@tag-filter.live.js");
-  expect((await client!.pluginContainer.resolveId("@amitkaps/sitez", importer))?.id).toBe(
-    join(runtime, "browser.ts"),
-  );
   expect((await ssr!.pluginContainer.resolveId("@amitkaps/sitez", importer))?.id).toBe(
     join(runtime, "index.ts"),
+  );
+  await expect(client!.pluginContainer.resolveId("@amitkaps/sitez", importer)).rejects.toThrow(
+    "whose html renders at build time",
   );
 });

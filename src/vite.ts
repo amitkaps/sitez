@@ -60,7 +60,7 @@ export async function siteServer(
       : { middlewareMode: true, hmr: false, watch: null },
     // A site that installs Sitez would otherwise load its own copy, past `fromSitez`.
     ssr: { noExternal: [PACKAGE] },
-    plugins: [fromSitez(), liveBoundary(root, real), noOptimizer(), ...(dev ? [dev.plugin] : [])],
+    plugins: [liveBoundary(root, real), fromSitez(), noOptimizer(), ...(dev ? [dev.plugin] : [])],
   });
   return {
     vite,
@@ -117,8 +117,8 @@ export function asGiven(root: string, real: string, file: string): string {
  *
  * `@amitkaps/sitez` itself is the one exception. It is always the runtime of the Sitez that is running, even
  * when the site installs another version. Its templates go to this Sitez's renderer, which
- * has to agree with them. The browser gets `browser`, as the package's `browser` condition picks
- * it, and Sitez runs from `src/` in development, so the extension is this file's own.
+ * has to agree with them. Sitez runs from `src/` in development, so the extension is this file's
+ * own.
  */
 export function fromSitez(): Plugin {
   const inside = import.meta.filename;
@@ -126,10 +126,7 @@ export function fromSitez(): Plugin {
     name: "sitez:resolve",
     enforce: "pre",
     async resolveId(id, importer, options) {
-      if (id === PACKAGE) {
-        const entry = this.environment.config.consumer === "client" ? "browser" : "index";
-        return join(runtime, entry + extname(inside));
-      }
+      if (id === PACKAGE) return join(runtime, "index" + extname(inside));
       if (!/^[@a-z]/.test(id)) return null;
       const own = await this.resolve(id, importer, { ...options, skipSelf: true });
       return own ?? this.resolve(id, inside, { ...options, skipSelf: true });
@@ -163,9 +160,11 @@ const LAYOUT = /(?:^|\/)\+layout\.[jt]s$/;
 
 /** @prose
  * Fails an import that crosses the line, in whichever environment makes it. In the server render,
- * that's an import of a `.live` file. In what the browser loads, it's an import of a component or
- * a layout, from a `.live` file or from anything it imports. The specifier is read as written,
- * which is how the site names its own files.
+ * that's an import of a `.live` file. In what the browser loads, it's an import of a component, a
+ * layout or `sitez` itself, from a `.live` file or from anything it imports. `sitez`'s `html`
+ * would make a template record in the browser, not nodes. The specifier is read as written,
+ * which is how the site names its own files. It runs before `fromSitez`, which would resolve
+ * `sitez` first.
  */
 export function liveBoundary(root: string, real: string): Plugin {
   return {
@@ -179,6 +178,12 @@ export function liveBoundary(root: string, real: string): Plugin {
         throw new SiteError(
           from,
           `this imports ${id}, a live file, which runs only in the browser and would crash the build. Move what both need into a module in code/.`,
+        );
+      }
+      if (this.environment.name === "client" && id === PACKAGE) {
+        throw new SiteError(
+          from,
+          `this imports ${id}, whose html renders at build time. A live file works on the page's DOM, with no import from Sitez, or loads a library by its full URL.`,
         );
       }
       if (this.environment.name === "client" && !LIVE.test(path)) {

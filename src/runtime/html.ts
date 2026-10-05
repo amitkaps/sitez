@@ -1,9 +1,8 @@
 /** @prose
  * # The template value
  *
- * What `html` makes at build time. It records its strings and values and renders nothing, and
- * `render.ts` turns it into a string. In the browser, `html` is htl's instead (`browser.ts`), so
- * the same tag makes DOM nodes there.
+ * What `html` makes. It records its strings and values and renders nothing, and `render.ts` turns
+ * it into a string. `html` exists only at build time, and a live file that imports it fails.
  *
  * A value is marked with a registered symbol, not a class. The site's code loads `sitez` through
  * Vite's module runner, and the build loads it through Node. That makes two copies of this file,

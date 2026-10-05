@@ -172,12 +172,6 @@ importers:
       '@amitkaps/markz':
         specifier: ^0.2.0
         version: 0.2.0
-      '@preact/signals-core':
-        specifier: ^1.14.4
-        version: 1.14.4
-      htl:
-        specifier: ^1.0.0
-        version: 1.0.0
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@1.0.0
         version: '@voidzero-dev/vite-plus-core@1.0.0(@types/node@24.19.0)(typescript@6.0.3)'
@@ -656,9 +650,6 @@ packages:
 
   '@polka/url@1.0.0-next.29':
     resolution: {integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==}
-
-  '@preact/signals-core@1.14.4':
-    resolution: {integrity: sha512-HNB6HYeYKhQbJ1aKl+YRjrS4+QWHLKX6qKoUsfS/m0vqzsVaEBiZiaKbG/e+NKk2ch5ALQr/ihWaMHxiCuuWHA==}
 
   '@shikijs/core@4.5.0':
     resolution: {integrity: sha512-6CIgwq+bt2JZ3OSjb/nBkkwEf/CfpHcbam+Mg5Pllco7HAGRQ2/EFhZrrJtbyNTgKwknfVS+llsXGygiDGwJWw==}
@@ -1150,10 +1141,6 @@ packages:
 
   hast-util-whitespace@3.0.0:
     resolution: {integrity: sha512-88JUN06ipLwsnv+dVn+OIYOvAuvBMy/Qoi6O7mQHxdPXpjy+Cd6xRkWwux7DKO+4sYILtLBRIKgsdpS2gQc7qw==}
-
-  htl@1.0.0:
-    resolution: {integrity: sha512-dbNhlENVOgGIXNP7iYKS+p3uH7mc6CZJIubDiKpOn0eKYHdOzoZgkXI9Z4AH3gLZzFwz9/6xgPsc2fff7zXxUg==}
-    engines: {node: '>=12'}
 
   html-void-elements@3.0.0:
     resolution: {integrity: sha512-bEqo66MRXsUGxWHV5IP0PUiAWwoEjba4VCzg0LjFJBpchPaTfyfCKTG6bc5F8ucKec3q5y6qOdGyYTSBEvhCrg==}
@@ -1783,8 +1770,6 @@ snapshots:
 
   '@polka/url@1.0.0-next.29': {}
 
-  '@preact/signals-core@1.14.4': {}
-
   '@shikijs/core@4.5.0':
     dependencies:
       '@shikijs/primitive': 4.5.0
@@ -2179,8 +2164,6 @@ snapshots:
   hast-util-whitespace@3.0.0:
     dependencies:
       '@types/hast': 3.0.5
-
-  htl@1.0.0: {}
 
   html-void-elements@3.0.0: {}
 

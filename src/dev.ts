@@ -14,6 +14,7 @@ import { liveEntry, missingUrl, styleImports } from "./bundle.ts";
 import { NOT_FOUND } from "./discover.ts";
 import { SiteError, shownFrom, siteErrorText } from "./errors.ts";
 import { escape } from "./head.ts";
+import type { Live } from "./live.ts";
 import { document } from "./render.ts";
 import { pathOf } from "./preview.ts";
 import { redirectUrl } from "./redirects.ts";
@@ -43,7 +44,7 @@ export async function dev(
   { port = 5173, cwd = root, warn = () => {}, error: report = () => {} }: DevOptions = {},
 ): Promise<Dev> {
   // What each page's script loads: its live files, from its last render.
-  const rendered = new Map<string, string[]>();
+  const rendered = new Map<string, Live[]>();
   const warned = new Set<string>();
   // A request that isn't a page after all reaches `notFound` with the site already read.
   const runs = new WeakMap<IncomingMessage, Run>();
@@ -100,7 +101,7 @@ export async function dev(
     if (missing) throw missing;
     rendered.set(
       url,
-      out.live.map((live) => inReal(root, server.real, live.file)),
+      out.live.map((live) => ({ ...live, file: inReal(root, server.real, live.file) })),
     );
     const query = `?url=${encodeURIComponent(url)}`;
     const assets = [

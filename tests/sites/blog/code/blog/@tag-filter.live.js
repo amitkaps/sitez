@@ -1,17 +1,14 @@
 // Wires the buttons and posts @tag-filter.js wrote: a click shows the posts with that tag.
-import { define, effect, signal } from "@amitkaps/sitez";
-
-define("tag-filter", (el) => {
-  const active = signal("");
+export default (el) => {
   const buttons = [...el.querySelectorAll("button")];
-  for (const button of buttons) button.onclick = () => (active.value = button.value);
-  effect(() => {
+  const show = (value) => {
     for (const button of buttons) {
-      button.setAttribute("aria-pressed", String(button.value === active.value));
+      button.setAttribute("aria-pressed", String(button.value === value));
     }
     for (const post of el.querySelectorAll("[data-tags]")) {
       const tags = post.dataset.tags.split(" ");
-      post.hidden = active.value !== "" && !tags.includes(active.value);
+      post.hidden = value !== "" && !tags.includes(value);
     }
-  });
-});
+  };
+  for (const button of buttons) button.onclick = () => show(button.value);
+};

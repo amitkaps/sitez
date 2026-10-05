@@ -73,7 +73,7 @@ export async function build(
       .filter((page) => page.live.length > 0)
       .map((page) => [
         entryName(page.url),
-        page.live.map((live) => inReal(root, server.real, live.file)),
+        page.live.map((live) => ({ ...live, file: inReal(root, server.real, live.file) })),
       ]),
   );
   const css = await stylesheet(root, server.real);

@@ -7,7 +7,6 @@
  */
 import { describe, expect, test } from "vite-plus/test";
 import { html, raw } from "./html.ts";
-import { define } from "./index.ts";
 import { render, TemplateError } from "./render.ts";
 
 const link = { url: "/blog/", title: "Fish & Chips" };
@@ -93,8 +92,4 @@ describe("render fails", () => {
     expect(error).toBeInstanceOf(TemplateError);
     expect((error as Error).message).toMatch(message);
   });
-});
-
-test("define fails at build time, naming the live file", () => {
-  expect(() => define("tag-filter", () => {})).toThrow("code/@tag-filter.live.js");
 });

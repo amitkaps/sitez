@@ -10,9 +10,10 @@
  * Every file's name carries a content hash, so a new deploy is never served from a stale cache.
  */
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, extname, join } from "node:path";
 import { build, type InlineConfig, type Logger, type Plugin, type Rolldown } from "vite";
 import { SiteError } from "./errors.ts";
+import type { Live } from "./live.ts";
 import {
   asGiven,
   cacheDir,
@@ -104,25 +105,32 @@ export function styleImports(real: string, style: string): string[] {
   ];
 }
 
-/** A page's script: each live file it uses, imported, since each calls `define` as it loads. */
-export function liveEntry(files: string[]): string {
-  return files.map((file) => `import ${JSON.stringify(file)};`).join("\n");
+/** @prose
+ * A page's script: each live file it uses, defined as its tag. The tag comes from the file's name
+ * and the element from its default export, so a live file never names its element (rule 6).
+ */
+export function liveEntry(lives: Live[]): string {
+  return [
+    `import { define } from ${JSON.stringify(join(runtime, "define" + extname(import.meta.filename)))};`,
+    ...lives.map(({ file }, i) => `import live${i} from ${JSON.stringify(file)};`),
+    ...lives.map(({ tag }, i) => `define(${JSON.stringify(tag)}, live${i});`),
+  ].join("\n");
 }
 
 /** @prose
  * The live elements' JavaScript, for the pages that have any: each gets an entry that imports its
  * `.live` files, named for the page (`blog/index.[hash].js` beside `blog/index.html`). What more
- * than one page uses, the signals core first, goes in `common.[hash].js`. The build is in
+ * than one page uses, `define` first, goes in `common.[hash].js`. The build is in
  * production mode whatever the process says, since a dev server earlier in the same process
  * leaves `NODE_ENV` at `development`.
  */
 export async function scripts(
   root: string,
   real: string,
-  pages: Map<string, string[]>,
+  pages: Map<string, Live[]>,
 ): Promise<Scripts> {
   if (pages.size === 0) return { files: new Map(), pages: new Map(), common: undefined };
-  const entries = Object.fromEntries([...pages].map(([name, files]) => [name, liveEntry(files)]));
+  const entries = Object.fromEntries([...pages].map(([name, lives]) => [name, liveEntry(lives)]));
   const mode = process.env.NODE_ENV;
   process.env.NODE_ENV = "production";
   let output: Rolldown.RolldownOutput["output"];
@@ -217,7 +225,7 @@ async function bundle(
     cacheDir: cacheDir(real),
     logLevel: "silent",
     customLogger: logger,
-    plugins: [fromSitez(), liveBoundary(root, real), entryModules(entries), noOptimizer()],
+    plugins: [liveBoundary(root, real), fromSitez(), entryModules(entries), noOptimizer()],
     build: {
       write: false,
       assetsInlineLimit: 0,

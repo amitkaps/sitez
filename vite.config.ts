@@ -13,14 +13,14 @@ import { defineConfig } from "vite-plus";
 const ignored = ["dist/**", "tests/sites/**", "tests/snapshots/**", "pnpm-lock.yaml"];
 
 export default defineConfig({
-  // tsdown — `vp pack`. Three ESM entries: the CLI, run by Node, and the two halves of the
-  // `sitez` import, with their types. The other files a site's own build loads through Vite are
-  // copied as they are.
+  // tsdown — `vp pack`. Three ESM entries: the CLI, run by Node, the `sitez` import with its
+  // types, and `define`, which each page's script imports. The other files a site's own build
+  // loads through Vite are copied as they are.
   pack: {
     entry: {
       cli: "src/cli.ts",
       "runtime/index": "src/runtime/index.ts",
-      "runtime/browser": "src/runtime/browser.ts",
+      "runtime/define": "src/runtime/define.ts",
     },
     dts: true,
     copy: [{ from: "src/runtime/*.{css,json}", to: "dist/runtime" }],

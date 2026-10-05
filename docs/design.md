@@ -14,9 +14,7 @@ oxfmt and oxlint as separate packages, or to something else, and a site doesn't 
 @amitkaps/sitez (npm)
 ├── vite                  Vite+'s core (@voidzero-dev/vite-plus-core): dev server, Rolldown
 ├── vite-plus             oxfmt, oxlint
-├── @amitkaps/markz       parser
-├── htl                   html in the browser
-└── @preact/signals-core  signal and effect
+└── @amitkaps/markz       parser
 ```
 
 Sitez calls `createServer` and `build` itself, with `configFile: false`.
@@ -76,26 +74,22 @@ Other marks were weighed and ruled out.
 
 ## The runtime
 
-A site imports four names from `sitez`, which are `html`, `signal`, `effect` and `define`. The
-site never imports htl or a signals library itself. So what's behind those names can change
-without touching a site (htl to uhtml, or the signals package to Sitez's own).
+A site imports one name from `sitez`, which is `html`, and only its build code does. A live
+element's file imports nothing from Sitez. Its default export gets the element, and it works on
+the DOM (rule 6).
 
 The runtime lives in its own folder and never imports the rest of Sitez. If something other than
 Sitez wants it, it moves out into a tiny package of its own. Until then, a second package would be
 a second release cycle for one consumer.
 
-`sitez` has one entry per runtime, picked by the package's `browser` export condition. So build
-code and `.live` files write the same import.
-
 ```text
-html`…`
-  ├─ build:   a template value → Sitez's renderer → escaped HTML string
-  └─ browser: htl → DOM nodes
+html`…` → a template value → Sitez's renderer → escaped HTML string
 ```
 
 **At build time**, `html` records its strings and values and renders nothing. The renderer
 (`src/runtime/render.ts`) turns that value into a string. It follows the HTML tokenizer through
-the template, as htl does, so each place a value can go means what it means in htl.
+the template, so each place a value can go means what HTML makes of it there. The rules began as
+htl's, a library that makes DOM nodes from the same tag.
 
 - In text, a value is escaped (`& < > " '`). A nested template or Markz's HTML goes in as HTML,
   and an array is each of its items. `null`, `undefined` and `false` are nothing.
@@ -115,8 +109,8 @@ Some templates fail, and the build names the file.
 - A template in an attribute fails, and so does a plain object anywhere. Each would write
   `[object Object]`.
 
-The renderer differs from htl in one place on purpose. htl writes `false` in text as the word.
-`${cond && html`…`}` is how a template says "maybe", and the word is never wanted.
+`false` in text writes nothing, where htl writes the word. `${cond && html`…`}` is how a template
+says "maybe", and the word is never wanted.
 
 Making DOM nodes at build time as well, as htl does, was ruled out. The build would need a DOM in
 Node only to serialize it back to the string it wanted.
@@ -129,14 +123,22 @@ The renderer's job is correctness, not defense. The site's author writes all of 
 title with `&` must not break the page. The browser's Sanitizer API doesn't apply. It doesn't
 exist in Node, and it strips what it finds dangerous from HTML that's meant to be kept.
 
-**In the browser**, `html` is htl's. It turns values into text nodes and attributes, so it is
-safe by construction. `signal` and `effect` are the signals core's.
+**In the browser**, there is no `sitez`. A page's script imports its live files and defines each
+under the tag its file's name gives, with Sitez's own `define` (`src/runtime/define.ts`). `define`
+calls the element's function once per element, on its first connect. `connectedCallback` runs
+again when an element moves, and running the function twice would bind everything twice.
 
-`define(name, setup)` defines the custom element and calls `setup(el)` once per element, on its
-first connect. `connectedCallback` runs again when an element moves, and running `setup` twice
-would bind everything twice. In Node, `define` fails, since a `.live` file never runs at build
-time. Each bundle includes only what it uses, so a `.live` file that doesn't call `html` ships no
-htl.
+The browser had three more names, and each went because no live element needed it.
+
+- **`define(name, setup)`** named the element a second time, after its file, and nothing checked
+  that the two agreed. The file's default export is the element now.
+- **`html` in the browser** was htl's, which made DOM nodes. So one name meant a string at build
+  time and nodes in the browser. A live element enhances HTML the build wrote, so it seldom makes
+  nodes, and `document.createElement` does when it must. One that wants templates loads a library
+  by its URL.
+- **`signal` and `effect`** held one value per element in every live element written, which a
+  function's variable holds as well. They cost each page with a live element 1.5 KB. They come
+  back when a site has state that crosses elements.
 
 ## Dev server
 
@@ -335,7 +337,8 @@ for what crosses (a `Date` becomes a string in JSON) and how big it may get.
 The two sides of the boundary fail apart. Build-time code that imports a `.live` file would crash
 Node. A `.live` file that imports a component or a layout would bundle whatever those import. Both
 fail the build, naming the import. A module with no Node imports can be used by both, such as a
-`card.js` that returns a template.
+`slug.js` that turns a title into an id. One that imports `sitez` is build code, since `html`
+renders at build time, and a `.live` file that imports it fails.
 
 ## Bundling
 
@@ -353,14 +356,14 @@ mean. A `url()` in it is bundled as `assets/[name].[hash][ext]`. Vite would ship
 resolve as written, with only a warning, so Sitez fails the build instead.
 
 JavaScript splits by one rule. What more than one page uses goes in `common.js`. What only this page
-uses goes in the page's own `index.js`, next to its `index.html`. The signals core and a live
-element in the layout are common, and `tag-filter` on `/blog/` is the page's.
+uses goes in the page's own `index.js`, next to its `index.html`. `define` and a live element
+in the layout are common, and `tag-filter` on `/blog/` is the page's.
 
 File names carry a content hash (`common.3f9a1c.js`), so a new deploy is never served from a stale
 cache. A page with no live element loads no JavaScript, common or its own. A `.live` file used on a
 few pages still lands in `common.js`, and the `common` row in the build report shows if that grows.
-The runtime's floor is the signals core, about 1.5 KB gzipped. htl adds about 3 KB, only for a
-`.live` file that calls `html`. The build sets production mode itself.
+A page with a live element loads `define`, under 0.2 KB, and its elements' own code. Nothing else
+of Sitez's reaches the browser. The build sets production mode itself.
 
 ## Check
 
@@ -530,12 +533,13 @@ and static output.
   isn't too fragile.
 - **Per-component CSS.** An `@call-out.css` beside `@call-out.js` would keep an element's styles
   with it. It would join the one stylesheet, so its order against `+style.css` needs deciding.
-- **Disposing effects.** A live element's effects live as long as its page. Cross-document View
-  Transitions mean a full load each time, so nothing disposes them yet. A live element that removes
-  elements would need `define` to dispose effects in `disconnectedCallback`.
-- **Re-rendering in live elements.** htl builds DOM once, and signals update it through `effect`.
-  That covers hiding, toggling and text. A live element that re-renders a list would lose focus and
-  input state. It would need a diffing renderer behind the same `html`, such as uhtml.
+- **Cleaning up.** A live element's listeners live as long as its page. Cross-document View
+  Transitions mean a full load each time, so nothing cleans them up yet. A live element that
+  removes elements would need its function to return a cleanup, which `define` calls in
+  `disconnectedCallback`.
+- **Re-rendering in live elements.** A live element changes the nodes the build wrote. That covers
+  hiding, toggling and text. One that re-renders a list would lose focus and input state, and
+  would load a diffing renderer, such as uhtml, by its URL.
 - **Meaning.** `<call-out>` means nothing to a screen reader, where `<aside>` is a landmark.
   `{@call-out role="note"}` works for one use. When the meaning matters on every use, that's what
   a component is for. Whether the docs should say so more strongly waits for a site that needs it.

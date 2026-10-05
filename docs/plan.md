@@ -103,6 +103,11 @@ at the end, from the 0.2.0 baseline below.
 - **Code:** Sitez's source without tests, 3,258 lines, and idea.md, 2,952 words. A page's
   JavaScript, with amitkaps.github.io's `common` at 4.6 KB.
 
+- [x] Live elements with no runtime. A `.live` file default-exports its element and imports
+      nothing from Sitez. `define`, `html` in the browser, htl and the signals core went, so a
+      page's script is its elements and `define`, under 0.2 KB.
+  - amitkaps.github.io's two `.live` files move to `export default` when it installs the release
+    after 0.2.0, and `@talk-grid.live.js` makes its player with `document.createElement`.
 - [ ] Fewer and smaller dependencies, judged by what a site installs and what a page loads. A
       site's `node_modules` is 137 MB today, and almost all of it comes through `vite-plus`. Sitez
       uses only Vite's API at build and oxfmt and oxlint in `check`. Measured alone, `vite` is
@@ -110,8 +115,6 @@ at the end, from the 0.2.0 baseline below.
   - Sitez depends on `vite`, `oxlint`, `oxfmt` and `@amitkaps/markz`, about 62 MB. `vite-plus`
     becomes a devDependency, for building and testing Sitez itself, so no site installs its
     tests or type-aware linting. Go from there.
-  - `htl` and `@preact/signals-core` move into `src/runtime/`, keeping their licenses, so Sitez
-    owns the runtime a page loads. That page's JavaScript is measured before and after.
   - `check` runs oxfmt and oxlint as its own dependencies. Ruled out: Biome (60 MB measured, not lighter), and ESLint,
     Prettier or `tsc`, which add packages or a JavaScript runtime for what oxc does natively.
 - [ ] Whether `sitemap.xml` stays. Every site gets it, with no way out, and search engines find a

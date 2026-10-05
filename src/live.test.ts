@@ -2,13 +2,13 @@
  * # Finding a page's live elements
  *
  * Which `.live` files a page's HTML loads. A tag counts only when it's a real start tag with a
- * `.live` file up the tree from the page's URL.
+ * `.live` file up the tree from the page's URL. A live file's exports are its element alone.
  */
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { expect, test } from "vite-plus/test";
-import { findLive } from "./live.ts";
+import { checkExports, findLive } from "./live.ts";
 
 const root = mkdtempSync(join(tmpdir(), "sitez-"));
 for (const path of [
@@ -18,7 +18,7 @@ for (const path of [
   "code/@key-word.live.js",
 ]) {
   mkdirSync(dirname(join(root, path)), { recursive: true });
-  writeFileSync(join(root, path), "");
+  writeFileSync(join(root, path), "export default (el) => {};\n");
 }
 const found = (url: string, html: string) =>
   findLive(root, url, html).map((live) => `${live.tag} ${relative(root, live.file)}`);
@@ -51,3 +51,52 @@ test("ignores a tag in text that shows HTML, in a comment, and in a script or a 
 test("is none for a page with no custom elements", () => {
   expect(found("/", "<h1>Hello</h1><p>No elements.</p>")).toEqual([]);
 });
+
+test.each([
+  ["an arrow", "export default (el) => {};"],
+  ["a function", "export default function (el) {}"],
+  ["a named function, in TypeScript", "export default function setup(el: HTMLElement): void {}"],
+  [
+    "imports and code beside it",
+    'import { format } from "https://cdn.example.com/f.js";\nconst n = 1;\nexport default (el) => {};',
+  ],
+])("a live file may default-export %s", (_, code) => {
+  expect(() => checkExports(live(code))).not.toThrow();
+});
+
+test.each([
+  [
+    "no export",
+    "customElements.define('x-y', class extends HTMLElement {});",
+    "has no default export",
+  ],
+  ["a value", "export default 42;", "isn't a function written in the export"],
+  [
+    "a name",
+    "const setup = () => {};\nexport default setup;",
+    "isn't a function written in the export",
+  ],
+  [
+    "a name as default",
+    "const setup = () => {};\nexport { setup as default };",
+    "isn't a function written in the export",
+  ],
+  [
+    "a named export too",
+    "export const label = 'Go';\nexport default () => {};",
+    "this exports label.",
+  ],
+  [
+    "a re-export",
+    "export * from './x.js';\nexport default () => {};",
+    "this exports everything from ./x.js.",
+  ],
+])("a live file with %s fails", (_, code, message) => {
+  expect(() => checkExports(live(code))).toThrow(message);
+});
+
+function live(code: string): string {
+  const file = join(root, "code", `@x-${Math.random().toString(36).slice(2)}.live.ts`);
+  writeFileSync(file, code);
+  return file;
+}

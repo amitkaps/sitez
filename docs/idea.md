@@ -160,22 +160,21 @@ hyphen, which no element could use.
      `[term]{@key-word}` would end the paragraph early, so it fails the build, naming the element
      and the tag.
 
-6. **Browser behavior lives in `.live` files.** `code/@tag-filter.live.js` defines
-   `<tag-filter>`, a custom element, and runs only in the browser. It ships only to pages whose
-   HTML has a `<tag-filter>`. A page with no live element loads no JavaScript.
+6. **Browser behavior lives in `.live` files.** `code/@tag-filter.live.js` is the behavior of
+   `<tag-filter>`, a custom element, and runs only in the browser. Its default export is a
+   function, which gets the element once, when it first connects. The file's name says which
+   element it is, so the file never names it. It ships only to pages whose HTML has a
+   `<tag-filter>`. A page with no live element loads no JavaScript.
 
    ```js
    // code/@tag-filter.live.js
-   import { define, effect, signal } from "@amitkaps/sitez";
-
-   define("tag-filter", (el) => {
-     const active = signal("");
-     for (const b of el.querySelectorAll("button")) b.onclick = () => (active.value = b.value);
-     effect(() => {
+   export default (el) => {
+     const show = (tag) => {
        for (const post of el.querySelectorAll("[data-tag]"))
-         post.hidden = !!active.value && post.dataset.tag !== active.value;
-     });
-   });
+         post.hidden = !!tag && post.dataset.tag !== tag;
+     };
+     for (const b of el.querySelectorAll("button")) b.onclick = () => show(b.value);
+   };
    ```
 
    - **A live element enhances HTML the build wrote.** It finds its content and controls in the
@@ -184,13 +183,16 @@ hyphen, which no element could use.
      writes the buttons).
    - **A live element reads its children and its attributes.** No data is sent to it besides the
      page's HTML, so nothing is sent twice.
-   - **The same `html` works in the browser.** In a `.live` file it makes DOM nodes, safely, where
-     at build time it writes escaped HTML.
+   - **A live file works on the DOM.** It imports nothing from Sitez, whose `html` renders at
+     build time. A node it adds, it makes with `document.createElement`.
+   - **Its default export is its element, and nothing else.** A file with no default export, a
+     default that isn't a function written in the export, or any other export fails the build.
+     Code two files share goes in a module.
    - **The two sides stay apart.** Build-time code that imports a `.live` file fails the build,
-     naming the import. So does a `.live` file that imports a component or a layout.
+     naming the import. So does a `.live` file that imports a component, a layout or `sitez`.
    - **A live element is small.** It adds a little interactivity, which needs no library. A
-     `.live` file imports Sitez, the site's own `code/`, or a full URL. So a library such as D3
-     loads in the browser as an ES module from its URL, never from `node_modules`.
+     `.live` file imports the site's own `code/` or a full URL. So a library such as D3 loads in
+     the browser as an ES module from its URL, never from `node_modules`.
 
 7. **HTML before JavaScript.** Pages link with `<a>`, and Sitez's reset turns on cross-document
    View Transitions. `<details>`, `popover` and `<dialog>` open, close and toggle without

@@ -16,10 +16,6 @@
   "type": "module",
   "exports": {
     ".": {
-      "browser": {
-        "types": "./dist/runtime/browser.d.ts",
-        "default": "./dist/runtime/browser.js"
-      },
       "types": "./dist/runtime/index.d.ts",
       "default": "./dist/runtime/index.js"
     },
@@ -36,8 +32,6 @@
   },
   "dependencies": {
     "@amitkaps/markz": "^0.2.0",
-    "@preact/signals-core": "^1.14.4",
-    "htl": "^1.0.0",
     "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0",
     "vite-plus": "1.0.0"
   },

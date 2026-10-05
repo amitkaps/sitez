@@ -1,8 +1,8 @@
 /** @prose
  * # The build's renderer
  *
- * Turns a template value into an HTML string. Each place a value can go means what it means in
- * htl, so one tag reads the same in both runtimes. The rules are in
+ * Turns a template value into an HTML string. Each place a value can go means what the HTML
+ * tokenizer makes of it there. The rules are in
  * [design.md](../../docs/design.md#the-runtime), and `render.test.ts` holds a case for each.
  */
 import { isRaw, isTemplate, raw } from "./html.ts";
@@ -48,7 +48,7 @@ async function resolve(value: unknown): Promise<unknown> {
   return value;
 }
 
-/** A value in text, where `false` is nothing, unlike htl's (design.md says why). */
+/** A value in text, where `false` is nothing (design.md says why). */
 function text(value: unknown): string {
   if (value === null || value === undefined || value === false) return "";
   if (isRaw(value)) return value.value;
@@ -110,12 +110,12 @@ type State =
 /** @prose
  * ## Where a value is
  *
- * The scanner follows the HTML tokenizer through the template's static strings, as htl does, so
- * it knows where each value lands. It writes the output as it goes, because a value can take back
+ * The scanner follows the HTML tokenizer through the template's static strings, so it knows
+ * where each value lands. It writes the output as it goes, because a value can take back
  * what came before it. A `null` after `name=` removes the name, and `true` removes the `=`.
  *
  * A value right after `name=` is the whole attribute only when a space or `>` follows it. That's
- * htl's test too. So `href=${base}/x` is part of an unquoted value, escaped as entities.
+ * htl's test, where these rules began. So `href=${base}/x` is part of an unquoted value, escaped as entities.
  */
 class Scanner {
   out = "";

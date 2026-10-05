@@ -66,7 +66,7 @@ describe("sitez", () => {
     writeFileSync(join(root, "text/index.md"), "# Home\n\n{@chart-box /}\n");
     writeFileSync(
       join(root, "code/@chart-box.live.js"),
-      'import { define } from "@amitkaps/sitez";\nimport { format } from "https://cdn.example.com/d3-format@3/+esm";\ndefine("chart-box", (el) => { el.textContent = format(".2f")(1); });\n',
+      'import { format } from "https://cdn.example.com/d3-format@3/+esm";\nexport default (el) => { el.textContent = format(".2f")(1); };\n',
     );
     writeFileSync(
       join(root, "package.json"),
