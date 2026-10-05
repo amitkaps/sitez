@@ -19,7 +19,7 @@ test("a page per row, sorted as given, then common and the total", () => {
       },
     ],
     common: { css: 3072, js: 1229, hosts: ["cdn.jsdelivr.net"] },
-    live: ["quality-report", "tag-filter"],
+    behavior: ["quality-report", "tag-filter"],
     warnings: [],
     ms: 1812,
   };
@@ -30,22 +30,38 @@ test("a page per row, sorted as given, then common and the total", () => {
       "/blog/     6.1 KB  20 ms  tag-filter",
       "/quality/   90 KB  1.2 s  quality-report, raw <script>",
       "common     3.0 KB css, 1.2 KB js, loads cdn.jsdelivr.net",
-      "3 pages in 1.8 s → dist · live: quality-report, tag-filter · sitez 0.2.0",
+      "3 pages in 1.8 s → dist · behavior: quality-report, tag-filter · sitez 0.2.0",
     ].join("\n"),
   );
 });
 
-test("a site with no live elements has no common js and none listed", () => {
+test("a site with no behavior has no common js and none listed", () => {
   const result: BuildResult = {
     outDir: "/site/dist",
     pages: [{ ...page, url: "/", html: 900, ms: 3 }],
     common: { css: 700, js: 0, hosts: [] },
-    live: [],
+    behavior: [],
     warnings: [],
     ms: 40,
   };
   expect(report(result, "dist", "0.2.0").split("\n").slice(-2)).toEqual([
     "common  0.7 KB css",
+    "1 page in 40 ms → dist · sitez 0.2.0",
+  ]);
+});
+
+test("a site with no stylesheet and no behavior has no common row", () => {
+  const result: BuildResult = {
+    outDir: "/site/dist",
+    pages: [{ ...page, url: "/", html: 900, ms: 3 }],
+    common: { css: 0, js: 0, hosts: [] },
+    behavior: [],
+    warnings: [],
+    ms: 40,
+  };
+  expect(report(result, "dist", "0.2.0").split("\n")).toEqual([
+    "page    html  time",
+    "/     0.9 KB  3 ms",
     "1 page in 40 ms → dist · sitez 0.2.0",
   ]);
 });

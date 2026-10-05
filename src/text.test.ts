@@ -1,33 +1,29 @@
 /** @prose
  * # A text page's HTML
  *
- * Markz's HTML with its links rewritten, its elements written around their components' output and
- * its raw blocks written as they are. A fake `render` shows what each component is called with.
+ * Markz's HTML with its links rewritten, its elements written around what their markup files write and
+ * its raw blocks written as they are. A fake `render` shows what each element is called with.
  */
 import { parse } from "@amitkaps/markz";
 import { describe, expect, test } from "vite-plus/test";
 import { textHtml } from "./text.ts";
 
-const components: Record<string, string> = {
-  "call-out": "CallOut.js",
-  "key-word": "KeyWord.js",
-  "fact-box": "FactBox.js",
-};
+const elements = new Set(["call-out", "key-word", "fact-box"]);
 const hrefs: Record<string, string> = { "about.md": "/about/", "about.md#team": "/about/#team" };
 const data: Record<string, unknown> = { "rows.json": [1, 2] };
 const text = (source: string) =>
   textHtml("/site/text/index.md", parse(source), {
-    component: (name) => components[name],
+    element: (name) => elements.has(name),
     link: (destination) =>
       destination === "gone.md"
         ? { problem: "gone.md isn't there." }
         : { href: hrefs[destination] ?? destination },
     data: (path) =>
       path in data ? { value: data[path] } : { problem: `data="${path}" isn't there.` },
-    render: async (file, attributes, children, data) =>
-      file === "FactBox.js"
+    render: async (name, attributes, children, data) =>
+      name === "fact-box"
         ? "<div-ider></div-ider><DIV>fact</DIV>"
-        : `[${file} ${JSON.stringify(attributes)}${children === undefined ? "" : `|${children}|`}${data ? JSON.stringify(data.value) : ""}]`,
+        : `[${name} ${JSON.stringify(attributes)}${children === undefined ? "" : `|${children}|`}${data ? JSON.stringify(data.value) : ""}]`,
   });
 
 describe("textHtml", () => {
@@ -35,20 +31,20 @@ describe("textHtml", () => {
     expect(await text("A {brace} and `${x}`.")).toBe("<p>A {brace} and <code>${x}</code>.</p>\n");
   });
 
-  test("writes an element around its component's output, which gets its attributes and content", async () => {
+  test("writes an element around what its markup file writes, which gets its attributes and content", async () => {
     expect(await text("{@call-out type=note .a .b}\nBody.\n{/call-out}")).toBe(
-      '<call-out class="a b" type="note">[CallOut.js {"type":"note","class":"a b"}|<p>Body.</p>\n|]</call-out>\n',
+      '<call-out class="a b" type="note">[call-out {"type":"note","class":"a b"}|<p>Body.</p>\n|]</call-out>\n',
     );
   });
 
-  test("renders nested components innermost first", async () => {
+  test("renders nested elements innermost first", async () => {
     expect(await text("{@call-out}\nA [t]{@key-word} and [u]{@key-word}.\n{/call-out}")).toBe(
-      "<call-out>[CallOut.js {}|<p>A <key-word>[KeyWord.js {}|t|]</key-word> and <key-word>[KeyWord.js {}|u|]</key-word>.</p>\n|]</call-out>\n",
+      "<call-out>[call-out {}|<p>A <key-word>[key-word {}|t|]</key-word> and <key-word>[key-word {}|u|]</key-word>.</p>\n|]</call-out>\n",
     );
   });
 
   test("gives an element with no content no children", async () => {
-    expect(await text("{@call-out /}")).toBe("<call-out>[CallOut.js {}]</call-out>\n");
+    expect(await text("{@call-out /}")).toBe("<call-out>[call-out {}]</call-out>\n");
   });
 
   test("writes a bare attribute bare, and escapes a value", async () => {
@@ -57,9 +53,9 @@ describe("textHtml", () => {
     );
   });
 
-  test("gives a component its data, and leaves the attribute out of the page", async () => {
+  test("gives an element its data, and leaves the attribute out of the page", async () => {
     expect(await text('{@call-out data="rows.json" type=note /}')).toBe(
-      '<call-out type="note">[CallOut.js {"type":"note"}[1,2]]</call-out>\n',
+      '<call-out type="note">[call-out {"type":"note"}[1,2]]</call-out>\n',
     );
   });
 
@@ -69,21 +65,21 @@ describe("textHtml", () => {
     );
   });
 
-  test("leaves a data attribute on an element with no component as written", async () => {
+  test("leaves a data attribute on an element with no markup file as written", async () => {
     expect(await text("{@chart-view data=rows.json /}")).toBe(
       '<chart-view data="rows.json"></chart-view>\n',
     );
   });
 
-  test("fails on an attribute named like a prop every component gets", async () => {
+  test("fails on an attribute named like a prop every element gets", async () => {
     await expect(text("Intro.\n\n{@call-out pages=short /}")).rejects.toThrow(
-      "line 3: {@call-out} has a pages attribute, but every component in text already gets page, pages, site and children.",
+      "line 3: {@call-out} has a pages attribute, but every element already gets page, pages, site and children.",
     );
   });
 
   test("fails on an inline element whose output would end its paragraph, naming the tag", async () => {
     await expect(text("Intro.\n\nA [fact]{@fact-box}.")).rejects.toThrow(
-      "line 3: {@fact-box} is used inline, but its component writes a <div>, which ends a paragraph.",
+      "line 3: {@fact-box} is used inline, but its markup writes a <div>, which ends a paragraph.",
     );
   });
 
@@ -93,13 +89,13 @@ describe("textHtml", () => {
     );
   });
 
-  test("leaves an element with no component, and element syntax in code, as Markz writes them", async () => {
+  test("leaves an element with no markup file, and element syntax in code, as Markz writes them", async () => {
     expect(await text("{@chart-view data=a.csv /}\n\n`<call-out>`")).toBe(
       '<chart-view data="a.csv"></chart-view>\n<p><code>&lt;call-out&gt;</code></p>\n',
     );
   });
 
-  test("does not render an element whose name starts with a component name", async () => {
+  test("does not render an element whose name starts with another element's name", async () => {
     expect(await text("{@call-out-box /}")).toBe("<call-out-box></call-out-box>\n");
   });
 

@@ -1,0 +1,1 @@
+code/+layout.js: Sitez no longer reads a layout. The page's frame is code/index.html, which is complete HTML with <slot></slot> where the page goes. Move this file's markup there, and its head into <head>.

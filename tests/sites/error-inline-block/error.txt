@@ -1,1 +1,1 @@
-text/index.md: line 3: {@key-word} is used inline, but its component writes a <div>, which ends a paragraph. Return inline HTML, such as a <span>.
+text/index.md: line 3: {@key-word} is used inline, but its markup writes a <div>, which ends a paragraph. Return inline HTML, such as a <span>.

@@ -1,1 +1,1 @@
-text/index.md: href="/posts/": /posts/ isn't a page or a file in public/. Link to one that is, or write a page elsewhere on this domain in full, starting https:// The link is in this page, its layout or a component they render.
+text/index.md: href="/posts/": /posts/ isn't a page or a file in public/. Link to one that is, or write a page elsewhere on this domain in full, starting https:// The link is in this page, code/index.html or an element they render.

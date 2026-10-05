@@ -1,0 +1,1 @@
+code/@tag-box.browser.js: this imports @amitkaps/sitez, whose html renders at build time. A .browser.js file works on the page's DOM, with no import from Sitez, or loads a library by its full URL.

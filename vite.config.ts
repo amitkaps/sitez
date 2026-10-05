@@ -14,15 +14,13 @@ const ignored = ["dist/**", "tests/sites/**", "tests/snapshots/**", "pnpm-lock.y
 
 export default defineConfig({
   // tsdown — `vp pack`. Two ESM entries: the plugin a site's `vite.config.js` imports, and the
-  // `sitez` import with its types. The other files a site's own build loads through Vite are
-  // copied as they are.
+  // `sitez` import with its types.
   pack: {
     entry: {
       plugin: "src/plugin.ts",
       "runtime/index": "src/runtime/index.ts",
     },
     dts: true,
-    copy: [{ from: "src/runtime/*.css", to: "dist/runtime" }],
     format: ["esm"],
     platform: "node",
     clean: true,

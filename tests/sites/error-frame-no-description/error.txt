@@ -1,0 +1,1 @@
+code/index.html: there's no description. Add the site's own, which a page that sets no description keeps: <meta name="description" content="What the site is about." />

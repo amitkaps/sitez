@@ -12,22 +12,21 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { join } from "node:path";
 import type { Plugin, ViteDevServer } from "vite";
-import { liveEntry, missingUrl, styleImports } from "./bundle.ts";
-import { NOT_FOUND } from "./discover.ts";
+import { browserEntry, missingUrl } from "./bundle.ts";
+import type { Browser } from "./browser.ts";
+import { NOT_FOUND, posix } from "./discover.ts";
 import { SiteError, shownFrom, siteErrorText } from "./errors.ts";
-import { escape } from "./head.ts";
-import type { Live } from "./live.ts";
-import { document } from "./render.ts";
+import { addToHead, escape, withStyles } from "./head.ts";
+import { inFrame } from "./render.ts";
 import { redirectUrl } from "./redirects.ts";
 import { readRun, renderPage, type Run } from "./site.ts";
-import { feed, sitemap } from "./sitemap.ts";
-import { asGiven, inReal, siteServer, type SiteServer } from "./vite.ts";
+import { inReal, siteServer, type SiteServer } from "./vite.ts";
 import { formatWarning, type MarkzWarning } from "./warnings.ts";
 
 /** The dev server's half of the plugin. It does nothing in the server `build` renders with. */
 export function devPlugin(): Plugin {
-  // What each page's script loads: its live files, from its last render.
-  const rendered = new Map<string, Live[]>();
+  // What each page's script loads: its `.browser.js` files, from its last render.
+  const rendered = new Map<string, Browser[]>();
   const warned = new Set<string>();
   // A request that isn't a page after all reaches `notFound` with the site already read.
   const runs = new WeakMap<IncomingMessage, Run>();
@@ -70,54 +69,43 @@ export function devPlugin(): Plugin {
   };
 
   /** @prose
-   * A page's document: rendered as `build` renders it, with Vite's client and the page's own
-   * script in place of the built stylesheet and live files.
+   * A page's document: rendered as `build` renders it, with its stylesheets linked from where they
+   * are in `code/`, so Vite serves and replaces them, and with Vite's client and the page's own
+   * script in place of the built script.
    */
   const page = async (run: Run, url: string): Promise<string | undefined> => {
     const found = run.pages.find((page) => page.url === url);
     if (!found) return undefined;
     const out = await renderPage(run, found);
-    const styles = [join(root, "code", "+style.css")];
     const missing = missingUrl(
       root,
-      styles.map((file) => asGiven(root, server.real, file)),
+      run.frame.styles.map((style) => style.file),
     );
     if (missing) throw missing;
     rendered.set(
       url,
-      out.live.map((live) => ({ ...live, file: inReal(root, server.real, live.file) })),
+      out.browser.map((browser) => ({ ...browser, file: inReal(root, server.real, browser.file) })),
     );
+    const linked = withStyles(out.frame, (href) => `/${posix(root, join(root, "code", href))}`);
     const query = `?url=${encodeURIComponent(url)}`;
-    const assets = [
-      HIDDEN,
+    const scripts = [
       '<script type="module" src="/@vite/client"></script>',
-      `<script type="module" blocking="render" src="${SCRIPTS}styles.js${query}"></script>`,
       `<script type="module" src="${SCRIPTS}page.js${query}"></script>`,
     ];
-    const { tags, head, body } = out.parts;
-    return document(run.site, [tags, ...assets].join("\n"), head, body);
+    return inFrame(addToHead(linked, scripts.join("\n")), out.body);
   };
 
   /** @prose
-   * A page's two scripts in dev. `styles.js` imports the stylesheet as modules, so Vite replaces
-   * them as they change, then shows the page, which stays hidden until then so it never flashes
-   * unstyled. `page.js` loads the page's own live files, where `build` writes one script for the site. It is a script of its own, so
-   * a broken one can't keep the styles from loading.
+   * A page's own script in dev, which loads the page's `.browser.js` files, where `build` writes
+   * one script for the site. Its stylesheets are plain links, which the browser waits for before
+   * it shows the page.
    */
-  const script = (name: string, url: string): string | undefined => {
-    if (name === "page.js") return liveEntry(rendered.get(url) ?? []);
-    if (name !== "styles.js") return undefined;
-    return [
-      ...styleImports(server.real, join(server.real, "code", "+style.css")),
-      // The reset has the view-transition rule now, so only the hiding goes.
-      `document.getElementById('sitez-hidden')?.remove();`,
-    ].join("\n");
-  };
+  const script = (name: string, url: string): string | undefined =>
+    name === "page.js" ? browserEntry(rendered.get(url) ?? []) : undefined;
 
   /** @prose
    * Pages first, before Vite's own middleware. `/about` redirects to `/about/`, as a static host
-   * would, and a page's old URL to the page; the sitemap and the feed are written from the metadata, as `build` writes them; any
-   * other request that isn't a page is Vite's: a module, a file in `public/`. What nothing
+   * would, and a page's old URL to the page. Any other request that isn't a page is Vite's: a module, a file in `public/`. What nothing
    * serves gets the 404 page, with a 404 status.
    */
   const serve = (request: IncomingMessage, response: ServerResponse, next: () => void) => {
@@ -126,13 +114,6 @@ export function devPlugin(): Plugin {
     const path = pathOf(url);
     if (path.startsWith("/@") || path.startsWith("/__") || !looksLikePage(path)) return next();
     return withRun(request, response, async (run) => {
-      const data = run.pages.map((page) => run.data.get(page)!);
-      if (path === "/sitemap.xml") {
-        return send(response, 200, "application/xml", sitemap(run.site.url, data));
-      }
-      if (path === "/feed.xml" && run.hasFeed) {
-        return send(response, 200, "application/rss+xml", feed(run.site, run.site.url, data)!);
-      }
       const target = path.endsWith("/index.html") ? path.slice(0, -"index.html".length) : path;
       const html = target === NOT_FOUND ? undefined : await page(run, target);
       if (html !== undefined) return send(response, 200, "text/html", html);
@@ -157,8 +138,8 @@ export function devPlugin(): Plugin {
 
   /** @prose
    * A change that isn't CSS reloads the page. Every server module is dropped, since any of them
-   * can change any page's HTML, and so are the pages' scripts, since a page may now use a live
-   * element it didn't.
+   * can change any page's HTML, and so are the pages' scripts, since a page may now use an element
+   * with behavior it didn't.
    */
   const reload = (vite: ViteDevServer) => {
     vite.environments.ssr.moduleGraph.invalidateAll();
@@ -190,7 +171,7 @@ export function devPlugin(): Plugin {
       };
     },
     // CSS is Vite's to replace, unless a page is failing. A custom element can't be defined twice,
-    // so a live file reloads the page.
+    // so a `.browser.js` file reloads the page.
     hotUpdate({ file, server: vite }) {
       if (this.environment.name !== "client") return;
       if (file.endsWith(".css") && !failing) return;
@@ -206,26 +187,10 @@ export const RENDER_ONLY = "sitez:render-only";
 // Where a page's scripts are served, by the plugin above.
 const SCRIPTS = "/@sitez/";
 
-/** @prose
- * The page's styles arrive as modules, after the HTML. `styles.js` blocks the first render where
- * the browser supports `blocking="render"`, as a stylesheet link does in `build`; elsewhere this
- * hides the page until the script has run, or for a second at most, so a script that fails can't
- * leave it blank. It also opts into view transitions from the first render, which the reset
- * does too late here: a page that isn't opted in when it first renders doesn't transition.
- */
-const HIDDEN =
-  '<style id="sitez-hidden">@view-transition{navigation:auto}html{visibility:hidden;animation:sitez-show 0s 1s forwards}@keyframes sitez-show{to{visibility:visible}}</style>';
-
 /** A page's URL ends in `/` or `.html`, or has no extension: `/about` redirects. */
 function looksLikePage(path: string): boolean {
   const last = path.slice(path.lastIndexOf("/") + 1);
-  return (
-    last === "" ||
-    last.endsWith(".html") ||
-    !last.includes(".") ||
-    path === "/sitemap.xml" ||
-    path === "/feed.xml"
-  );
+  return last === "" || last.endsWith(".html") || !last.includes(".");
 }
 
 function send(response: ServerResponse, status: number, type: string, body: string): void {

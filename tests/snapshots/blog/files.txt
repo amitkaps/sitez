@@ -5,10 +5,8 @@ blog/again/index.html
 blog/hello/index.html
 blog/index.html
 favicon.svg
-feed.xml
 hello.html
 hello/index.html
 index.html
 script.CMWRow6y.js
-sitemap.xml
-style.DjTho1g4.css
+style.BxXUc59K.css

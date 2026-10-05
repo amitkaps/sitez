@@ -1,0 +1,1 @@
+code/index.html: <html> has no lang. Add it, such as <html lang="en">, so screen readers read the page in its language.

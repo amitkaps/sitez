@@ -36,29 +36,33 @@ afterAll(() => vite.close());
 const get = (path: string) => fetch(new URL(path, url), { redirect: "manual" });
 
 describe("pages", () => {
-  test("a page is rendered with Vite and its own scripts, hidden until styled", async () => {
+  test("a page is the frame around it, with its stylesheet linked from code/ and its own script", async () => {
     const response = await get("/blog/");
     expect(response.status).toBe(200);
     const html = await response.text();
     expect(html).toContain("<tag-filter>");
-    expect(html).toContain('<style id="sitez-hidden">@view-transition{navigation:auto}html{');
+    expect(html).toContain('<link rel="stylesheet" href="/code/style.css" />');
     expect(html).toContain('<script type="module" src="/@vite/client"></script>');
-    expect(html).toContain(
-      '<script type="module" blocking="render" src="/@sitez/styles.js?url=%2Fblog%2F"></script>',
-    );
     expect(html).toContain('<script type="module" src="/@sitez/page.js?url=%2Fblog%2F"></script>');
+    expect(html).toContain("<title>Field Notes</title>");
+    expect(html).toContain('<link rel="canonical" href="https://notes.example.com/blog/">');
   });
 
-  test("the page's styles script loads the stylesheet and shows the page", async () => {
-    const styles = await (await get("/@sitez/styles.js?url=%2Fblog%2F")).text();
-    expect(styles).toContain("/code/+style.css");
-    expect(styles).toContain("document.getElementById('sitez-hidden')?.remove();");
+  test("the stylesheet is served as CSS, where Vite can replace it", async () => {
+    const response = await fetch(new URL("/code/style.css", url), {
+      headers: { accept: "text/css" },
+    });
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/css");
+    expect(await response.text()).toContain("call-out");
   });
 
-  test("the page's own script loads the live files it uses, and a page with none loads none", async () => {
+  test("the page's own script loads the .browser.js files it uses, and a page with none loads none", async () => {
     const page = await (await get("/@sitez/page.js?url=%2Fblog%2F")).text();
-    expect(page).toContain("code/blog/@tag-filter.live.js");
-    expect(await (await get("/@sitez/page.js?url=%2Fabout%2F")).text()).not.toContain(".live.js");
+    expect(page).toContain("code/blog/@tag-filter.browser.js");
+    expect(await (await get("/@sitez/page.js?url=%2Fabout%2F")).text()).not.toContain(
+      ".browser.js",
+    );
   });
 
   test("a draft is served", async () => {
@@ -95,10 +99,9 @@ describe("pages", () => {
     expect(await response.text()).toContain("<title>");
   });
 
-  test("the feed, the sitemap and public/ are served", async () => {
-    for (const path of ["/feed.xml", "/sitemap.xml", "/favicon.svg"]) {
-      expect((await get(path)).status).toBe(200);
-    }
+  test("public/ is served, and Sitez writes no sitemap or feed", async () => {
+    expect((await get("/favicon.svg")).status).toBe(200);
+    for (const path of ["/feed.xml", "/sitemap.xml"]) expect((await get(path)).status).toBe(404);
   });
 });
 
@@ -118,9 +121,8 @@ describe("changes", () => {
       });
     });
     // The browser has loaded the page, so its modules are in Vite's graph.
-    await (await get("/@sitez/styles.js?url=%2Fblog%2F")).text();
     await (await get("/@sitez/page.js?url=%2Fblog%2F")).text();
-    await (await get("/code/+style.css")).text();
+    await fetch(new URL("/code/style.css", url), { headers: { accept: "text/css" } });
     // Only what this change causes: a reload from an earlier change may still be arriving.
     await new Promise((resolve) => setTimeout(resolve, 100));
     messages.length = 0;
@@ -138,13 +140,13 @@ describe("changes", () => {
     writeFileSync(path, readFileSync(path, "utf8").replace(from, to));
   };
 
-  test("CSS is replaced in place", async () => {
-    const message = await afterChange(edit("code/+style.css", "40rem", "42rem"));
+  test("CSS is replaced in place, as it is linked", async () => {
+    const message = await afterChange(edit("code/style.css", "40rem", "42rem"));
     expect(message.type).toBe("update");
   });
 
   test("code reloads the page, which shows the change", async () => {
-    const message = await afterChange(edit("code/blog/@tag-filter.js", ">All<", ">Every<"));
+    const message = await afterChange(edit("code/blog/@tag-filter.html.js", ">All<", ">Every<"));
     expect(message.type).toBe("full-reload");
     expect(await (await get("/blog/")).text()).toContain(">Every</button>");
   });
@@ -168,14 +170,14 @@ describe("changes", () => {
   });
 
   test("a url() in the CSS that isn't there shows, and fixing it reloads", async () => {
-    edit("code/+style.css", "./fonts/Serif.woff2", "./fonts/Serify.woff2")();
+    edit("code/style.css", "./fonts/Serif.woff2", "./fonts/Serify.woff2")();
     const broken = await get("/about/");
     expect(broken.status).toBe(500);
     expect(await broken.text()).toContain(
-      "code/+style.css: url(./fonts/Serify.woff2) isn't there. Fix the path: relative to this file, or /… for a file in public/.",
+      "code/style.css: url(./fonts/Serify.woff2) isn't there. Fix the path: relative to this file, or /… for a file in public/.",
     );
     const message = await afterChange(
-      edit("code/+style.css", "./fonts/Serify.woff2", "./fonts/Serif.woff2"),
+      edit("code/style.css", "./fonts/Serify.woff2", "./fonts/Serif.woff2"),
     );
     expect(message.type).toBe("full-reload");
     expect((await get("/about/")).status).toBe(200);
@@ -186,7 +188,7 @@ describe("changes", () => {
     const response = await get("/about/");
     expect(response.status).toBe(500);
     const html = await response.text();
-    expect(html).toContain("text/about.md: line 4: gone.md isn't there: no file at text/gone.md.");
+    expect(html).toContain("text/about.md: line 9: gone.md isn't there: no file at text/gone.md.");
     expect(html).toContain("/@vite/client");
   });
 });

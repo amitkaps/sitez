@@ -4,7 +4,7 @@
  * What each example site's `vite.config.js` imports in place of `@amitkaps/sitez/vite`. It is the
  * plugin from `src/`, and it resolves `@amitkaps/sitez`, which a site finds in its own
  * `node_modules`, to the runtime in `src/`. It follows the plugin's own resolver so
- * that an import `liveBoundary` should refuse is still refused first.
+ * that an import `browserBoundary` should refuse is still refused first.
  *
  * The plugin is imported by its full URL, and that is deliberate. Vite loads a config again for
  * each build it makes, and re-evaluates every relative import in it, so a plugin imported as

@@ -4,7 +4,7 @@
  * Every site in `tests/sites/` is built. A site builds to the files in `tests/snapshots/<site>/`
  * (`files.txt` lists them, `built/` holds the text ones, and `warnings.txt` has Markz's warnings,
  * when it has any), which are reviewed as they change. An `error-…` site fails with exactly its
- * `error.txt`. Files are named relative to the site, as `vite build` prints them from there.
+ * `error.txt`, which is reviewed as a snapshot is. Files are named relative to the site, as `vite build` prints them from there.
  * Each site is built the way `vite build` builds it, through its own `vite.config.js`.
  */
 import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
@@ -20,7 +20,7 @@ const names = readdirSync(sites, { withFileTypes: true })
   .map((entry) => entry.name);
 
 // Snapshots are what a person reviews; other files, bundled JavaScript among them, are listed by
-// name only. `live.test.ts` runs the JavaScript instead.
+// name only. `browser.test.ts` runs the JavaScript instead.
 const text = /\.(html|css|xml|svg|txt|json)$/;
 
 describe.each(names.filter((name) => !name.startsWith("error-")))("%s", (name) => {
@@ -63,7 +63,8 @@ describe.each(names.filter((name) => name.startsWith("error-")))("%s", (name) =>
     );
     expect(error).toBeInstanceOf(SiteError);
     const { file, message } = error as SiteError;
-    const expected = readFileSync(join(root, "error.txt"), "utf8").trim();
-    expect(`${relative(root, file)}: ${message}`).toBe(expected);
+    await expect(`${relative(root, file)}: ${message}\n`).toMatchFileSnapshot(
+      join(root, "error.txt"),
+    );
   });
 });

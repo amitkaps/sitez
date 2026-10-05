@@ -21,38 +21,30 @@ function problem(fn: () => unknown): string {
 const block = (lines: string) => parse(`---\n${lines}\n---\n\n# Heading\n`);
 
 describe("textMetadata", () => {
-  test("defaults the title to the first heading and the summary to the first paragraph", () => {
+  test("is the block and the URL, and fills in nothing from the text", () => {
     const doc = parse("# Hello _there_\n\nThe first `post`.\n\nMore.\n");
-    expect(textMetadata(file, "/hello/", doc)).toEqual({
-      url: "/hello/",
-      title: "Hello there",
-      summary: "The first post.",
-    });
+    expect(textMetadata(file, "/hello/", doc)).toEqual({ url: "/hello/" });
   });
 
-  test("keeps what the block says, and every other key", () => {
+  test("keeps what the block says, and every other key, date included", () => {
     const doc = parse(
-      "---\ntitle: Short\nsummary: Brief.\ndate: 2026-09-01\ndraft: true\ntags: [a, b]\n---\n\n# Long title\n\nText.\n",
+      "---\ntitle: Short\ndescription: Brief.\ndate: 2026-09-01\ndraft: true\ntags: [a, b]\n---\n\n# Long title\n\nText.\n",
     );
     expect(textMetadata(file, "/x/", doc)).toEqual({
       url: "/x/",
       title: "Short",
-      summary: "Brief.",
+      description: "Brief.",
       date: "2026-09-01",
       draft: true,
       tags: ["a", "b"],
     });
   });
 
-  test("looks only at the top level, where a reader starts", () => {
-    const doc = parse("> # Quoted\n>\n> Quoted text.\n\n## Real\n\nReal text.\n");
-    expect(textMetadata(file, "/x/", doc)).toMatchObject({ title: "Real", summary: "Real text." });
-  });
-
-  test("leaves out what the page has none of", () => {
-    const page = textMetadata(file, "/x/", parse("- a list\n"));
-    expect(page.title).toBeUndefined();
-    expect(page.summary).toBeUndefined();
+  test("passes summary through as the site's own key", () => {
+    expect(textMetadata(file, "/x/", block("summary: Brief."))).toEqual({
+      url: "/x/",
+      summary: "Brief.",
+    });
   });
 });
 
@@ -62,9 +54,7 @@ describe("the keys Sitez reads", () => {
     ["draft: 1", "draft is 1: write draft: true or draft: false."],
     ["title: 2026", "title is 2026: write it as text."],
     ["title:", "title is null: leave the line out, or give it a value."],
-    ["summary: [a, b]", 'summary is ["a","b"]: write it as text.'],
-    ["date: Sept 1", 'date is "Sept 1": write a date as 2026-09-29.'],
-    ["date: 2026-02-30", 'date is "2026-02-30": write a date as 2026-09-29.'],
+    ["description: [a, b]", 'description is ["a","b"]: write it as text.'],
     [
       "url: /about/",
       "url is \"/about/\": a page's URL is its file's path: move the file instead, and remove url.",
@@ -81,9 +71,9 @@ describe("the keys Sitez reads", () => {
     const page = textMetadata(
       file,
       "/x/",
-      block("title: T\nsummary: S\ndate: 2024-02-29\ndraft: false\ntags: [a]\norder: 3\nimage:"),
+      block("title: T\ndescription: S\ndate: Sept 1\ndraft: false\ntags: [a]\norder: 3\nimage:"),
     );
-    expect(page).toMatchObject({ draft: false, date: "2024-02-29", order: 3, image: null });
+    expect(page).toMatchObject({ draft: false, date: "Sept 1", order: 3, image: null });
   });
 });
 
@@ -100,16 +90,14 @@ describe("siteMetadata", () => {
     }
   }
 
-  test("is the block, and only the block", () => {
-    expect(site("name: Notes\nurl: https://notes.example.com\nlang: hi")).toEqual({
+  test("is the block, and only the block, with no defaults", () => {
+    expect(site("name: Notes\nurl: https://notes.example.com\nlang: hi\nauthor: Me")).toEqual({
       name: "Notes",
       url: "https://notes.example.com",
       lang: "hi",
+      author: "Me",
     });
-  });
-
-  test("is in English unless it says otherwise", () => {
-    expect(site("name: Notes")).toEqual({ lang: "en", name: "Notes" });
+    expect(site("name: 42")).toEqual({ name: 42 });
   });
 
   test.each([
@@ -121,7 +109,6 @@ describe("siteMetadata", () => {
       "repo: amitkaps/notes",
       'site.md: repo is "amitkaps/notes": write the full address, starting https://.',
     ],
-    ["name: 42", "site.md: name is 42: write it as text."],
   ])("fails on %s", (line, message) => {
     expect(site(line)).toBe(message);
   });

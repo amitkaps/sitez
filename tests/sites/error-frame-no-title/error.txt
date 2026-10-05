@@ -1,0 +1,1 @@
+code/index.html: there's no <title>. Add the site's own, which a page that sets no title keeps: <title>My Site</title>

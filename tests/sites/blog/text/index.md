@@ -1,3 +1,7 @@
+---
+description: Short notes on making small websites.
+---
+
 # Field Notes
 
 Short notes on making small websites. Start with [the first post](blog/hello.md), or read

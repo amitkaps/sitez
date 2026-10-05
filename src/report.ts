@@ -3,8 +3,8 @@
  *
  * What `build` prints when it's done (promise 5): each page's cost to send, gzipped, and to
  * build, so a page that grows heavy or slow is visible where the cost is. What pages share is one
- * `common` row, since the browser downloads it once. That's the stylesheet, and the script for
- * the pages whose notes name a live element. The last line is the whole build, its live elements
+ * `common` row, since the browser downloads it once. That's the stylesheets, and the script for
+ * the pages whose notes name an element with behavior. A site with neither has no such row. The last line is the whole build, its elements with behavior
  * and the version of Sitez that ran.
  *
  * ```text
@@ -13,7 +13,7 @@
  * /blog/     6.1 KB  20 ms  tag-filter
  * /quality/   90 KB  1.2 s  quality-report, raw <script>
  * common     3.0 KB css, 1.2 KB js, loads cdn.jsdelivr.net
- * 42 pages in 1.8 s → dist · live: quality-report, tag-filter · sitez 0.2.0
+ * 42 pages in 1.8 s → dist · behavior: quality-report, tag-filter · sitez 0.3.0
  * ```
  */
 import type { BuildResult } from "./build.ts";
@@ -34,13 +34,14 @@ export function report(result: BuildResult, outDir: string, version: string): st
       .join("  ")
       .trimEnd(),
   );
-  const common = [`${size(result.common.css)} css`];
+  const common = [];
+  if (result.common.css) common.push(`${size(result.common.css)} css`);
   if (result.common.js) common.push(`${size(result.common.js)} js`);
   common.push(...result.common.hosts.map((host) => `loads ${host}`));
-  lines.push(`${"common".padEnd(widths[0]!)}  ${common.join(", ")}`);
+  if (common.length > 0) lines.push(`${"common".padEnd(widths[0]!)}  ${common.join(", ")}`);
   const n = result.pages.length;
   const total = [`${n} ${n === 1 ? "page" : "pages"} in ${time(result.ms)} → ${outDir}`];
-  if (result.live.length > 0) total.push(`live: ${result.live.join(", ")}`);
+  if (result.behavior.length > 0) total.push(`behavior: ${result.behavior.join(", ")}`);
   total.push(`sitez ${version}`);
   lines.push(total.join(" · "));
   return lines.join("\n");

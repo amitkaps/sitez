@@ -4,9 +4,8 @@ How Sitez is built. What it promises is in [idea.md](idea.md). Everything here c
 underneath without changing those promises.
 
 Sitez 0.2 was a CLI with `+layout.js`, `.live` files and a reset. Step 21 of the plan made it a
-Vite plugin, which the code now is. Step 22 moves it to `code/index.html`, `.html` and `.browser.js`
-names, and explicit metadata. This page describes where that step ends, and says so where the code
-is still behind.
+Vite plugin. Step 22 moved it to `code/index.html`, `.html` and `.browser.js` names, and explicit
+metadata. This page describes the code as it is.
 
 ## Toolchain
 
@@ -49,8 +48,8 @@ Ruled out:
 - **Rendering in Vite's environments.** A build environment bundles modules and a dev server runs
   them where they are. Rendering from a bundle would move every module, and `import.meta.url`
   with it. The Markz site's Quality page reads its test cases relative to its own file. The plugin
-  would also have to name every layout and component as an entry before it had read the site,
-  when the site's files say which of them a page needs. The server costs a second config load.
+  would also have to name every element as an entry before it had read the site, when the site's
+  files say which of them a page needs. The server costs a second config load.
 - **Bundling the CSS and script in the one client build.** It would be fewer builds, but both come
   from what the pages rendered, and the stylesheet has no code splitting where the script has
   chunks. Two builds keep `dist/`'s files and hashes as they were.
@@ -137,6 +136,13 @@ written there, and the head is split by who knows each tag.
   a typo.
 - **Sitez adds what only the build knows.** That's each stylesheet's hashed name, the script on
   pages that use behavior, and a redirect's refresh.
+
+Sitez's tags go at the end of the head, after what `index.html` wrote, so a site's own tags come
+first. A frame with no `</head>` gets them after its description. The 404 page is served at URLs
+that aren't its own, so it has no canonical link and no `og:url`. A page that sets neither `title`
+nor `description` keeps the frame's, and its social tags say the same. A stylesheet link with a
+relative path is a file in `code/`, and one that starts `/` or names a host is the site's own to
+get right ([Bundling](#bundling)).
 
 `index.html` fails the build for what would make every page wrong. A missing `lang`, `charset`,
 `viewport`, `<title>` or description fails. So does a slot count other than one, and a canonical,
@@ -291,6 +297,18 @@ exact. Markers are replaced innermost first, so an element's `children` holds it
 rendered. `index.html`'s own elements and the ones an element's markup writes render the same way,
 until none is left. An element that ends up inside itself fails, naming the chain.
 
+Elements in HTML are found by a small tag scanner (`src/markup.ts`), not by a parser. It reads
+what the HTML tokenizer would call a tag, so a `<` in a comment, a script or a value is text. An
+element's content is given to it as a marker, and put back once its output has rendered. So an
+element's output is read for the elements it wrote and never for the ones it was handed, which
+would render twice. The chain of elements an output is inside is what the cycle check reads. The
+frame renders for each page, since its elements read `page`, and the page's HTML goes in last.
+
+In HTML an element is a tag with a markup file. A tag with a hyphen and no file is plain, and
+holds whatever elements it holds. An element must be closed, or written `<x />`, which HTML itself
+ignores on a custom element. An element with no content, or only space, has none. An attribute
+written twice keeps its first, as HTML does, where Markz keeps its last.
+
 An `.html` element is its file's HTML, with its content in place of its `<slot>`. An `.html.js`
 element is called with three kinds of props.
 
@@ -299,7 +317,8 @@ element is called with three kinds of props.
 - The page's `page`, `pages` and `site`. An attribute named `children` or one of those fails.
 
 A `data` attribute is read before the call. Its path resolves in `data/`, and the parsed JSON
-replaces the string. One that isn't there fails, naming the line.
+replaces the string. One that isn't there fails, naming the line. A `.html` element gets no data,
+so the attribute is read and left off the page all the same.
 
 An `.html.js` file's default export returns a template, and the build renders it. Its output is
 trimmed, so a template written across lines can sit inside a paragraph. Sitez writes the element
@@ -396,7 +415,9 @@ Ruled out:
 - **A URL in a page's metadata** (Jekyll's `permalink`, an Astro entry's `slug`). The path would
   stop being the URL (rule 2), and every link check would need a second source of URLs.
 - **A host's redirect file** (`_redirects` in `public/`). Only some hosts read it, GitHub Pages
-  and `preview` among those that don't, and Sitez can't check it. A site may still ship one.
+  and `preview` among those that don't, and Sitez can't check it. A name starting `_` is skipped
+  in `public/` as in every folder, so a site can't ship one. That's open, in
+  [Open questions](#open-questions).
 - **A stub file in `text/` for each old URL.** A site that moved its pages into folders would
   get one file per old URL, and the stub would be a page with no content.
 
@@ -457,7 +478,10 @@ Once every page has rendered, Rolldown builds what the browser downloads besides
 Nothing it builds reaches `dist/` until every page has.
 
 Each stylesheet `index.html` links becomes one file, `[name].[hash].css`, with what it
-`@import`s. Most sites link one. CSS is small and needed before anything paints, so one file,
+`@import`s, and the link is rewritten to it. A link is a file in `code/` when its path is
+relative, and it fails when the file isn't there. A path that starts `/` or names a host is left
+as written. Each stylesheet is a build of its own, named for its file. Most sites link one. In
+`dev` the link points at the file, which Vite serves and replaces as it changes. CSS is small and needed before anything paints, so one file,
 cached by the first page and reused by every other, costs less than a split that saves a few bytes
 a page. The site's CSS is unlayered and Sitez adds none, so `@layer` and `!important` mean what
 they always mean. A `url()` in it is bundled as `assets/[name].[hash][ext]`. Vite would ship one
@@ -657,6 +681,10 @@ and static output.
   escape hatch, outside the `.browser.js` files and the JavaScript they account for. The build
   report notes a page with a raw `<script>`. Whether to sanitize raw HTML waits until sites use it
   enough to say.
+- **Host files in `public/`.** Cloudflare reads `_headers` and `_redirects` from the folder it
+  serves, and a name starting `_` is skipped in every folder (`docs/idea.md#folders`). So a site
+  can't ship either. The rule could leave `public/` out, since it copies files as they are and
+  `_` there means nothing to Sitez. That's the human's call, since the idea says "every folder".
 - **A second frame.** amitkaps.com/stories/ is one page with its own header, footer, stylesheet
   and font, sharing nothing with the site's frame. Through the one frame it would take the site's
   look, and its CSS and font would reach every page. The narrow rule would be that

@@ -1,1 +1,1 @@
-site.md: there's no url, which the sitemap, the feed and every page's canonical link need. Add the site's address: url: https://example.com
+site.md: there's no url, which every page's canonical link needs. Add the site's address: url: https://example.com

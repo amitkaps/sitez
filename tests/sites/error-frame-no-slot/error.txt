@@ -1,0 +1,1 @@
+code/index.html: there's no <slot></slot>. Write it where each page goes, such as <main><slot></slot></main>.

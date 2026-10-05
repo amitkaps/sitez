@@ -1,0 +1,1 @@
+code/@tag-box.browser.js: this has no default export. A .browser.js file's default export is its element's class: export default class extends HTMLElement { … }.

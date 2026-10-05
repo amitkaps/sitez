@@ -17,9 +17,6 @@ import pkg from "../package.json" with { type: "json" };
 /** The name Sitez is published under, which a site's code imports. */
 export const PACKAGE = pkg.name;
 
-/** Sitez's own files a site's pages and bundles load: the reset. */
-export const runtime = join(import.meta.dirname, "runtime");
-
 export interface SiteServer {
   vite: ViteDevServer;
   /** The site's root, as Vite names it and every message names files from. */
@@ -62,7 +59,7 @@ export function siteServer(vite: ViteDevServer): SiteServer {
 /** @prose
  * A file that doesn't compile, or a module that throws as it loads, is a mistake in the site.
  * Vite's error says which file (`id`) and shows the lines around it (`frame`); without an `id`,
- * it's the file being loaded. An import `liveBoundary` refuses is already a `SiteError`.
+ * it's the file being loaded. An import `browserBoundary` refuses is already a `SiteError`.
  */
 export function siteError(error: unknown, file: string, root: string, real: string): SiteError {
   // A plugin's own SiteError, which Rolldown wraps in a list. The module runner copies one into
@@ -89,44 +86,48 @@ export function inReal(root: string, real: string, file: string): string {
   return join(real, file.slice(root.length));
 }
 
-const LIVE = /\.live\.[jt]s$/;
-const COMPONENT = /(?:^|\/)@[^/]+\.[jt]s$/;
-const LAYOUT = /(?:^|\/)\+layout\.[jt]s$/;
+const BROWSER = /\.browser\.[jt]s$/;
+const MARKUP = /(?:^|\/)@[^/]+\.html(?:\.[jt]s)?$/;
+const FRAME = /(?:^|\/)index\.html$/;
 
 /** @prose
  * Fails an import that crosses the line, in whichever environment makes it. In the server render,
- * that's an import of a `.live` file. In what the browser loads, it's an import of a component, a
- * layout or `sitez` itself, from a `.live` file or from anything it imports. `sitez`'s `html`
- * would make a template record in the browser, not nodes. The specifier is read as written,
- * which is how the site names its own files.
+ * that's an import of a `.browser.js` file. In what the browser loads, it's an import of an
+ * element's markup file or `sitez` itself, from a `.browser.js` file or from anything it imports.
+ * `sitez`'s `html` would make a template record in the browser, not nodes. The specifier is read
+ * as written, which is how the site names its own files.
  */
-export function liveBoundary(): Plugin {
+export function browserBoundary(): Plugin {
   return {
-    name: "sitez:live-boundary",
+    name: "sitez:browser-boundary",
     enforce: "pre",
     resolveId(id, importer) {
       if (!importer || importer.startsWith("\0")) return null;
       const { root } = this.environment.config;
       const path = id.split("?")[0]!;
       const from = asGiven(root, realpathSync(root), importer.split("?")[0]!);
-      if (this.environment.name === "ssr" && LIVE.test(path)) {
+      if (this.environment.name === "ssr" && BROWSER.test(path)) {
         throw new SiteError(
           from,
-          `this imports ${id}, a live file, which runs only in the browser and would crash the build. Move what both need into a module in code/.`,
+          `this imports ${id}, a .browser.js file, which runs only in the browser and would crash the build. Move what both need into a module in code/.`,
         );
       }
       if (this.environment.name === "client" && id === PACKAGE) {
         throw new SiteError(
           from,
-          `this imports ${id}, whose html renders at build time. A live file works on the page's DOM, with no import from Sitez, or loads a library by its full URL.`,
+          `this imports ${id}, whose html renders at build time. A .browser.js file works on the page's DOM, with no import from Sitez, or loads a library by its full URL.`,
         );
       }
-      if (this.environment.name === "client" && !LIVE.test(path)) {
-        const what = COMPONENT.test(path) ? "component" : LAYOUT.test(path) ? "layout" : undefined;
+      if (this.environment.name === "client" && !BROWSER.test(path)) {
+        const what = MARKUP.test(path)
+          ? "an element's markup"
+          : FRAME.test(path)
+            ? "the frame"
+            : undefined;
         if (what) {
           throw new SiteError(
             from,
-            `this imports ${id}, a ${what}, which renders at build time. A live file enhances HTML the build wrote, so it can't use one. Move what both need into a module in code/.`,
+            `this imports ${id}, ${what}, which is written at build time. A .browser.js file enhances HTML the build wrote, so it can't use it. Move what both need into a module in code/.`,
           );
         }
       }

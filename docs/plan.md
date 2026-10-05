@@ -136,31 +136,35 @@ its `<slot>`, elements are named for when they run, and metadata reaches only th
 code. It starts once 21's plugin works, since `index.html` is the HTML Vite builds from. The
 design is in [design.md](design.md#the-frame) and [Names in `code/`](design.md#names-in-code).
 
-- [ ] `code/index.html` replaces `+layout.js`, its `head` export and layouts up the tree. The page
+- [x] `code/index.html` replaces `+layout.js`, its `head` export and layouts up the tree. The page
       goes in its one `<slot>`. Sitez puts the page's `title` and `description` in place of
       `index.html`'s, and writes the canonical link and the seven Open Graph and Twitter tags.
       `head.ts` shrinks to that.
   - Fails: no `lang`, `charset`, `viewport`, `<title>` or description, a slot count other than
     one, and a hand-written canonical, `og:` or `twitter:` tag. Each message shows the line.
-- [ ] CSS is what `index.html` links, bundled with hashed names. `+style.css` as a reserved name
+  - `head.ts` is the frame's checks and the head. `markup.ts` is a tag scanner, and `elements.ts`
+    renders the elements in `index.html` and in an element's output.
+- [x] CSS is what `index.html` links, bundled with hashed names. `+style.css` as a reserved name
       and the reset (`src/runtime/reset.css`) go. The script is still added by Sitez.
-- [ ] Metadata is explicit. A page's block gives `title`, `description`, `draft` and `redirects`,
+- [x] Metadata is explicit. A page's block gives `title`, `description`, `draft` and `redirects`,
       with no defaults from the first heading or paragraph. `summary` becomes `description`.
       `page` is the block and `url`. `site.md` requires `url`, reads `repo`, and passes every
       other key through as `site.*`. `name` and `lang` are no longer read.
-- [ ] Names for when code runs. `@name.js` becomes `@name.html.js` and `.live.js` becomes
+- [x] Names for when code runs. `@name.js` becomes `@name.html.js` and `.live.js` becomes
       `.browser.js`. `@name.html` is a static element whose content goes in its `<slot>`.
-  - Elements are global. Two files for one element in different folders fail, and so do a bare
-    `@name.js` and an `@name.html` beside an `@name.html.js`.
+  - Elements are global. Two files for one element fail, and so do a bare `@name.js` and an
+    `@name.html` beside an `@name.html.js`.
   - Elements in `index.html` and in an element's output render like those in text, until none is
     left. An element that ends up inside itself fails, naming the chain.
   - The `+` sigil goes. A leftover `+layout.js` or `+style.css` fails, naming what replaces it.
-- [ ] A redirect page is `index.html` rendered with the page it reaches, a link in its slot and a
+- [x] A redirect page is `index.html` rendered with the page it reaches, a link in its slot and a
       refresh in its head.
-- [ ] `sitemap.xml` and `feed.xml` go, with `sitemap.ts`.
-- [ ] A file or folder whose name starts with `_` is skipped in every folder: never built,
-      copied or linked to.
-- [ ] Every fixture moves to the new names, with an error fixture for each new failure.
+- [x] `sitemap.xml` and `feed.xml` go, with `sitemap.ts`.
+- [x] A file or folder whose name starts with `_` is skipped in every folder: never built,
+      copied or linked to. That includes `public/`, which keeps a site from shipping Cloudflare's
+      `_headers` and `_redirects`. The question is open in [design.md](design.md#open-questions).
+- [x] Every fixture moves to the new names, with an error fixture for each new failure. An
+      `error.txt` is a file snapshot now, so `vp test -u` writes it and the diff is the review.
 - [ ] amitkaps.github.io moves on a branch. Its `+layout.js`, `heading.js` and `head` export
       become `code/index.html`. Each page writes its `# Title` and tagline, the grids become
       `.html.js`, the two `.live` files `.browser.js`, and `+style.css` loses the rules that

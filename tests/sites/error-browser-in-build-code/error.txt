@@ -1,0 +1,6 @@
+code/@call-out.html.js: this imports ./@call-out.browser.js, a .browser.js file, which runs only in the browser and would crash the build. Move what both need into a module in code/.
+
+1  |  import "./@call-out.browser.js";
+   |          ^
+2  |  
+3  |  export default ({ children }) => children;

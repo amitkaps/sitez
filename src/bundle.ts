@@ -2,56 +2,63 @@
  * # Bundling
  *
  * What the browser downloads besides the HTML, built by Rolldown once every page has rendered,
- * since only then is it known which live elements the pages use. A site has one stylesheet and at
- * most one script. Each is small, so one file, cached by the first page and reused by every
- * other, costs less than a split that saves a few bytes per page. The stylesheet is Sitez's reset,
- * then `code/+style.css`, with everything it references (a font, an image) bundled beside it. The
- * script is the live elements', loaded only by pages that have one. Every file's name carries a
- * content hash, so a new deploy is never served from a stale cache.
+ * since only then is it known which elements with behavior the pages use. A site's stylesheets are
+ * the ones `code/index.html` links, and its script is the behavior of its elements, at most one.
+ * Each is small, so one file, cached by the first page and reused by every other, costs less than
+ * a split that saves a few bytes per page. Every file's name carries a content hash, so a new
+ * deploy is never served from a stale cache.
  */
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
+import { basename, dirname, extname, join } from "node:path";
 import { build, type InlineConfig, type Logger, type Plugin, type Rolldown } from "vite";
 import { SiteError } from "./errors.ts";
-import { urlImportError, type Live } from "./live.ts";
-import { asGiven, runtime, siteError, type SiteServer } from "./vite.ts";
+import type { Style } from "./head.ts";
+import { urlImportError, type Browser } from "./browser.ts";
+import { asGiven, inReal, siteError, type SiteServer } from "./vite.ts";
 
 /** Files to write into `dist/`, by path. */
 export type Files = Map<string, string | Uint8Array>;
 
 /** @prose
- * The stylesheet, and the file it is written to. The reset is a layer of its own, so what the site
- * writes follows it whatever its specificity. A `url()` that doesn't resolve fails the build
- * rather than shipping as written, as a broken link would. The build has no code splitting, so its
- * CSS is one file even when the site's CSS imports others.
+ * Each stylesheet `index.html` links, bundled with what it `@import`s into one file with a hashed
+ * name, and the URL each is linked from. A `url()` in it, such as a font, is bundled beside it. One
+ * that doesn't resolve fails the build rather than shipping as written, as a broken link would.
+ * The build has no code splitting, so a stylesheet is one file even when it imports others.
  */
-export async function stylesheet(site: SiteServer): Promise<{ href: string; files: Files }> {
+export async function stylesheets(
+  site: SiteServer,
+  styles: Style[],
+): Promise<{ hrefs: Map<string, string>; files: Files }> {
   const { root, real } = site;
-  const imports = styleImports(real, `/code/+style.css`);
-  const { output, unresolved } = await bundle(
-    site,
-    { style: imports.join("\n") },
-    {
-      codeSplitting: false,
-      assetFileNames: (asset) =>
-        asset.names.some((name) => name.endsWith(".css"))
-          ? "style.[hash].css"
-          : "assets/[name].[hash][extname]",
-    },
-  );
-  const [url] = unresolved;
-  if (url) {
-    // Vite's warning names only the URL, and the site's own CSS is the one stylesheet it reads.
-    throw urlError(asGiven(root, real, join(real, "code", "+style.css")), url);
-  }
+  const hrefs = new Map<string, string>();
   const files: Files = new Map();
-  let href = "";
-  for (const item of output) {
-    if (item.type !== "asset") continue;
-    files.set(item.fileName, item.source);
-    if (item.fileName.endsWith(".css")) href = `/${item.fileName}`;
+  const built = new Map<string, string>();
+  for (const style of styles) {
+    if (!built.has(style.file)) {
+      const name = basename(style.file, extname(style.file));
+      const { output, unresolved } = await bundle(
+        site,
+        { [name]: `import ${JSON.stringify(inReal(root, real, style.file))};` },
+        {
+          codeSplitting: false,
+          assetFileNames: (asset) =>
+            asset.names.some((name) => name.endsWith(".css"))
+              ? "[name].[hash].css"
+              : "assets/[name].[hash][extname]",
+        },
+      );
+      const [url] = unresolved;
+      // Vite's warning names only the URL, and the stylesheet is the one that holds it.
+      if (url) throw urlError(style.file, url);
+      for (const item of output) {
+        if (item.type !== "asset") continue;
+        files.set(item.fileName, item.source);
+        if (item.fileName.endsWith(".css")) built.set(style.file, `/${item.fileName}`);
+      }
+    }
+    hrefs.set(style.href, built.get(style.file)!);
   }
-  return { href, files };
+  return { hrefs, files };
 }
 
 /** @prose
@@ -84,60 +91,36 @@ function urlError(file: string, url: string): SiteError {
 }
 
 /** @prose
- * The imports every page's styles start with: Sitez's reset, then the site's own
- * `code/+style.css` when there is one, imported as `style` names it.
+ * A script that defines elements with behavior: each `.browser.js` file's class, defined as its
+ * tag. The tag comes from the file's name and the class from its default export, so the file never
+ * names its element (rule 6). That one line per element is all of Sitez that reaches the browser.
  */
-export function styleImports(real: string, style: string): string[] {
+export function browserEntry(browsers: Browser[]): string {
   return [
-    `import ${JSON.stringify(join(runtime, "reset.css"))};`,
-    ...(existsSync(join(real, "code", "+style.css")) ? [`import ${JSON.stringify(style)};`] : []),
-  ];
-}
-
-/** @prose
- * A script that defines live elements: each live file's class, defined as its tag. The tag comes
- * from the file's name and the class from its default export, so a live file never names its
- * element (rule 6). That one line per element is all of Sitez that reaches the browser.
- */
-export function liveEntry(lives: Live[]): string {
-  return [
-    ...lives.map(({ file }, i) => `import live${i} from ${JSON.stringify(file)};`),
-    ...lives.map(({ tag }, i) => `customElements.define(${JSON.stringify(tag)}, live${i});`),
+    ...browsers.map(({ file }, i) => `import element${i} from ${JSON.stringify(file)};`),
+    ...browsers.map(({ tag }, i) => `customElements.define(${JSON.stringify(tag)}, element${i});`),
   ].join("\n");
 }
 
 /** @prose
- * The site's one script, `script.[hash].js`, which defines every live element a page uses. Like
- * the stylesheet, it is small, and one file cached by the first page costs less than a split by
- * page. Only a page with a live element loads it. Defining a tag that isn't on the page costs
- * nothing.
+ * The site's one script, `script.[hash].js`, which defines every element with behavior that a
+ * page uses. Like the stylesheets, it is small, and one file cached by the first page costs less
+ * than a split by page. Only a page with such an element loads it. Defining a tag that isn't on
+ * the page costs nothing. One script means one `.browser.js` file for each tag, which
+ * `readElements` has already checked.
  *
- * One script means one live file for each tag. A tag whose behavior differs by folder would
- * define the tag twice, so two used live files for one tag fail.
- *
- * A package a live file imports at the top goes into the script. One it imports with
+ * A package a `.browser.js` file imports at the top goes into the script. One it imports with
  * `await import()` becomes a chunk of its own, fetched only where its element connects, so a large
  * library costs only the pages that use it. A library by URL must come in that way too, or every
- * page with a live element would fetch it (`urlImports`). Those imports are left as they are, and
+ * page with such an element would fetch it (`urlImports`). Those imports are left as they are, and
  * the report names their hosts.
  *
  * The build is in production mode whatever the process says, since a dev server earlier in the
  * same process leaves `NODE_ENV` at `development`.
  */
-export async function script(site: SiteServer, lives: Live[]): Promise<Script> {
+export async function script(site: SiteServer, browsers: Browser[]): Promise<Script> {
   const { root, real } = site;
-  const byTag = new Map<string, Live>();
-  for (const live of lives) {
-    const other = byTag.get(live.tag);
-    if (other && other.file !== live.file) {
-      const [first, second] = [other.file, live.file].sort();
-      throw new SiteError(
-        asGiven(root, real, second!),
-        `this and ${relative(real, first!)} are both <${live.tag}>'s behavior, on different pages. A site has one script, so a tag has one live file. Remove one, or give the elements different names.`,
-      );
-    }
-    byTag.set(live.tag, live);
-  }
+  const byTag = new Map(browsers.map((browser) => [browser.tag, browser]));
   if (byTag.size === 0) return { files: new Map(), src: undefined, hosts: [] };
   const sorted = [...byTag.values()].sort((a, b) => (a.tag < b.tag ? -1 : 1));
   const mode = process.env.NODE_ENV;
@@ -146,7 +129,7 @@ export async function script(site: SiteServer, lives: Live[]): Promise<Script> {
   try {
     ({ output } = await bundle(
       site,
-      { script: liveEntry(sorted) },
+      { script: browserEntry(sorted) },
       {
         entryFileNames: "[name].[hash].js",
         chunkFileNames: "[name].[hash].js",
@@ -183,7 +166,7 @@ export interface Script {
 
 /** @prose
  * Fails a library imported by URL at the top of a module the site's script takes in. Every page
- * with a live element would fetch it before anything ran, whether or not its element is there.
+ * with an element that has behavior would fetch it before anything ran, whether or not its element is there.
  * Inside the element's function, `await import()` fetches it only where the element is.
  */
 function urlImports(root: string, real: string): Plugin {
@@ -203,7 +186,7 @@ function urlImports(root: string, real: string): Plugin {
  * compile fails naming it, as it would while rendering.
  *
  * The build reads the site's own config file, so its other Vite plugins apply to the CSS and the
- * script, and so does Sitez's `liveBoundary`, which comes with `sitez()`.
+ * script, and so does Sitez's `browserBoundary`, which comes with `sitez()`.
  */
 async function bundle(
   site: SiteServer,

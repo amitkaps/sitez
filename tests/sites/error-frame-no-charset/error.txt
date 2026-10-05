@@ -1,0 +1,1 @@
+code/index.html: there's no charset. Add <meta charset="utf-8" /> to the head, or accented text garbles.

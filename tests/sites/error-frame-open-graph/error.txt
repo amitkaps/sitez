@@ -1,0 +1,1 @@
+code/index.html: this writes an Open Graph tag, but Sitez writes it for every page, from the page's title, description and URL. Remove <meta property="og:title" content="Example" />

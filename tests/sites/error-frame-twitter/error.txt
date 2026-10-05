@@ -1,0 +1,1 @@
+code/index.html: this writes a Twitter tag, but Sitez writes it for every page, from the page's title and description. Remove <meta name="twitter:card" content="summary" />

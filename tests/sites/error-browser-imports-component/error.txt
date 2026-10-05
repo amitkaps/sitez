@@ -1,0 +1,1 @@
+code/@tag-box.browser.js: this imports ./@tag-box.html.js, an element's markup, which is written at build time. A .browser.js file enhances HTML the build wrote, so it can't use it. Move what both need into a module in code/.

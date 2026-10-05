@@ -2,7 +2,7 @@
  * # The site's modules in Vite
  *
  * A site's `import "@amitkaps/sitez"` gets the build-time runtime, which renders the templates it
- * makes. Only build code gets it, and a live file's import of it fails. Vite resolves every other
+ * makes. Only build code gets it, and a `.browser.js` file's import of it fails. Vite resolves every other
  * import as Node does, from the site's own `node_modules`.
  */
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
@@ -41,9 +41,9 @@ test("build code gets the runtime, and the site's own packages", async () => {
   expect(await render(card("Fish & Chips"))).toBe("<li>New: Fish &amp; Chips</li>");
 });
 
-test("only build code gets the runtime, and a live file's import fails", async () => {
+test("only build code gets the runtime, and a .browser.js file's import fails", async () => {
   const { client } = site.vite.environments;
-  const importer = join(site.real, "code/@tag-filter.live.js");
+  const importer = join(site.real, "code/@tag-filter.browser.js");
   await expect(client!.pluginContainer.resolveId("@amitkaps/sitez", importer)).rejects.toThrow(
     "whose html renders at build time",
   );

@@ -75,8 +75,8 @@ describe("render", () => {
 describe("render fails", () => {
   // oxfmt-ignore
   test.each<[string, unknown, RegExp]>([
-    ["a function in text", html`<button>${() => {}}</button>`, /holds a function.*live file/],
-    ["a function as an attribute", html`<button onclick=${() => {}}>x</button>`, /holds a function.*live file/],
+    ["a function in text", html`<button>${() => {}}</button>`, /holds a function.*\.browser\.js file/],
+    ["a function as an attribute", html`<button onclick=${() => {}}>x</button>`, /holds a function.*\.browser\.js file/],
     ["a function in an array", html`<ul>${[() => {}]}</ul>`, /holds a function/],
     ["a promise of a function", html`<p>${Promise.resolve(() => {})}</p>`, /holds a function/],
     ["a value where an attribute's name goes", html`<a ${"href"}="/">x</a>`, /attribute's name goes/],

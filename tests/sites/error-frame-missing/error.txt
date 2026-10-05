@@ -1,0 +1,1 @@
+code/index.html: this is missing. It is the HTML every page starts from, a complete page with <slot></slot> where the page goes.

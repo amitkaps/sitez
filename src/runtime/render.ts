@@ -17,7 +17,7 @@ export class TemplateError extends Error {
 
 /** @prose
  * Renders a template, or any value as text. Every promise in it is awaited first, in nested
- * templates and arrays too. A component that loads its data can be `async`, and so can a value.
+ * templates and arrays too. An element that loads its data can be `async`, and so can a value.
  */
 export async function render(value: unknown): Promise<string> {
   if (isTemplate(value)) return renderTemplate(value);
@@ -79,7 +79,7 @@ function stringOf(value: unknown): string {
 
 const functionError = () =>
   new TemplateError(
-    "a template holds a function, which can't run at build time. An event handler belongs in a live file (code/@name.live.js).",
+    "a template holds a function, which can't run at build time. An event handler belongs in a .browser.js file (code/@name.browser.js).",
   );
 
 const isPlainObject = (value: unknown): boolean =>

@@ -1,0 +1,1 @@
+code/blog/@call-out.html.js: <call-out>'s markup is also in code/@call-out.html.js. Elements are global, so a name has one markup file, @call-out.html or @call-out.html.js, wherever it sits. Remove one, or rename the element.

@@ -1,1 +1,1 @@
-text/index.md: line 3: {@call-out} has a page attribute, but every component in text already gets page, pages, site and children. Rename the attribute.
+text/index.md: line 3: {@call-out} has a page attribute, but every element already gets page, pages, site and children. Rename the attribute.

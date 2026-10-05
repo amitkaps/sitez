@@ -1,7 +1,11 @@
+---
+title: Docs
+---
+
 # Docs
 
 {@call-out type=tip}
-Rendered by `code/docs/@call-out.js`, the nearer one.
+Rendered by `code/@call-out.html.js`, like every call-out.
 {/call-out}
 
 {@fold-out}

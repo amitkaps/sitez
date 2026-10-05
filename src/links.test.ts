@@ -13,6 +13,8 @@ for (const file of [
   "text/blog/hello.md",
   "text/blog/draft.md",
   "public/logo.svg",
+  "public/_headers",
+  "text/_ideas.md",
   "src/code.ts",
   "docs/diagram.png",
 ]) {
@@ -28,7 +30,6 @@ const targets: LinkTargets = {
     ["/blog/hello/", { draft: false }],
     ["/blog/draft/", { draft: true }],
   ]),
-  generated: new Set(["/sitemap.xml"]),
   redirects: new Map([["/old-about/", "/about/"]]),
 };
 const from = join(root, "text/blog/hello.md");
@@ -94,6 +95,15 @@ describe("linkTarget", () => {
     expect(link("../../../outside.md")).toMatchObject({
       problem: expect.stringMatching(/isn't there/),
     });
+    expect(link("../_ideas.md")).toMatchObject({
+      problem: expect.stringMatching(/is skipped, since a name starting with _/),
+    });
+    expect(link("../../public/_headers")).toMatchObject({
+      problem: expect.stringMatching(/is skipped/),
+    });
+    expect(link("/_headers")).toMatchObject({
+      problem: expect.stringMatching(/isn't a page or a file in public\//),
+    });
     expect(link("/old-about")).toEqual({
       problem: "/old-about redirects to /about/. Link to /about/, where the page is now.",
     });
@@ -107,9 +117,13 @@ describe("renderedLinkProblem", () => {
     expect(
       check(
         '<a href="/">Home</a> <a href="../hello/#top">Me</a> <img src="/logo.svg"> ' +
-          '<a href="/sitemap.xml">Map</a> <a href="https://example.com">Out</a> <a href="#x">X</a>',
+          '<a href="https://example.com">Out</a> <a href="#x">X</a>',
       ),
     ).toBeUndefined();
+  });
+
+  test("doesn't expect a sitemap, which Sitez no longer writes", () => {
+    expect(check('<a href="/sitemap.xml">Map</a>')).toMatch(/^href="\/sitemap.xml"/);
   });
 
   test("names the first broken link, whoever wrote it", () => {

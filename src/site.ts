@@ -13,15 +13,22 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "@amitkaps/markz";
+import { findBrowser, type Browser } from "./browser.ts";
 import { readData } from "./data.ts";
-import { checkCode, discover, nearest, NOT_FOUND, SITE_FILE, type Page } from "./discover.ts";
+import {
+  discover,
+  readElements,
+  NOT_FOUND,
+  SITE_FILE,
+  type Elements,
+  type Page,
+} from "./discover.ts";
+import { renderElement, renderElements, type ElementSite } from "./elements.ts";
 import { SiteError } from "./errors.ts";
-import { headTags } from "./head.ts";
-import { raw } from "./runtime/html.ts";
+import { escape, pageHead, readFrame, withStyles, type Frame } from "./head.ts";
 import { linkTarget, renderedLinkProblem, type LinkTargets } from "./links.ts";
 import { isDraft, textMetadata, siteMetadata, type Metadata, type PageData } from "./metadata.ts";
-import { document, renderHead, renderLayout, renderModule, type Props } from "./render.ts";
-import { findLive, type Live } from "./live.ts";
+import { inFrame, type Props } from "./render.ts";
 import { readRedirects } from "./redirects.ts";
 import { textHtml } from "./text.ts";
 import { asGiven, type SiteServer } from "./vite.ts";
@@ -32,37 +39,44 @@ export interface Run {
   site: Metadata & { url: string };
   server: SiteServer;
   links: LinkTargets;
+  elements: Elements;
+  /** `code/index.html`, read and checked. */
+  frame: Frame;
   /** The pages this run writes or serves, in discovery order. */
   pages: Page[];
   data: Map<Page, PageData>;
   /** Every page's metadata but the 404's, as each page gets it in `pages`. */
   listed: PageData[];
-  hasFeed: boolean;
   /** Markz's, from `site.md` and every page this run renders. */
   warnings: MarkzWarning[];
 }
 
-/** One page, rendered: its document's parts, before the stylesheet and scripts are known. */
+/** @prose
+ * One page, rendered: the frame around it, with the elements in it rendered and its head written,
+ * and the page's HTML, which goes where the frame has `SLOT`. They stay apart until the stylesheets
+ * and scripts are known, since the head is the frame's and the page's HTML mustn't be read as it.
+ */
 export interface Rendered {
   url: string;
   file: string;
   ms: number;
   data: PageData;
-  parts: { tags: string; head: string; body: string };
-  /** The live elements the page's HTML uses, sorted by tag. */
-  live: Live[];
+  frame: string;
+  body: string;
+  /** The elements with behavior the page's HTML uses, sorted by tag. */
+  browser: Browser[];
 }
 
 /** @prose
- * `url` in `site.md` is required: the sitemap, the feed and every canonical link are full
- * addresses, and a relative one would be a guess.
+ * `url` in `site.md` is required, since every page's canonical link and Open Graph URL is a full
+ * address, and a relative one would be a guess.
  */
 export function readSite(root: string): Metadata & { url: string } {
   const site = siteMetadata(root);
   if (typeof site.url !== "string") {
     throw new SiteError(
       join(root, SITE_FILE),
-      "there's no url, which the sitemap, the feed and every page's canonical link need. Add the site's address: url: https://example.com",
+      "there's no url, which every page's canonical link needs. Add the site's address: url: https://example.com",
     );
   }
   return site as Metadata & { url: string };
@@ -77,7 +91,8 @@ export async function readRun(server: SiteServer, { dev = false } = {}): Promise
   const { root } = server;
   const site = readSite(root);
   const siteFile = join(root, SITE_FILE);
-  checkCode(root);
+  const elements = readElements(root);
+  const frame = readFrame(root);
   const pages = discover(root);
   const draft = (data: PageData) => !dev && isDraft(data);
 
@@ -94,91 +109,121 @@ export async function readRun(server: SiteServer, { dev = false } = {}): Promise
     root,
     repo: typeof site.repo === "string" ? site.repo : undefined,
     pages: new Map(),
-    generated: new Set(["/sitemap.xml"]),
     redirects: new Map(),
   };
   for (const page of pages) links.pages.set(page.url, { draft: draft(data.get(page)!) });
   const built = pages.filter((page) => !draft(data.get(page)!));
   const listed = built.filter((page) => page.url !== NOT_FOUND).map((page) => data.get(page)!);
-  const hasFeed = built.some((page) => page.url !== NOT_FOUND && data.get(page)!.date);
-  if (hasFeed) links.generated.add("/feed.xml");
   const entry = (page: Page) => ({ file: page.file, data: data.get(page)! });
   links.redirects = readRedirects(root, pages.map(entry), built.map(entry));
-  return { root, site, server, links, pages: built, data, listed, hasFeed, warnings };
+  return { root, site, server, links, elements, frame, pages: built, data, listed, warnings };
 }
 
 /** @prose
- * One page: its text, then its layout around it, then every link in the result checked. The
- * layout's `head` export adds to the head.
+ * One page: its text, then the frame around it, then every link in the result checked. The frame's
+ * elements render for each page, since they can read `page`.
  */
 export async function renderPage(run: Run, page: Page): Promise<Rendered> {
+  const t = performance.now();
   try {
-    return await renderOne(run, page);
+    const body = await textOf(run, page);
+    return await framed(run, page.file, page.url, run.data.get(page)!, body, false, t);
   } catch (error) {
     throw notDefined(error, run.root, run.server.real) ?? error;
   }
 }
 
-async function renderOne(run: Run, page: Page): Promise<Rendered> {
-  const { root, site, server, listed } = run;
+/** @prose
+ * The page at an old URL. It is `code/index.html` rendered for the page it reaches, so the frame's
+ * elements never see a page with no metadata. Its slot holds a link to the new URL, and its head
+ * refreshes there, names it canonical and asks not to be indexed (`pageHead`).
+ */
+export async function renderRedirect(run: Run, from: string, to: string): Promise<Rendered> {
   const t = performance.now();
-  const pageData = run.data.get(page)!;
-  const props: Props = { page: pageData, pages: listed, site };
-  let body = await renderText(run, page, props);
-  let head = "";
-  const layoutFile = nearest(root, page.url, "+layout");
-  if (layoutFile) {
-    const layout = await server.load(layoutFile);
-    body = await renderLayout(layoutFile, layout, props, body);
-    head = await renderHead(layoutFile, layout, props);
+  const target = run.pages.find((page) => page.url === to)!;
+  const body = `<p>This page has moved to <a href="${escape(to)}">${escape(to)}</a>.</p>`;
+  try {
+    const page = await framed(run, target.file, to, run.data.get(target)!, body, true, t);
+    return { ...page, url: from };
+  } catch (error) {
+    throw notDefined(error, run.root, run.server.real) ?? error;
   }
-  const tags = headTags(pageData, site, run.hasFeed);
-  const problem = renderedLinkProblem(run.links, page.url, document(site, tags, head, body));
+}
+
+function elementSite(run: Run, props: Props): ElementSite {
+  return {
+    elements: run.elements,
+    load: (file) => run.server.load(file),
+    data: (path) => readData(run.root, path),
+    props,
+  };
+}
+
+async function framed(
+  run: Run,
+  file: string,
+  url: string,
+  data: PageData,
+  text: string,
+  redirect: boolean,
+  t: number,
+): Promise<Rendered> {
+  const { root, site, frame } = run;
+  const rendered = await renderElements(
+    elementSite(run, { page: data, pages: run.listed, site }),
+    frame.html,
+    frame.file,
+    [],
+  );
+  const head = pageHead(rendered, data, site, redirect);
+  // The stylesheets are the build's to check, and are linked by files, not URLs.
+  const problem = renderedLinkProblem(
+    run.links,
+    url,
+    inFrame(
+      withStyles(head, () => "#"),
+      text,
+    ),
+  );
   if (problem) {
     throw new SiteError(
-      page.file,
-      `${problem} The link is in this page, its layout or a component they render.`,
+      file,
+      `${problem} The link is in this page, ${relativeTo(root, frame.file)} or an element they render.`,
     );
   }
   return {
-    url: page.url,
-    file: page.file,
-    data: pageData,
-    parts: { tags, head, body },
-    live: findLive(root, page.url, head + body),
+    url,
+    file,
+    data,
+    frame: head,
+    body: text,
+    browser: findBrowser(run.elements, inFrame(head, text)),
     ms: performance.now() - t,
   };
 }
 
+const relativeTo = (root: string, file: string) => file.slice(root.length + 1);
+
 /** @prose
- * A text page's HTML (`text.ts`). Each component is found up the tree from the page's URL, as its
- * layout is, and gets the element's attributes, its content as `children`, its `data`, and the
- * page's props.
+ * A text page's HTML (`text.ts`). Each element is the one of its name in `code/`, whichever folder
+ * its files sit in, and gets the element's attributes, its content as `children`, its `data`, and
+ * the page's props.
  */
-async function renderText(run: Run, page: Page, props: Props): Promise<string> {
-  const { root, server } = run;
+async function textOf(run: Run, page: Page): Promise<string> {
+  const { root } = run;
   const doc = parse(readFileSync(page.file, "utf8"));
+  const site = elementSite(run, { page: run.data.get(page)!, pages: run.listed, site: run.site });
   return textHtml(page.file, doc, {
-    component: (name) => nearest(root, page.url, `@${name}`),
+    element: (name) => run.elements.get(name)?.markup !== undefined,
     link: (destination, kind) => linkTarget(run.links, page.file, destination, kind),
     data: (path) => readData(root, path),
-    render: async (file, attributes, children, data) =>
-      renderModule(
-        file,
-        await server.load(file),
-        {
-          ...attributes,
-          ...(data && { data: data.value }),
-          children: children === undefined ? undefined : raw(children),
-          ...props,
-        },
-        "component",
-      ),
+    render: (name, attributes, children, data) =>
+      renderElement(site, name, attributes, children, data, []),
   });
 }
 
 /** @prose
- * A name used without an import, such as a component, fails only as it renders. The file that
+ * A name used without an import fails only as it renders. The file that
  * rendered may not be the one that used it, so the error's stack names the file. Its line numbers
  * are Vite's, after the transform, so the line is found in the source.
  */
@@ -203,11 +248,3 @@ function notDefined(error: unknown, root: string, real: string): SiteError | und
 }
 
 const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-/** @prose
- * # Naming the file behind a broken link
- *
- * A broken link in the rendered HTML is named against the page (`text/index.md: href="/about"`)
- * even when the layout wrote it, since the check reads the finished document. Look for the
- * `href`/`src` in the layout's source and name that file when it's found there, falling back to "this page, its layout or a component".
- */

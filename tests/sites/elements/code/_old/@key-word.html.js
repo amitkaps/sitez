@@ -1,0 +1,1 @@
+export default () => "never loaded";

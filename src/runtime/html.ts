@@ -2,7 +2,7 @@
  * # The template value
  *
  * What `html` makes. It records its strings and values and renders nothing, and `render.ts` turns
- * it into a string. `html` exists only at build time, and a live file that imports it fails.
+ * it into a string. `html` exists only at build time, and a `.browser.js` file that imports it fails.
  *
  * A value is marked with a registered symbol, not a class. The site's code loads `sitez` through
  * Vite's module runner, and the build loads it through Node. That makes two copies of this file,
@@ -30,8 +30,8 @@ export function html(strings: TemplateStringsArray, ...values: unknown[]): Templ
 }
 
 /** @prose
- * HTML that is already safe, which only Sitez makes. That's Markz's output, and the children a
- * layout or component is given. A site has no way to write it, so every value it interpolates is
+ * HTML that is already safe, which only Sitez makes. That's Markz's output, and the children an
+ * element is given. A site has no way to write it, so every value it interpolates is
  * escaped.
  */
 export function raw(value: string): Raw {

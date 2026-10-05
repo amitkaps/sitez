@@ -1,12 +1,12 @@
 /** @prose
  * # Redirects
  *
- * Which old URLs a page can list, the failures that name the page listing one, and the page Sitez
- * writes at each.
+ * Which old URLs a page can list, and the failures that name the page listing one. The page Sitez
+ * writes at each is in the example blog's snapshots.
  */
 import { describe, expect, test } from "vite-plus/test";
 import type { PageData } from "./metadata.ts";
-import { readRedirects, redirectFile, redirectPage, redirectUrl } from "./redirects.ts";
+import { readRedirects, redirectFile, redirectUrl } from "./redirects.ts";
 
 const page = (name: string, url: string, redirects?: PageData["redirects"]) => ({
   file: `/site/text/${name}.md`,
@@ -88,12 +88,4 @@ describe("readRedirects", () => {
       "redirects lists old: write each old URL as a path on this site",
     );
   });
-});
-
-test("the page at an old URL sends the browser on, and names the new one canonical", () => {
-  const html = redirectPage("https://example.com", "/essays/sculptor/");
-  expect(html).toContain('<meta http-equiv="refresh" content="0; url=/essays/sculptor/">');
-  expect(html).toContain('<link rel="canonical" href="https://example.com/essays/sculptor/">');
-  expect(html).toContain('<meta name="robots" content="noindex">');
-  expect(html).toContain('<a href="/essays/sculptor/">');
 });

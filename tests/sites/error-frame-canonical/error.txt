@@ -1,0 +1,1 @@
+code/index.html: this writes a canonical link, but Sitez writes it for every page, from the page's URL. Remove <link rel="canonical" href="https://example.com/" />

@@ -6,7 +6,8 @@
  * URL is still its file's path (rule 2). A redirect only points old addresses at it, so a site can
  * move its files without breaking links from elsewhere.
  *
- * A redirect is checked as a link is. It can't be a URL a page or another redirect has, and a link
+ * The page at an old URL is `code/index.html` rendered for the page it reaches (`site.ts`). A
+ * redirect is checked as a link is. It can't be a URL a page or another redirect has, and a link
  * to it fails, asking for the page it reaches. So nothing on the site goes through one.
  *
  * An old `/x.html` can't redirect while a page has `/x/`. Hosts serve `x.html` at `/x` too, so the
@@ -17,7 +18,6 @@
 import { join, relative } from "node:path";
 import { outputFile } from "./discover.ts";
 import { SiteError } from "./errors.ts";
-import { escape } from "./head.ts";
 import type { PageData } from "./metadata.ts";
 
 /** @prose
@@ -91,24 +91,4 @@ export function readRedirects(
     }
   }
   return redirects;
-}
-
-/** @prose
- * The page written at an old URL. It refreshes at once to the new one, which search engines read
- * as a permanent redirect, and its canonical link names the new page. It isn't indexed itself, and
- * a link stays for a browser that doesn't refresh. It works on any static host, where a host's
- * redirect file works only on that host.
- */
-export function redirectPage(siteUrl: string, to: string): string {
-  const href = escape(to);
-  return [
-    "<!doctype html>",
-    '<meta charset="utf-8">',
-    `<title>Moved to ${href}</title>`,
-    `<link rel="canonical" href="${escape(new URL(to, siteUrl).href)}">`,
-    '<meta name="robots" content="noindex">',
-    `<meta http-equiv="refresh" content="0; url=${href}">`,
-    `<p>This page has moved to <a href="${href}">${href}</a>.</p>`,
-    "",
-  ].join("\n");
 }

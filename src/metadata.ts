@@ -1,55 +1,50 @@
 /** @prose
  * # Metadata
  *
- * What layouts and components know about a page, the site and every page (rule 5). A page's
- * metadata is its Markz block, with `title` defaulting to the first heading and `summary` to the
- * first paragraph, so most pages need no block.
+ * What elements know about a page, the site and every page (rule 5). A page's metadata is its Markz
+ * block and its `url`, and nothing else. Sitez reads `title`, `description`, `draft` and
+ * `redirects` from it, and fills in none of them from the text. `title` and `description` go in
+ * the head (`head.ts`), `draft` keeps the page out of the build, and `redirects` write pages
+ * ([idea.md](../docs/idea.md#metadata)).
  *
  * Sitez checks only the keys it reads itself, and a wrong one fails the build naming the file and
- * the key rather than being read some other way: `draft: yes` would otherwise publish a draft.
- * Every other key passes through unchecked, so a site can add its own (`tags`), and the code
- * that reads it is where it's checked.
+ * the key rather than being read some other way. `draft: yes` would otherwise publish a draft.
+ * Every other key passes through unchecked, `date` and `tags` included, so a site can add its own,
+ * and the code that reads one is where it's checked.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { parse, textContent, type Document, type MetadataValue } from "@amitkaps/markz";
+import { parse, type Document, type MetadataValue } from "@amitkaps/markz";
 import { SITE_FILE } from "./discover.ts";
 import { SiteError } from "./errors.ts";
 
 export type Metadata = Record<string, MetadataValue | undefined>;
 
-/** A page as code sees it: its URL and its metadata. */
+/** A page as code sees it: its metadata block and its URL. */
 export interface PageData extends Metadata {
   url: string;
   title?: string;
-  summary?: string;
-  date?: string;
+  description?: string;
   draft?: boolean;
   redirects?: string | string[];
 }
 
 /** @prose
- * The metadata block in `site.md`; the rest of the file is notes for whoever maintains the site.
- * `lang` is the language every page is written in, English unless it says otherwise.
+ * The metadata block in `site.md`, the rest of the file being notes for whoever maintains the
+ * site. Sitez reads `url`, which every page's canonical link needs, and `repo`, where links to the
+ * repo's files go. Every other key is the site's own, as `site.author`.
  */
 export function siteMetadata(root: string): Metadata {
   const file = join(root, SITE_FILE);
   const block: Metadata = { ...parse(readFileSync(file, "utf8")).metadata };
   check(file, block, siteKeys);
-  return { lang: "en", ...block };
+  return block;
 }
 
 export function textMetadata(file: string, url: string, doc: Document): PageData {
   const block: Metadata = { ...doc.metadata };
   check(file, block, pageKeys);
-  const title = first(doc, "heading");
-  const summary = first(doc, "paragraph");
-  return {
-    ...block,
-    url,
-    title: typeof block.title === "string" ? block.title : title,
-    summary: typeof block.summary === "string" ? block.summary : summary,
-  };
+  return { ...block, url };
 }
 
 export function isDraft(page: PageData): boolean {
@@ -57,9 +52,9 @@ export function isDraft(page: PageData): boolean {
 }
 
 /** @prose
- * The keys Sitez reads, and what each must be. `url` belongs to the site in `site.md`; a page's
+ * The keys Sitez reads, and what each must be. `url` belongs to the site in `site.md`. A page's
  * URL is its file's path, so a page setting one would be ignored, and fails instead. An empty
- * value (`title:`) is a mistake too: leave the line out to get the default.
+ * value (`title:`) is a mistake too. Leave the line out to keep the frame's own.
  */
 type Rule = (value: MetadataValue | undefined) => string | undefined;
 
@@ -67,9 +62,7 @@ const text: Rule = (value) => (typeof value === "string" ? undefined : "write it
 
 const pageKeys: Record<string, Rule> = {
   title: text,
-  summary: text,
-  date: (value) =>
-    typeof value === "string" && isDate(value) ? undefined : "write a date as 2026-09-29",
+  description: text,
   draft: (value) => (typeof value === "boolean" ? undefined : "write draft: true or draft: false"),
   url: () => "a page's URL is its file's path: move the file instead, and remove url",
   redirects: (value) =>
@@ -84,12 +77,7 @@ const absoluteUrl: Rule = (value) =>
     ? undefined
     : "write the full address, starting https://";
 
-const siteKeys: Record<string, Rule> = {
-  name: text,
-  url: absoluteUrl,
-  repo: absoluteUrl,
-  lang: text,
-};
+const siteKeys: Record<string, Rule> = { url: absoluteUrl, repo: absoluteUrl };
 
 function check(file: string, block: Metadata, rules: Record<string, Rule>): void {
   for (const [key, rule] of Object.entries(rules)) {
@@ -100,21 +88,4 @@ function check(file: string, block: Metadata, rules: Record<string, Rule>): void
       throw new SiteError(file, `${key} is ${JSON.stringify(value)}: ${problem}.`);
     }
   }
-}
-
-function isDate(value: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  return new Date(`${value}T00:00:00Z`).toISOString().startsWith(value);
-}
-
-/** @prose
- * The text of the first top-level node of `type`, which is what a reader sees first, on one line:
- * a paragraph's line breaks are the source's, not the reader's, and a description has none.
- */
-function first(doc: Document, type: "heading" | "paragraph"): string | undefined {
-  for (const node of doc.children(doc.root)) {
-    if (doc.type(node) === type)
-      return textContent(doc, node).replace(/\s+/g, " ").trim() || undefined;
-  }
-  return undefined;
 }

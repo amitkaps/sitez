@@ -7,25 +7,24 @@
  * way. A full URL is another site's, and is never checked.
  *
  * Sitez knows every page and file, so a link to one that isn't there fails the build, as does a
- * link to a page `build` leaves out: a draft, or the 404 page. Nothing is guessed. Once a page
- * has rendered, every link in its HTML is checked the same way, so a layout's nav or a
- * component's `href` can't break either.
+ * link to a page `build` leaves out: a draft, or the 404 page. A file whose name starts with `_`
+ * is left out of the site, so it fails too. Nothing is guessed. Once a page has rendered, every
+ * link in its HTML is checked the same way, so a nav in `index.html` or an element's `href`
+ * can't break either.
  */
 import { statSync } from "node:fs";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
-import { NOT_FOUND, posix, urlOf } from "./discover.ts";
+import { NOT_FOUND, posix, skipped, urlOf } from "./discover.ts";
 import { redirectUrl } from "./redirects.ts";
 
 /** @prose
  * What a link can point at. `pages` holds every page by URL, with whether this run leaves it out:
- * `build` fills it before any text page renders, so every page is known. `generated` is what
- * Sitez writes beside the pages (`/sitemap.xml`, `/feed.xml`).
+ * `build` fills it before any text page renders, so every page is known.
  */
 export interface LinkTargets {
   root: string;
   repo: string | undefined;
   pages: Map<string, { draft: boolean }>;
-  generated: Set<string>;
   /** Each old URL a page lists under `redirects`, and the page's URL (`redirects.ts`). */
   redirects: Map<string, string>;
 }
@@ -74,9 +73,8 @@ function siteLink(targets: LinkTargets, path: string): { href: string } | { prob
   if (moved) {
     return { problem: `${path} redirects to ${moved}. Link to ${moved}, where the page is now.` };
   }
-  if (targets.generated.has(path) || isFile(join(targets.root, "public", path))) {
-    return { href: path };
-  }
+  const file = join(targets.root, "public", path);
+  if (isFile(file) && !skipped(join(targets.root, "public"), file)) return { href: path };
   return {
     problem: `${path} isn't a page or a file in public/. Link to one that is, or write a page elsewhere on this domain in full, starting https://`,
   };
@@ -102,6 +100,13 @@ function fileLink(
     return { problem: `${destination} isn't there: no file at ${relative(root, target)}.` };
 
   const text = join(root, "text");
+  for (const folder of ["text", "code", "data", "public"]) {
+    if (inside(join(root, folder), target) && skipped(join(root, folder), target)) {
+      return {
+        problem: `${destination} is skipped, since a name starting with _ is never built, copied or linked to. Rename it, or remove the link.`,
+      };
+    }
+  }
   if (stat.isFile() && extname(target) === ".md" && inside(text, target)) {
     const url = urlOf(text, target);
     if (pages.has(url)) return pageLink(targets, url);
@@ -129,8 +134,8 @@ function fileLink(
 }
 
 /** @prose
- * The first broken link in a page's rendered HTML, whoever wrote it: a layout's nav, a
- * component's `href`, a raw block's `<img src>`. Patterns write URLs, not files, so a site link
+ * The first broken link in a page's rendered HTML, whoever wrote it: a nav in `index.html`, an
+ * element's `href`, a raw block's `<img src>`. Patterns write URLs, not files, so a site link
  * must be the URL as the site serves it, `/about/` rather than `/about`, which a host would
  * redirect; a relative one is read from the page's URL, as a browser reads it. Prose links arrive
  * already rewritten, so they pass. Only real start tags are read: text that shows HTML has its

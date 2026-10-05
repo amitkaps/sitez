@@ -1,0 +1,1 @@
+code/index.html: there are 2 slots, and a page goes in one. Keep a single <slot></slot>.
