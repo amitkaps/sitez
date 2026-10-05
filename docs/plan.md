@@ -111,6 +111,9 @@ at the end, from the 0.2.0 baseline below.
 - [ ] elementz, later, in its own repo as `@amitkaps/elementz`. `element(setup)` returns a light-DOM
       element class that runs `setup` once per element, and calls the cleanup it returns on
       disconnect. It adds signals or templates only when a page needs them.
+  - The first element that needs cleanup is amitkaps.github.io's `@notes-treemap.browser.js`, an
+    `IntersectionObserver` and an interval. Its lifecycle is about 8 of its 75 lines, so
+    `setup` would save about 5. That isn't enough yet.
 - [x] Sitez as a Vite plugin (`docs/design.md#toolchain`). A site's `vite.config.js` adds
       `sitez()` from `@amitkaps/sitez/vite`, and its `package.json` runs `vite`, `vite build` and
       `vite preview`. `vite` is a peer dependency and `vite-plus` a devDependency.
@@ -182,6 +185,19 @@ writing a page, an element, behavior, deploying, and every error with its fix.
       building its own docs would test it on a second site.
 - [ ] Write it once 20, 21 and 22 settle what it describes.
 
+### 24. What Data Portraits showed
+
+amitkaps.github.io's Data Portraits essay embedded nine charts from vis.amitkaps.com in iframes.
+They are elements now, drawn with d3 at build time, and that port found two gaps.
+
+- [ ] An element that throws names the page and the tag that called it. Today the build names only
+      the element's file (`render.ts`'s `guard`), and Vite prints the cause's stack after it. A bad
+      attribute in `text/essays/data-portraits.md` failed as
+      `code/notes/@notes-treemap.html.js: failed to render: notes.json has no year 2016.`
+- [ ] `url()` in a `style` attribute an element writes isn't checked, as a stylesheet's is
+      (`bundle.ts`'s `missingUrl`). A treemap box's background image that points at nothing
+      ships as written.
+
 ## Parked
 
 - **Writing.** Writing is the real block, more than building. An editor view for Sitez, or a
@@ -194,4 +210,8 @@ writing a page, an element, behavior, deploying, and every error with its fix.
 - **Rendered bodies in `pages`.** Each entry could carry its page's HTML as well as its metadata,
   for a feed with full posts or an index with excerpts. The feed carries summaries until a site
   needs more.
+- **Markup from a library.** An element can't return a string of HTML, since `html` escapes every
+  value (rule 5), and `raw` isn't exported. So Vega's SVG, a syntax highlighter or KaTeX can't
+  be used in an element. Data Portraits drew its charts with d3 and `html` instead, which kept
+  the page's fonts and CSS. Exporting `raw` waits until a site needs such a library.
 - The rest are in [design.md](design.md#open-questions).
