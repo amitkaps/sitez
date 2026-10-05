@@ -1,20 +1,23 @@
 # Sitez
 
-**Sitez is a static site generator, a Vite plugin with no options. Markz goes in `text/`,
-JavaScript in `code/`, JSON in `data/` and files in `public/`. Run `vite build`, get complete
-HTML.**
+**Sitez is a static site generator, a Vite plugin with no options. Markz goes in `text/`, HTML,
+CSS and JavaScript in `code/`, JSON in `data/` and files in `public/`. Run `vite build`, get
+complete HTML.**
 
 ## Promises
 
-1. **Four folders and three files.** `text/` is what you write, and `code/` is what renders and
-   styles it. `data/` is the JSON the code reads, and `public/` is files copied as they are.
-   `site.md` is the site's metadata, `package.json` names the Sitez that builds it, and
-   `vite.config.js` adds it to Vite. Sitez takes no options.
+1. **Four folders and three files.** `text/` is what you write, and `code/` is what frames,
+   renders and styles it. `data/` is the JSON the code reads, and `public/` is files copied as
+   they are. `site.md` holds the site's URL and metadata, `package.json` names the Sitez that
+   builds it, and `vite.config.js` adds it to Vite. Sitez takes no options.
 2. **A text file is a page.** Its path is its URL. There is no route file.
 3. **Every page is complete HTML.** The build does the work so the browser doesn't.
-4. **Links are checked.** Text links to files, and Sitez turns them into URLs. A broken link
+4. **What a page shows is written where you can see it.** The frame is `code/index.html`, and a
+   page's heading is in its text. Sitez adds only what is the same on every site, such as the
+   canonical URL, and never fills in a value the site didn't write.
+5. **Links are checked.** Text links to files, and Sitez turns them into URLs. A broken link
    anywhere on a page fails the build.
-5. **JavaScript only where a page is interactive, and you see what every page costs.**
+6. **JavaScript only where a page is interactive, and you see what every page costs.**
 
 Sitez holds a line at static pages, written as text, with elements that render at build time and
 behave in the browser. Anything that needs more is a different tool.
@@ -23,98 +26,125 @@ behave in the browser. Anything that needs more is a different tool.
 
 ```text
 site/
-├── site.md                  the site's metadata
-├── package.json             the version of Sitez, and the commands
-├── vite.config.js           adds Sitez to Vite
+├── site.md                     the site's URL and metadata
+├── package.json                the version of Sitez, and the commands
+├── vite.config.js              adds Sitez to Vite
 ├── text/
-│   ├── index.md             → /
-│   ├── about.md             → /about/
+│   ├── index.md                → /
+│   ├── about.md                → /about/
 │   └── blog/
-│       ├── index.md         → /blog/
-│       ├── hello.md         → /blog/hello/
-│       └── again.md         → /blog/again/
+│       ├── index.md            → /blog/
+│       ├── hello.md            → /blog/hello/
+│       └── again.md            → /blog/again/
 ├── code/
-│   ├── +style.css           the site's stylesheet
-│   ├── +layout.js           wraps every page, and adds to its <head>
-│   ├── @call-out.js         renders {@call-out} in text
-│   ├── @tag-filter.js       writes <tag-filter> and its buttons
-│   ├── @tag-filter.live.js  wires the buttons in the browser
-│   ├── format.js            a module the code imports
+│   ├── index.html              every page starts here
+│   ├── style.css               linked from index.html
+│   ├── @call-out.html          writes {@call-out} in text
+│   ├── @tag-filter.html.js     writes <tag-filter> and its buttons
+│   ├── @tag-filter.browser.js  wires the buttons in the browser
+│   ├── format.js               a module the code imports
 │   └── blog/
-│       ├── +layout.js       wraps /blog/*
-│       └── @post-list.js    renders {@post-list} under /blog/
+│       └── @post-list.html.js  writes {@post-list}, kept with the blog's code
 ├── data/
-│   └── talks.json           read by the code
+│   └── talks.json              read by the code
 └── public/
-    └── favicon.svg          → /favicon.svg
+    └── favicon.svg             → /favicon.svg
 ```
 
 **A folder is named for the kind of file written in it**, so a file's extension says where it
 goes.
 
-| Folder    | Holds                                                           | Because                                     |
-| --------- | --------------------------------------------------------------- | ------------------------------------------- |
-| `text/`   | `.md`                                                           | words, read as they are and on GitHub       |
-| `code/`   | `.js` or `.ts`, `+style.css`, and the fonts and images it names | what runs or styles, processed by the build |
-| `data/`   | `.json`                                                         | values the code reads                       |
-| `public/` | anything                                                        | copied as it is, `.html` included           |
+| Folder    | Holds                                                                   | Because                                    |
+| --------- | ----------------------------------------------------------------------- | ------------------------------------------ |
+| `text/`   | `.md`                                                                   | words, read as they are and on GitHub      |
+| `code/`   | `index.html`, elements, `.js` or `.ts`, `.css`, and the files CSS names | what frames, runs or styles, built by Vite |
+| `data/`   | `.json`                                                                 | values the code reads                      |
+| `public/` | anything                                                                | copied as it is, `.html` included          |
 
 Any other file in `text/` fails the build, naming it and pointing to `public/`, or to `data/` for
-JSON.
+JSON. A file or folder whose name starts with `_` is skipped in every folder. It is never built,
+copied or linked to.
 
-**Inside `code/`, the folder gives a file its scope and the first character of its name gives its
-role.**
+**Inside `code/`, a file's name gives its role.** Subfolders only organize, so an element's name
+means the same wherever its files sit.
 
-| Name                       | Is                                                   |
-| -------------------------- | ---------------------------------------------------- |
-| `@name.js`                 | an element's markup, rendered at build time (rule 5) |
-| `@name.live.js`            | an element's behavior, run in the browser (rule 6)   |
-| `+layout.js`, `+style.css` | a file Sitez reads by name                           |
-| anything else              | a module the code imports, never output              |
+| Name               | Is                                                   |
+| ------------------ | ---------------------------------------------------- |
+| `index.html`       | the HTML every page starts from (rule 2)             |
+| `@name.html`       | an element's markup, written as it is (rule 5)       |
+| `@name.html.js`    | an element's markup, computed at build time (rule 5) |
+| `@name.browser.js` | an element's behavior, run in the browser (rule 6)   |
+| anything else      | a module the code imports, or CSS `index.html` links |
 
-`@` is the same mark as Markz's `{@name}`, so an element's files are found by its name. `.ts`
-works wherever `.js` does, and a `.js` and a `.ts` of the same name fail the build. An unknown `+`
-file fails, so a misspelled `+layuot.js` is never silently ignored. So does an `@` file without a
-hyphen, which no element could use.
+`@` is the same mark as Markz's `{@name}`, so an element's files are found by its name. Its suffix
+says when it runs. `.html` and `.html.js` run once, when the site is built, and `.browser.js` runs
+in every visitor's browser. `.ts` works wherever `.js` does, and a `.js` and a `.ts` of the same
+name fail the build. So do an `@name.js` with no suffix, an `@name.html` beside an `@name.html.js`,
+two files for one element in different folders, and an `@` file without a hyphen, which no element
+could use.
 
 ## The rules
 
 1. **A text file is a page.** Every `.md` in `text/` is one URL, from its path. `index.md` is the
    folder's own URL, so `about.md` and `about/index.md` are two files for one URL, which is an
    error. `text/404.md` is the page a host serves for a URL that doesn't exist. It is written as
-   `404.html`, and nothing links to it. Nothing in `code/` or `data/` is copied to the output.
-2. **Layouts resolve up the tree.** Sitez finds `+layout.js` up the tree from the page's URL.
-   `code/blog/+layout.js` wraps `/blog/` and everything below it, and anything outside it gets
-   `code/+layout.js`. Components resolve the same way, so where a file sits says what it belongs
-   to.
+   `404.html`, and nothing links to it. Nothing in `code/` or `data/` is copied to the output as
+   it is.
 
-   ```js
-   // code/+layout.js
-   import { html } from "@amitkaps/sitez";
+2. **Every page starts from `code/index.html`.** It is a complete HTML page with no template
+   syntax. Opened in a browser, it shows the site with an empty spot where a page goes. The page
+   goes in its one `<slot></slot>`.
 
-   export const head = () => html`<link rel="icon" href="/favicon.svg" />`;
-
-   export default ({ children, site }) => html`
-     <header><a href="/">${site.name}</a></header>
-     <main>${children}</main>
-   `;
+   ```html
+   <!doctype html>
+   <html lang="en">
+     <head>
+       <meta charset="utf-8" />
+       <meta name="viewport" content="width=device-width, initial-scale=1" />
+       <title>Amit Kapoor</title>
+       <meta name="description" content="Essays, workshops and talks on data and story." />
+       <link rel="stylesheet" href="./style.css" />
+       <link rel="icon" href="/favicon.svg" />
+     </head>
+     <body>
+       <header><a href="/">Amit Kapoor</a></header>
+       <main><slot></slot></main>
+       <footer>Handcrafted by Amit Kapoor</footer>
+     </body>
+   </html>
    ```
 
-   A layout gets the page's HTML as `children`, and `page`, `pages` and `site` as a component
-   does. Its `head` export adds to the page's `<head>` ([Metadata](#metadata)).
+   `index.html` and Sitez share the head, and each tag has one owner.
+
+   | In the head                            | `index.html`                     | Sitez                                                    |
+   | -------------------------------------- | -------------------------------- | -------------------------------------------------------- |
+   | `<html lang>`, `charset`, `viewport`   | writes them                      |                                                          |
+   | `<title>`, `<meta name="description">` | writes them, with the site's own | puts the page's `title` and `description` in their place |
+   | stylesheets                            | links them                       | bundles them, with hashed names                          |
+   | canonical, `og:*`, `twitter:*`         |                                  | writes them from the page's metadata and URL             |
+   | the script                             |                                  | adds it to pages with an element that has behavior       |
+   | everything else                        | writes it                        |                                                          |
+
+   An `index.html` missing a tag from its column fails the build, and so does one with no
+   `<slot>` or two. So does one that writes a canonical, `og:` or `twitter:` tag, which Sitez
+   writes for every page. Sitez checks nothing else in it.
+
+   One `index.html` frames every page. A section that looks different gets there through an
+   element that reads `page`, such as a nav that marks where the reader is.
 
 3. **A Markz element is an HTML element first.** `{@call-out type="note"}` is written as
    `<call-out type="note">`. That's a valid HTML element that CSS can style, and it may be all it
-   needs. An element can have a file for its markup, one for its behavior, both or neither.
+   needs. An element can have files for its markup, its behavior, both or neither.
 
-   | Files in `code/`    | The element                                                   |
-   | ------------------- | ------------------------------------------------------------- |
-   | neither             | is plain HTML, styled by CSS                                  |
-   | `@call-out.js`      | has its markup written at build time                          |
-   | `@call-out.live.js` | has behavior, on the markup the text writes                   |
-   | both                | has its markup written by the build, and wired in the browser |
+   | Files in `code/`                        | The element                                                   |
+   | --------------------------------------- | ------------------------------------------------------------- |
+   | none                                    | is plain HTML, styled by CSS                                  |
+   | `@call-out.html` or `@call-out.html.js` | has its markup written at build time                          |
+   | `@call-out.browser.js`                  | has behavior, on the markup the text writes                   |
+   | a markup file and a `.browser.js`       | has its markup written by the build, and wired in the browser |
 
-   Markz requires the hyphen, so every element name maps to these file names.
+   Markz requires the hyphen, so every element name maps to these file names. A tag without one,
+   like `{@section}`, is plain HTML.
 
 4. **Links follow files.** `[hello](blog/hello.md)` becomes `/blog/hello/`, so text reads the
    same on GitHub and on the site.
@@ -125,51 +155,67 @@ hyphen, which no element could use.
    - Sitez knows every URL, so a link to a page or file that doesn't exist fails the build. A
      draft doesn't exist in `build`, so linking to one fails too, rather than shipping a broken
      link.
-   - Code writes URLs, not files, and every link in a built page is checked the same way. A
-     layout's `<a href="/blog">` fails, asking for `/blog/`, the URL as the site serves it.
+   - Code writes URLs, not files, and every link in a built page is checked the same way.
+     `index.html`'s `<a href="/blog">` fails, asking for `/blog/`, the URL as the site serves it.
 
-5. **Components render at build time.** `@post-list.js` is a function that returns the inner HTML
-   of `<post-list>`. Sitez writes the element around it, with its attributes. So CSS and the
-   element's `.live` file always find it, and nothing moves when the page loads. The function is
-   written with `html` from `sitez`, which escapes every value it interpolates. It gets the
-   element's attributes and its content as `children`. It also gets three things every page has.
-   `page` is this page's URL and metadata, `pages` is the same for every page, and `site` is the
-   metadata in `site.md`. So `{@post-list /}` in `text/blog/index.md` can list the posts.
+5. **Elements render at build time.** An element's markup file writes the inside of its tag, and
+   Sitez writes the element around it, with its attributes. So CSS and the element's
+   `.browser.js` always find it, and nothing moves when the page loads.
+
+   `@call-out.html` is markup as it is. The element's content goes where its `<slot>` is, as a
+   page does in `index.html`.
+
+   ```html
+   <!-- code/@call-out.html -->
+   <aside><strong>Note</strong><slot></slot></aside>
+   ```
+
+   `@post-list.html.js` is a function that returns the markup, for markup that depends on
+   something. It is written with `html` from `sitez`, which escapes every value it interpolates.
+   It gets the element's attributes, and its content as `children`. It also gets three things
+   every page has. `page` is this page's URL and metadata, `pages` is the same for every page, and
+   `site` is the metadata in `site.md`.
 
    ```js
-   // code/blog/@post-list.js renders {@post-list} under /blog/
+   // code/blog/@post-list.html.js renders {@post-list} in text/blog/index.md
    import { html } from "@amitkaps/sitez";
 
    export default ({ pages }) => html`
      <ul>
        ${pages
          .filter((p) => p.url.startsWith("/blog/") && p.date)
+         .sort((a, b) => (a.date < b.date ? 1 : -1))
          .map((p) => html`<li><a href=${p.url}>${p.title}</a></li>`)}
      </ul>
    `;
    ```
 
+   - **An element is the same everywhere.** One written in text, in `index.html` or in another
+     element's markup renders the same way. Elements inside elements render first, and an element
+     that ends up inside itself fails the build.
+   - **Content needs a place.** An `.html` element given content with no `<slot>` fails, and so
+     does one with two.
    - **Data comes in as an attribute.** `{@card-grid data="talks.json"}` reads
      `data/talks.json` and passes the parsed JSON as `data`. A path that isn't there fails the
      build, as a broken link does. The attribute isn't written to the page. Code can also import
-     from `data/` itself, as a layout listing talks would.
+     from `data/` itself.
    - **The build waits.** A function can be `async`, and a template can hold promises.
    - **A function in a template fails the build,** naming the file. At build time it could only
-     be an event handler, and those belong to `.live` files.
-   - **An attribute named `page`, `pages`, `site` or `children` fails,** since every component
+     be an event handler, and those belong to `.browser.js` files.
+   - **An attribute named `page`, `pages`, `site` or `children` fails,** since every element
      already gets those.
    - **An element inside a paragraph returns inline HTML.** A `<div>` or `<ul>` from
      `[term]{@key-word}` would end the paragraph early, so it fails the build, naming the element
      and the tag.
 
-6. **Browser behavior lives in `.live` files.** `code/@tag-filter.live.js` is the behavior of
-   `<tag-filter>`, a custom element, and runs only in the browser. Its default export is the
-   element's class. The file's name says which tag it is, so Sitez defines the class under that
-   tag and the file never names it. It ships only to pages whose HTML has a `<tag-filter>`. A page
-   with no live element loads no JavaScript.
+6. **Browser behavior lives in `.browser.js` files.** `code/@tag-filter.browser.js` is the
+   behavior of `<tag-filter>`, a custom element, and runs only in the browser. Its default export
+   is the element's class. The file's name says which tag it is, so Sitez defines the class under
+   that tag and the file never names it. It ships only to pages whose HTML has a `<tag-filter>`. A
+   page with no such element loads no JavaScript.
 
    ```js
-   // code/@tag-filter.live.js
+   // code/@tag-filter.browser.js
    export default class extends HTMLElement {
      connectedCallback() {
        for (const b of this.querySelectorAll("button")) b.onclick = () => this.show(b.value);
@@ -185,104 +231,92 @@ hyphen, which no element could use.
    nothing from Sitez. `connectedCallback` runs again when the element moves in the page, so
    setup that mustn't run twice checks first.
 
-   - **A live element enhances HTML the build wrote.** It finds its content and controls in the
-     page and adds behavior. Whatever it shows is written at build time, so nothing moves when
-     its script runs. Its component writes that markup when the text doesn't (`@tag-filter.js`
-     writes the buttons).
-   - **A live element reads its children and its attributes.** No data is sent to it besides the
-     page's HTML, so nothing is sent twice.
-   - **A live file works on the DOM.** It imports nothing from Sitez, whose `html` renders at
-     build time.
+   - **Behavior enhances HTML the build wrote.** A `.browser.js` file finds its content and
+     controls in the page and adds behavior. Whatever it shows is written at build time, so
+     nothing moves when its script runs. Its markup file writes that markup when the text doesn't
+     (`@tag-filter.html.js` writes the buttons).
+   - **It reads its children and its attributes.** No data is sent to it besides the page's HTML,
+     so nothing is sent twice.
+   - **It works on the DOM.** It imports nothing from Sitez, whose `html` renders at build time.
    - **Its default export is its element's class, and nothing else.** The class is written in the
      export, or made by a call to a library that makes one. A file with no default export, a
      default that is a value, a bare function or a name, or any other export fails the build.
      Code two files share goes in a module.
-   - **The two sides stay apart.** Build-time code that imports a `.live` file fails the build,
-     naming the import. So does a `.live` file that imports a component, a layout or `sitez`.
-   - **A live element is small.** Every live element a site's pages use goes in one script, which
-     a page with a live element loads. So a tag has one `.live` file across the site, and two fail
-     the build.
-   - **Libraries come from npm.** A `.live` file imports the site's own `code/` and the ES-module
-     packages in its `package.json`, and the script bundles them. A large library, such as D3,
-     loads with `await import("d3")` inside the element, so only a page where the element is
-     fetches it. A library imported by URL at the top fails the build, since every page with a
-     live element would fetch it.
+   - **The two sides stay apart.** Build-time code that imports a `.browser.js` file fails the
+     build, naming the import. So does a `.browser.js` file that imports an `.html.js` file or
+     `sitez`.
+   - **Behavior is small.** Every `.browser.js` a site's pages use goes in one script, which a
+     page with such an element loads.
+   - **Libraries come from npm.** A `.browser.js` file imports the site's own `code/` and the
+     ES-module packages in its `package.json`, and the script bundles them. A large library, such
+     as D3, loads with `await import("d3")` inside the element, so only a page where the element
+     is fetches it. A library imported by URL at the top fails the build, since every page with
+     an element that has behavior would fetch it.
 
-7. **HTML before JavaScript.** Pages link with `<a>`, and Sitez's reset turns on cross-document
-   View Transitions. `<details>`, `popover` and `<dialog>` open, close and toggle without
-   JavaScript, so many interactive pieces need no `.live` file.
+7. **HTML before JavaScript.** Pages link with `<a>`, and one CSS rule
+   (`@view-transition { navigation: auto }`) animates between them. `<details>`, `popover` and
+   `<dialog>` open, close and toggle without JavaScript, so many interactive pieces need no
+   `.browser.js` file.
 
 ## Metadata
 
-Markz reads a metadata block at the top of a document, and Sitez fills in what it leaves out.
-`title` defaults to the first heading and `summary` to the first paragraph, so most pages need no
-block.
+Markz reads a metadata block at the top of a document. Sitez reads four keys from a page's block,
+and fills in none of them from its text.
 
 ```md
 ---
-title: Shorter title
-date: 2026-09-29
+title: Hello again
+description: A second post, about writing less.
 draft: true
+date: 2026-09-29
 ---
+
+# Hello again
 ```
 
-- `date` puts a page in the RSS feed.
+- `title` is the page's `<title>`, in full. A page that wants the site's name in it writes it.
+- `description` is its meta description.
 - `draft` keeps it out of `build`, not out of `dev`.
 - `redirects` lists the URLs a page used to have, such as `[/old-name/, /old-name.html]`. Sitez
   writes a page at each that sends the browser on, so a file can move without breaking links from
   elsewhere. An old URL that a page or another redirect has fails the build, and so does a link
   to one.
-- `title` is the page's `<title>` and `summary` its description. Sitez writes both into the
-  page's `<head>`, so a page's head changes with its metadata, not its code.
 
-Sitez checks the keys it reads. A `draft: yes` or a `date: Sept 1` fails the build, naming the
-file and the key, rather than publishing a draft or misdating a post. Any other key is the site's
-own and passes through to its code unchecked.
+The block is metadata, not content, so nothing in it shows on the page by itself. The heading a
+reader sees is the page's `# Hello again`. A page without `title` or `description` keeps
+`index.html`'s.
+
+Sitez checks the keys it reads. A `draft: yes` fails the build, naming the file and the key,
+rather than publishing a draft. Any other key is the site's own and passes through to its code
+unchecked, as `date` above does to `@post-list`.
 
 Site-wide metadata lives in `site.md` at the root, in the same Markz metadata block.
 
 ```md
 ---
-name: Amit Kapoor
 url: https://amitkaps.com
 repo: https://github.com/amitkaps/site
-lang: en
+author: Amit Kapoor
 ---
 
 Notes for whoever maintains the site. Sitez reads only the block above.
 ```
 
-`lang` is the language of every page, and it's `en` unless it says otherwise. `url` is required.
-The sitemap, the feed and every page's canonical link are full addresses, so `build` fails
-without it rather than writing relative ones.
+`url` is required, since every page's canonical link and Open Graph URL are full addresses.
+`repo` is where links to the repo's files go (rule 4). Any other key is the site's own, as
+`site.author`.
 
 `site.md` sits at the site's root, beside `vite.config.js`. So the name is reserved, and
 `text/site.md` is an error, not a page.
 
-From that metadata, Sitez writes `<title>`, the meta description, canonical URLs and Open Graph
-tags. Twitter reads the Open Graph tags. It also writes `sitemap.xml` and `feed.xml`. The nearest
-`+layout.js` adds anything else to the head with a `head` export, such as icons and font
-preloads. It is given `page`, `pages` and `site`. Writing one of Sitez's own tags there fails,
-naming the metadata key that sets it. A site with no layout adds nothing to the head.
-
 ## Styling
 
-A site has one stylesheet, and every page links it. It starts with Sitez's reset, a quiet look
-for plain HTML, so a page with no CSS of its own already reads well.
+`index.html` links the site's CSS from `code/`, and Sitez adds nothing to it. A page with no CSS
+gets the browser's own look.
 
-- One centered column about sixty characters wide, in `system-ui`.
-- A type scale with balanced headings, pretty paragraphs and a softer standfirst under the title.
-- Soft ink on off-white paper that follows the reader's light or dark setting.
-- Tables, forms, code, quotes and figures that look finished.
-
-The reset is `@layer reset`, so any rule a site writes overrides it, however specific. A
-full-width layout starts with `body { width: auto }`.
-
-`code/+style.css`, if there is one, is the site's own design and follows the reset. It can
-`@import` other files, and there is no other styling mechanism. A `+style.css` anywhere else
-fails the build, since a site has one stylesheet. Like everything in `code/`, it is processed, not
-copied. A font or image it names with `url()` is bundled with a hashed name, and one that isn't
-there fails the build.
+Like everything in `code/`, CSS is processed, not copied. A linked stylesheet and the files it
+`@import`s become one file with a hashed name. A font or image it names with `url()` is bundled
+beside it, and one that isn't there fails the build.
 
 ```css
 @font-face {
@@ -292,7 +326,7 @@ there fails the build.
 ```
 
 An element from text is `display: inline` until the site's CSS says otherwise, as for any custom
-element. That includes an element whose component writes its markup. So `<call-out>` needs
+element. That includes an element whose markup file writes its markup. So `<call-out>` needs
 `call-out { display: block }`, and without it the callout runs into its paragraph, visibly.
 
 ## Commands
@@ -329,19 +363,19 @@ page          html   time
 /teaching/  5.5 KB  20 ms  filter-grid
 /quality/    90 KB  1.2 s  raw <script>
 common      3.0 KB css, 1.2 KB js, loads cdn.jsdelivr.net
-42 pages in 1.8 s → dist · live: filter-grid, theme-toggle · sitez 0.2.0
+42 pages in 1.8 s → dist · behavior: filter-grid, theme-toggle · sitez 0.3.0
 ```
 
-`common` is the site's one stylesheet and one script, which the browser downloads once. A page
-that names a live element loads the script, and any other page loads no JavaScript. A page that
+`common` is the site's CSS and its one script, which the browser downloads once. A page with an
+element that has behavior loads the script, and any other page loads no JavaScript. A page that
 grows heavy or slow is visible where the cost is. A note says what the numbers can't, such as a
 raw `<script>` that loads whatever it loads.
 
 **A site names its version of Sitez.** `package.json` names Sitez and Vite, and the lockfile
 beside it pins the rest. `npm install` puts those versions in the site, so your machine and the
 host always build with the same Sitez. The report's last line names the version that ran. An npm
-library the site's code imports goes in the same `package.json`, at build time or in a `.live`
-file.
+library the site's code imports goes in the same `package.json`, at build time or in a
+`.browser.js` file.
 
 **Formatting and linting are the site's own.** A site that wants them adds oxfmt and oxlint to
 its `package.json` and a script for each. oxfmt formats `text/` in Markz's canonical form, and
@@ -352,24 +386,27 @@ promises nothing about how they behave with it, and a site with none builds as t
 
 **A site deploys from its host, not from Sitez.** Sitez's host is Cloudflare. Create a Worker from
 the repo in Cloudflare, with `npm run build` as its build command and `npx wrangler deploy` as
-its deploy command. Every push to the production branch deploys. Cloudflare installs from the lockfile
-first, so it builds with the site's own version. A `wrangler.jsonc` in the repo points the Worker
-at `dist/` and serves `404.html` for a missing address, and the domain is set in Cloudflare.
+its deploy command. Every push to the production branch deploys. Cloudflare installs from the
+lockfile first, so it builds with the site's own version. A `wrangler.jsonc` in the repo points
+the Worker at `dist/` and serves `404.html` for a missing address, and the domain is set in
+Cloudflare.
 
 ## Not in v1
 
-- Live elements that render from data. A JSON child comes when a site needs one.
+- Behavior that renders from data. A JSON child comes when a site needs one.
 - Rendering pages in the browser.
-- Delaying live elements (until visible, until idle).
+- Delaying behavior (until visible, until idle).
 - Markz expressions. `${…}` stays code, as Markz writes it.
+- Template syntax in `index.html`, and a second frame for a section.
+- A sitemap, a feed, and a social image (`og:image`).
 - Dynamic routes, pagination and tags.
 - Image processing, i18n and content schemas.
-- Options for Sitez, themes, and settings in `site.md` beyond metadata.
+- Options for Sitez, themes, and settings in `site.md`.
 - A deploy command, and steps for hosts other than Cloudflare. Each host has its own one-time
   setup, which a command can't cover.
 
-Each one would be an option, and Sitez takes none. A site that needs a
-client router, `load`, endpoints or server output should use SvelteKit.
+Each one would be an option, and Sitez takes none. A site that needs a client router, `load`,
+endpoints or server output should use SvelteKit.
 
 ## Parked ideas
 
@@ -377,34 +414,34 @@ Ideas with a shape already, kept here until a site needs them. None is a promise
 
 - **Pages from data.** `text/talks/{slug}.md`, with `data: talks.json` in its metadata, would make
   one page per row at `/talks/<slug>/`. Each row's fields would be its page's metadata, checked as
-  any page's are. A slug would have to be present, unique, and only `a–z`, `0–9` and hyphens. Sitez
-  wouldn't make slugs from titles. A template would have one placeholder. Without Markz expressions,
-  its body could only hold components that read `page`.
+  any page's are. A slug would have to be present, unique, and only `a–z`, `0–9` and hyphens.
+  Sitez wouldn't make slugs from titles. A template would have one placeholder. Without Markz
+  expressions, its body could only hold elements that read `page`.
 - **CSV in `data/`,** read as rows, as JSON is.
 - **`npm create @amitkaps/sitez`** would write a starter site: `site.md`, `package.json`,
-  `vite.config.js`, and a first page in `text/`.
-- **A dashboard at `/__sitez/`,** so nobody needs the terminal to understand their site. `dev` would
-  open it. It would list every page with its cost and build time, the `+`, `@` and `.live`
-  files that shaped it, the data it read, its links in and out, and its errors. Recently edited
-  pages would sit at the top.
+  `vite.config.js`, `code/index.html`, and a first page in `text/`.
+- **A dashboard at `/__sitez/`,** so nobody needs the terminal to understand their site. `dev`
+  would open it. It would list every page with its cost and build time, the elements that shaped
+  it, the data it read, its links in and out, and its errors. Recently edited pages would sit at
+  the top.
 
 ## Tests of the idea
 
 Three sites, run against the rules.
 
-**A personal blog** (home, about, posts, RSS). It fits. It has `text/blog/*.md` with `date`, and
-a `text/blog/index.md` holding `{@post-list /}`. `code/blog/@post-list.js` lists `pages` filtered
-to `/blog/`. One `+layout.js` wraps it, and `site.md` has a name and URL. There's no route file,
-and no metadata on pages that start with a heading.
+**A personal blog** (home, about, posts). It fits. It has `text/blog/*.md` with `date`, and a
+`text/blog/index.md` holding `{@post-list /}`. `code/blog/@post-list.html.js` lists `pages`
+filtered to `/blog/` and sorted by `date`. One `index.html` frames it, and `site.md` has its URL.
+There's no route file, and each post writes its own heading.
 
-**A landing page.** It fits, with a `text/index.md` whose sections are components, `public/` and
+**A landing page.** It fits, with a `text/index.md` whose sections are elements, `public/` and
 `site.md`.
 
 **amitkaps.github.io** (amitkaps.com, today SvelteKit on Cloudflare). It fits. It is flat and
 content-heavy, with card grids, a 404 page and old `.html` URLs. Its pages become `text/`, its
-YAML becomes JSON in `data/`, and the grids become components given `data`. The workshops, talks
-and teaching grids filter by category. So each is a `filter-grid`, whose component writes the
-buttons and whose `.live` file wires them. The teaching page was built this way first. It loads
+YAML becomes JSON in `data/`, and the grids become elements given `data`. The workshops, talks
+and teaching grids filter by category. So each is a `filter-grid`, whose `.html.js` writes the
+buttons and whose `.browser.js` wires them. The teaching page was built this way first. It loads
 2 KB of JavaScript, where the SvelteKit page loads 206 KB.
 
 How Sitez is built is in [design.md](design.md).

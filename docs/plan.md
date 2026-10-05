@@ -80,14 +80,16 @@ leaner before it gets new features. The site doesn't have to match the old one.
 Each gap the port found is settled by changing amitkaps.github.io first. Sitez changes only when
 the site can't do without it.
 
-- [ ] A title suffix (`About | Amit Kapoor`) that the layout writes. Plain titles may do.
-- [ ] `og:image` and Twitter tags in the head.
+- [x] A title suffix (`About | Amit Kapoor`) that the layout writes. Settled by 22: it goes, and a
+      page that wants it writes its whole `title`.
+- [x] `og:image` and Twitter tags in the head. Settled by 22: Sitez writes a fixed Open Graph and
+      Twitter set with no image.
 - [ ] Excerpts. The site reads Markz and the file system itself to get them.
 - [ ] Essays carry a `date` for order, but the site never shows it. Pages with the same `date`
-      need a stable order, or the essays need another way to be ordered.
-- [ ] Sitez's reset, which the first rules of `+style.css` undo. Either the site takes the reset,
-      or the reset gets smaller.
-- [ ] Preloading a font the stylesheet names.
+      need a stable order. After 22, `date` means nothing to Sitez, so the element that lists
+      them sorts them.
+- [x] Sitez's reset, which the first rules of `+style.css` undo. Settled by 22: the reset goes.
+- [x] Preloading a font the stylesheet names. Settled by 22: `code/index.html` writes the preload.
 - [ ] Markz: a quote closing after a single quote, and `\` as a line break. Those changes go to
       markz.
 - [ ] oxfmt reformats JavaScript in code fences, which a page may show on purpose.
@@ -127,21 +129,53 @@ at the end, from the 0.2.0 baseline below.
   - Every fixture gets a `vite.config.js`, and the tests run Vite's `build` and `createServer`.
 - [ ] Measure again: a site installs `vite`, Sitez and markz, near 40 MB against 137 MB, and the
       linters only if it wants them.
-- [ ] Whether `sitemap.xml` stays. Every site gets it, with no way out, and search engines find a
-      small site's pages by its links. A sitemap page for humans, written from `pages`, would be
-      the site's own.
-- [ ] Whether `feed.xml` stays. Any page with a `date` joins it, so `date` both orders pages and
-      publishes them. amitkaps.com's essays are dated only for order.
 - [ ] Whatever else 20 shows that Sitez needn't do.
 
-### 22. Docs for users
+### 22. Pages from `code/index.html`
+
+Sitez reads less and fills in nothing (promise 4). A page is `code/index.html` with the page in
+its `<slot>`, elements are named for when they run, and metadata reaches only the head and the
+code. It starts once 21's plugin works, since `index.html` is the HTML Vite builds from. The
+design is in [design.md](design.md#the-frame) and [Names in `code/`](design.md#names-in-code).
+
+- [ ] `code/index.html` replaces `+layout.js`, its `head` export and layouts up the tree. The page
+      goes in its one `<slot>`. Sitez puts the page's `title` and `description` in place of
+      `index.html`'s, and writes the canonical link and the seven Open Graph and Twitter tags.
+      `head.ts` shrinks to that.
+  - Fails: no `lang`, `charset`, `viewport`, `<title>` or description, a slot count other than
+    one, and a hand-written canonical, `og:` or `twitter:` tag. Each message shows the line.
+- [ ] CSS is what `index.html` links, bundled with hashed names. `+style.css` as a reserved name
+      and the reset (`src/runtime/reset.css`) go. The script is still added by Sitez.
+- [ ] Metadata is explicit. A page's block gives `title`, `description`, `draft` and `redirects`,
+      with no defaults from the first heading or paragraph. `summary` becomes `description`.
+      `page` is the block and `url`. `site.md` requires `url`, reads `repo`, and passes every
+      other key through as `site.*`. `name` and `lang` are no longer read.
+- [ ] Names for when code runs. `@name.js` becomes `@name.html.js` and `.live.js` becomes
+      `.browser.js`. `@name.html` is a static element whose content goes in its `<slot>`.
+  - Elements are global. Two files for one element in different folders fail, and so do a bare
+    `@name.js` and an `@name.html` beside an `@name.html.js`.
+  - Elements in `index.html` and in an element's output render like those in text, until none is
+    left. An element that ends up inside itself fails, naming the chain.
+  - The `+` sigil goes. A leftover `+layout.js` or `+style.css` fails, naming what replaces it.
+- [ ] A redirect page is `index.html` rendered with the page it reaches, a link in its slot and a
+      refresh in its head.
+- [ ] `sitemap.xml` and `feed.xml` go, with `sitemap.ts`.
+- [ ] A file or folder whose name starts with `_` is skipped in every folder: never built,
+      copied or linked to.
+- [ ] Every fixture moves to the new names, with an error fixture for each new failure.
+- [ ] amitkaps.github.io moves on a branch. Its `+layout.js`, `heading.js` and `head` export
+      become `code/index.html`. Each page writes its `# Title` and tagline, the grids become
+      `.html.js`, the two `.live` files `.browser.js`, and `+style.css` loses the rules that
+      undid the reset.
+
+### 23. Docs for users
 
 idea.md is the spec, written for whoever builds Sitez. Users need a guide: install, the folders,
-writing a page, a component, a live element, deploying, and every error with its fix.
+writing a page, an element, behavior, deploying, and every error with its fix.
 
 - [ ] Decide what renders the guide. prose already reads this repo as a document, and Sitez
       building its own docs would test it on a second site.
-- [ ] Write it once 20 and 21 settle what it describes.
+- [ ] Write it once 20, 21 and 22 settle what it describes.
 
 ## Parked
 
