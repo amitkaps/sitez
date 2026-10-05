@@ -77,24 +77,17 @@ leaner before it gets new features. The site doesn't have to match the old one.
 
 ### 20. Simplify the site
 
-Each gap the port found is settled by changing amitkaps.github.io first. Sitez changes only when
-the site can't do without it.
+The port's gaps are settled, each by having the site do it or by Sitez doing less. Only the
+Markz fixes are left, and those go to markz.
 
-- [x] A title suffix (`About | Amit Kapoor`) that the layout writes. Settled by 22: it goes, and a
-      page that wants it writes its whole `title`.
-- [x] `og:image` and Twitter tags in the head. Settled by 22: Sitez writes a fixed Open Graph and
-      Twitter set with no image.
-- [ ] Excerpts. The site reads Markz and the file system itself to get them.
-- [ ] Essays carry a `date` for order, but the site never shows it. Pages with the same `date`
-      need a stable order. After 22, `date` means nothing to Sitez, so the element that lists
-      them sorts them.
-- [x] Sitez's reset, which the first rules of `+style.css` undo. Settled by 22: the reset goes.
-- [x] Preloading a font the stylesheet names. Settled by 22: `code/index.html` writes the preload.
-- [ ] Markz: a quote closing after a single quote, and `\` as a line break. Those changes go to
-      markz.
-- [ ] oxfmt reformats JavaScript in code fences, which a page may show on purpose.
-- [ ] Deploy from Cloudflare's git integration, as idea.md describes, in place of
-      `wrangler-action` in CI. The CI then only checks.
+- [x] The title suffix, `og:image` and Twitter tags, the reset and the font preload. 22 settles
+      them: a page writes its whole `title`, Sitez writes a fixed Open Graph and Twitter set with
+      no image, the reset goes, and `code/index.html` writes the preload.
+- [x] Excerpts and dates. 22 settles them: a card shows the page's `description`, and the element
+      that lists pages sorts them by `date` itself, so Sitez reads neither.
+- [x] oxfmt reformatting JavaScript in code fences, and deploying from Cloudflare's git
+      integration. 21 settles them: formatting, linting and deploying are the site's own.
+- [ ] Markz: a quote closing after a single quote, and `\` as a line break.
 
 ### 21. A leaner core
 
