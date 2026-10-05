@@ -156,8 +156,9 @@ Ruled out:
 - **`+layout.js` with a `head` export.** It was JavaScript around markup that is mostly fixed.
   amitkaps.github.io's was 58 lines, most of them a nav loop and font preloads that HTML writes
   as plainly. It also needed rules for a layout that dropped or repeated its children.
-- **A frame for each section**, found up the tree as `+layout.js` was. The one real site has one
-  frame, and a section varies through elements that read `page`.
+- **Frames that nest**, found up the tree as `+layout.js` was. `index.html` is a whole page, so
+  one can't go inside another, and a section varies through elements that read `page`. A second
+  frame that replaces the first is a different question, open below.
 - **`<main>` as the place for the page.** A frame often puts more around the page inside `<main>`,
   such as an `<article>`. `<slot>` is HTML's own word for where content goes.
 - **The title as content.** Sitez 0.2 took `title` from the first heading and `summary` from the
@@ -656,7 +657,17 @@ and static output.
   escape hatch, outside the `.browser.js` files and the JavaScript they account for. The build
   report notes a page with a raw `<script>`. Whether to sanitize raw HTML waits until sites use it
   enough to say.
+- **A second frame.** amitkaps.com/stories/ is one page with its own header, footer, stylesheet
+  and font, sharing nothing with the site's frame. Through the one frame it would take the site's
+  look, and its CSS and font would reach every page. The narrow rule would be that
+  `code/stories/index.html` frames the pages in `text/stories/`, with no nesting. The heads
+  wouldn't drift, since they're meant to differ. The cost is that one folder in `code/` means
+  something, and the stylesheet is one per frame instead of one per site. Until the page is
+  merged, its built HTML goes in `public/stories/`, which Sitez copies as it is. The rule waits
+  for that merge, and for the decision to keep the page's own look.
 - **A social image.** `og:image` is left out until Sitez can make one. Each page's card would be
   drawn at build time by a function given `page` and `site`, or by an SVG template. Social sites
   don't take SVG, so the card has to be rasterized to PNG. That means a renderer such as resvg in
-  the toolchain. Twitter's card becomes `summary_large_image` once there is one.
+  the toolchain. Twitter's card becomes `summary_large_image` once there is one. A simpler first
+  step is an `image` key naming a picture the page already has. amitkaps.com/stories/ is the
+  known case, a page shared with a large card of its book cover.
