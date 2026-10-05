@@ -1,1 +1,1 @@
-code/@tag-box.live.js: this exports label. A live file's default export is its element: export default (el) => { … }. Move anything else into a module in code/, which both files can import.
+code/@tag-box.live.js: this exports label. A live file's default export is its element's class: export default class extends HTMLElement { … }. Move anything else into a module in code/, which both files can import.

@@ -109,14 +109,11 @@ at the end, from the 0.2.0 baseline below.
 - [x] One script for the site. Every live element a page uses goes in `script.[hash].js`, which
       only a page with a live element loads. `common.js`, page scripts and `modulepreload` went.
       A library loads with `await import()` inside its element, and two live files for one tag fail.
-- [ ] A `.live` file default-exports its element's class, and imports npm packages
-      (`docs/idea.md#the-rules`, rule 6). `checkLive` takes a class or a call in the export, and
-      fails a bare function, pointing to a class or to elementz. The script defines each class
-      with one `customElements.define`, and `define.ts` goes. A package imported with
-      `await import()` becomes a chunk of its own.
-  - amitkaps.github.io's two `.live` files move to elementz's `element` when it installs the
-    release after 0.2.0, and `@talk-grid.live.js` makes its player with `document.createElement`.
-- [ ] elementz, in its own repo as `@amitkaps/elementz`. `element(setup)` returns a light-DOM
+- [x] A `.live` file default-exports its element's class, and may import npm packages. The
+      script defines each with one `customElements.define`, and `define.ts` went. A module
+      imported with `await import()` is a chunk of its own.
+  - amitkaps.github.io's two `.live` files are classes, waiting for the release after 0.2.0.
+- [ ] elementz, later, in its own repo as `@amitkaps/elementz`. `element(setup)` returns a light-DOM
       element class that runs `setup` once per element, and calls the cleanup it returns on
       disconnect. It adds signals or templates only when a page needs them.
 - [ ] Sitez as a Vite plugin (`docs/design.md#toolchain`). A site's `vite.config.js` adds

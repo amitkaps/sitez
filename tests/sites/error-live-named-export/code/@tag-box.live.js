@@ -1,5 +1,7 @@
 export const label = "Go";
 
-export default (el) => {
-  el.textContent = label;
-};
+export default class extends HTMLElement {
+  connectedCallback() {
+    this.textContent = label;
+  }
+}

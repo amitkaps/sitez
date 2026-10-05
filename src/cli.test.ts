@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "vite-plus/test";
@@ -66,8 +66,9 @@ describe("sitez", () => {
     writeFileSync(join(root, "text/index.md"), "# Home\n\n{@chart-box /}\n");
     writeFileSync(
       join(root, "code/@chart-box.live.js"),
-      'export default async (el) => {\n  const { format } = await import("https://cdn.example.com/d3-format@3/+esm");\n  el.textContent = format(".2f")(1);\n};\n',
+      'export default class extends HTMLElement {\n  async connectedCallback() {\n    const { format } = await import("https://cdn.example.com/d3-format@3/+esm");\n    const { unit } = await import("./unit.js");\n    this.textContent = format(".2f")(1) + unit;\n  }\n}\n',
     );
+    writeFileSync(join(root, "code/unit.js"), 'export const unit = " km";\n');
     writeFileSync(
       join(root, "package.json"),
       '{ "devDependencies": { "@amitkaps/sitez": "0.2.0" } }\n',
@@ -77,6 +78,11 @@ describe("sitez", () => {
     expect(code).toBe(0);
     expect(log).toMatch(/^\/ .* chart-box$/m);
     expect(log).toMatch(/^common .* KB js, loads cdn\.example\.com$/m);
+    // A module imported inside the element is a chunk of its own, beside the script.
+    expect(readdirSync(join(root, "dist")).filter((f) => f.endsWith(".js"))).toEqual([
+      expect.stringMatching(/^script\.[\w-]+\.js$/),
+      expect.stringMatching(/^unit\.[\w-]+\.js$/),
+    ]);
   });
 
   test("fails in a site whose package.json doesn't name sitez, showing the line to add", async () => {

@@ -9,6 +9,6 @@ feed.xml
 hello.html
 hello/index.html
 index.html
-script.D0WwAOyC.js
+script.CMWRow6y.js
 sitemap.xml
 style.DjTho1g4.css

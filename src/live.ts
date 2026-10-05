@@ -4,8 +4,8 @@
  * Which pages load which `@name.live.js` files, and the line that keeps build code and browser code
  * apart (rule 6). A page's HTML is scanned for custom element tags, and each tag that has a `.live`
  * file, found up the tree as a component is, is shipped to that page. A page with none loads no
- * JavaScript. The file's default export is the element, and the page's script defines it under the
- * tag its name gives.
+ * JavaScript. The file's default export is the element's class, and the page's script defines it
+ * under the tag its name gives.
  *
  * The two sides fail apart (`liveBoundary` in `vite.ts`). A `.live` file imported by build code
  * would crash Node, where `HTMLElement` doesn't exist. A component or layout imported by a `.live`
@@ -42,18 +42,21 @@ export function findLive(root: string, url: string, html: string): Live[] {
   });
 }
 
+const CLASS = new Set(["ClassDeclaration", "ClassExpression"]);
 const FUNCTION = new Set(["ArrowFunctionExpression", "FunctionExpression", "FunctionDeclaration"]);
 
 /** @prose
- * Fails a live file whose exports aren't one function, its element (rule 6), or that imports a
+ * Fails a live file whose exports aren't one class, its element (rule 6), or that imports a
  * library by URL at the top. The bundler fails such an import anywhere in the site's script
  * (`bundle.ts`), and this catches it in the live file in `dev` too.
  *
- * Exports first. Sitez can't run the
- * file in Node, so it reads the syntax. A default export counts only when the function is written
- * in the export. `export default setup` fails even when `setup` is a function, since telling would
- * mean following the name. Any other export fails too. Nothing imports a live file, so what else
- * it exports belongs in a module that both sides can import.
+ * Exports first. Sitez can't run the file in Node, so it reads the syntax. A default export counts
+ * when the class is written in the export, or when it's a call, since a library can make the
+ * class. A call that returns something else fails in the browser, where `customElements.define`
+ * throws. `export default Filter` fails even when `Filter` is a class, since telling would mean
+ * following the name. A function gets its own message, pointing to `connectedCallback`. Any
+ * other export fails too. Nothing imports a live file, so what else it exports belongs in a module
+ * that both sides can import.
  *
  * A file that doesn't parse is left to the bundler, whose message shows the line.
  */
@@ -64,15 +67,23 @@ export function checkLive(file: string): void {
   } catch {
     return;
   }
-  const element = "A live file's default export is its element: export default (el) => { … }.";
-  const notWritten = `its default export isn't a function written in the export. ${element}`;
+  const element =
+    "A live file's default export is its element's class: export default class extends HTMLElement { … }.";
+  const notWritten = `its default export isn't a class written in the export. ${element}`;
   let found = false;
   for (const statement of body) {
     if (statement.type === "ImportDeclaration" && URL.canParse(statement.source.value)) {
       throw urlImportError(file, statement.source.value);
     }
     if (statement.type === "ExportDefaultDeclaration") {
-      if (!FUNCTION.has(statement.declaration.type)) throw new SiteError(file, notWritten);
+      const { type } = statement.declaration;
+      if (FUNCTION.has(type)) {
+        throw new SiteError(
+          file,
+          `its default export is a function, which Sitez no longer wraps as an element. ${element} Set the element up in its connectedCallback() { … }.`,
+        );
+      }
+      if (!CLASS.has(type) && type !== "CallExpression") throw new SiteError(file, notWritten);
       found = true;
       continue;
     }

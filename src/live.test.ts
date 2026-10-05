@@ -2,8 +2,8 @@
  * # Finding a page's live elements
  *
  * Which `.live` files a page's HTML loads. A tag counts only when it's a real start tag with a
- * `.live` file up the tree from the page's URL. A live file's exports are its element alone, and
- * it imports a library inside its function.
+ * `.live` file up the tree from the page's URL. A live file's exports are its element's class
+ * alone, and it imports a library by URL inside the class.
  */
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -19,7 +19,7 @@ for (const path of [
   "code/@key-word.live.js",
 ]) {
   mkdirSync(dirname(join(root, path)), { recursive: true });
-  writeFileSync(join(root, path), "export default (el) => {};\n");
+  writeFileSync(join(root, path), "export default class extends HTMLElement {}\n");
 }
 const found = (url: string, html: string) =>
   findLive(root, url, html).map((live) => `${live.tag} ${relative(root, live.file)}`);
@@ -54,16 +54,22 @@ test("is none for a page with no custom elements", () => {
 });
 
 test.each([
-  ["an arrow", "export default (el) => {};"],
-  ["a function", "export default function (el) {}"],
-  ["a named function, in TypeScript", "export default function setup(el: HTMLElement): void {}"],
+  ["a class", "export default class extends HTMLElement {}"],
+  [
+    "a named class, in TypeScript",
+    "export default class Filter extends HTMLElement { n: number = 1; }",
+  ],
+  [
+    "a call that makes the class",
+    'import { element } from "./element.js";\nexport default element((el) => {});',
+  ],
   [
     "imports and code beside it",
-    'import { slug } from "./slug.js";\nconst n = 1;\nexport default (el) => {};',
+    'import { slug } from "./slug.js";\nconst n = 1;\nexport default class extends HTMLElement {}',
   ],
   [
     "a library it imports inside",
-    'export default async (el) => { await import("https://cdn.example.com/f.js"); };',
+    'export default class extends HTMLElement { async connectedCallback() { await import("https://cdn.example.com/f.js"); } }',
   ],
 ])("a live file may default-export %s", (_, code) => {
   expect(() => checkLive(live(code))).not.toThrow();
@@ -75,30 +81,36 @@ test.each([
     "customElements.define('x-y', class extends HTMLElement {});",
     "has no default export",
   ],
-  ["a value", "export default 42;", "isn't a function written in the export"],
+  ["a value", "export default 42;", "isn't a class written in the export"],
+  ["an arrow", "export default (el) => {};", "is a function, which Sitez no longer wraps"],
+  [
+    "a function",
+    "export default function (el) {}",
+    "Set the element up in its connectedCallback()",
+  ],
   [
     "a name",
-    "const setup = () => {};\nexport default setup;",
-    "isn't a function written in the export",
+    "class Filter extends HTMLElement {}\nexport default Filter;",
+    "isn't a class written in the export",
   ],
   [
     "a name as default",
-    "const setup = () => {};\nexport { setup as default };",
-    "isn't a function written in the export",
+    "class Filter extends HTMLElement {}\nexport { Filter as default };",
+    "isn't a class written in the export",
   ],
   [
     "a named export too",
-    "export const label = 'Go';\nexport default () => {};",
+    "export const label = 'Go';\nexport default class extends HTMLElement {}",
     "this exports label.",
   ],
   [
     "a library imported at the top",
-    'import f from "https://cdn.example.com/f.js";\nexport default () => {};',
+    'import f from "https://cdn.example.com/f.js";\nexport default class extends HTMLElement {}',
     'await import("https://cdn.example.com/f.js")',
   ],
   [
     "a re-export",
-    "export * from './x.js';\nexport default () => {};",
+    "export * from './x.js';\nexport default class extends HTMLElement {}",
     "this exports everything from ./x.js.",
   ],
 ])("a live file with %s fails", (_, code, message) => {

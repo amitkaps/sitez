@@ -1,3 +1,5 @@
-export default (el) => {
-  el.dataset.blog = "";
-};
+export default class extends HTMLElement {
+  connectedCallback() {
+    this.dataset.blog = "";
+  }
+}

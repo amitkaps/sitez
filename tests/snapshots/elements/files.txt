@@ -1,5 +1,5 @@
 docs/index.html
 index.html
-script.z1IrIpPU.js
+script.DXjF6qQE.js
 sitemap.xml
 style.BUfflXkt.css

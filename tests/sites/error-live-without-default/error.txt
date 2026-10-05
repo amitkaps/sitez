@@ -1,1 +1,1 @@
-code/@tag-box.live.js: this has no default export. A live file's default export is its element: export default (el) => { … }.
+code/@tag-box.live.js: this has no default export. A live file's default export is its element's class: export default class extends HTMLElement { … }.

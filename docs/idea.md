@@ -181,22 +181,9 @@ hyphen, which no element could use.
    }
    ```
 
-   A class is the web platform's own way to write an element, and any way of making one works.
-   [elementz](https://github.com/amitkaps/elementz) is a small library for the common case, an
-   element in light DOM set up once.
-
-   ```js
-   // code/@tag-filter.live.js
-   import { element } from "@amitkaps/elementz";
-
-   export default element((el) => {
-     const show = (tag) => {
-       for (const post of el.querySelectorAll("[data-tag]"))
-         post.hidden = !!tag && post.dataset.tag !== tag;
-     };
-     for (const b of el.querySelectorAll("button")) b.onclick = () => show(b.value);
-   });
-   ```
+   A class is the web platform's own way to write an element, so the file says what it is with
+   nothing from Sitez. `connectedCallback` runs again when the element moves in the page, so
+   setup that mustn't run twice checks first.
 
    - **A live element enhances HTML the build wrote.** It finds its content and controls in the
      page and adds behavior. Whatever it shows is written at build time, so nothing moves when
@@ -207,7 +194,7 @@ hyphen, which no element could use.
    - **A live file works on the DOM.** It imports nothing from Sitez, whose `html` renders at
      build time.
    - **Its default export is its element's class, and nothing else.** The class is written in the
-     export, or made by a call such as elementz's `element`. A file with no default export, a
+     export, or made by a call to a library that makes one. A file with no default export, a
      default that is a value, a bare function or a name, or any other export fails the build.
      Code two files share goes in a module.
    - **The two sides stay apart.** Build-time code that imports a `.live` file fails the build,

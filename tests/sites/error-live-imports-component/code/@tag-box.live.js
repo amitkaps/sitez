@@ -1,5 +1,7 @@
 import box from "./@tag-box.js";
 
-export default (el) => {
-  el.dataset.box = String(box);
-};
+export default class extends HTMLElement {
+  connectedCallback() {
+    this.dataset.box = String(box);
+  }
+}

@@ -136,8 +136,8 @@ and the site's script defines each under the tag its file's name gives. That's o
 
 A class is the web platform's own element, so the file says what it is with nothing from Sitez.
 Writing one by hand repeats a few lines, and running setup twice when an element moves is easy to
-get wrong. That boilerplate goes in [elementz](https://github.com/amitkaps/elementz), a separate
-library for light-DOM elements. Its `element(setup)` returns a class that runs `setup` once per
+get wrong. That boilerplate will go in elementz, a separate library for light-DOM elements, which
+doesn't exist yet. Until then a site writes the class. Its `element(setup)` returns a class that runs `setup` once per
 element and calls the cleanup `setup` returns on disconnect. elementz knows nothing of Sitez, and a
 site uses it like any other npm package.
 
@@ -358,10 +358,10 @@ fail the build, naming the import. A module with no Node imports can be used by 
 renders at build time, and a `.live` file that imports it fails.
 
 Sitez checks a `.live` file's shape by reading its syntax, since it can't run the file in Node.
-A class written in the export passes, and so does a call, such as elementz's `element(…)`. A
+A class written in the export passes, and so does a call to a library that makes one. A
 call that returns something else fails only in the browser, where `customElements.define` throws.
 A value, a bare function or a name fails the build. The message for a bare function points to
-writing a class, or to elementz.
+`connectedCallback`.
 
 ## Bundling
 
@@ -389,8 +389,8 @@ One script has two consequences, and each fails the build rather than doing some
 - **A tag has one `.live` file.** Two used live files for one tag, in different folders, would
   define the tag twice. Behavior that differs by section is two elements.
 - **A large library loads inside its element.** A package imported at the top goes into the
-  script, which every page with a live element loads. That's right for a small one, such as
-  elementz, and the report's `common` row shows what it costs. `await import("d3")` inside the
+  script, which every page with a live element loads. That's right for a small one, and the
+  report's `common` row shows what it costs. `await import("d3")` inside the
   element becomes a hashed chunk of its own, fetched only where the element connects. A URL
   imported at the top fails, since the browser would fetch it before the script runs on every
   page with a live element. One imported inside is left as it is, and the report names its host.

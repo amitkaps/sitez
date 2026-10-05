@@ -1,5 +1,7 @@
 import { label } from "./chart.js";
 
-export default (el) => {
-  el.textContent = label(1);
-};
+export default class extends HTMLElement {
+  connectedCallback() {
+    this.textContent = label(1);
+  }
+}

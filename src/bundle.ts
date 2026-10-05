@@ -10,7 +10,7 @@
  * content hash, so a new deploy is never served from a stale cache.
  */
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, extname, join, relative } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { build, type InlineConfig, type Logger, type Plugin, type Rolldown } from "vite";
 import { SiteError } from "./errors.ts";
 import { urlImportError, type Live } from "./live.ts";
@@ -106,15 +106,14 @@ export function styleImports(real: string, style: string): string[] {
 }
 
 /** @prose
- * A script that defines live elements: each live file, defined as its tag. The tag comes from the
- * file's name and the element from its default export, so a live file never names its element
- * (rule 6).
+ * A script that defines live elements: each live file's class, defined as its tag. The tag comes
+ * from the file's name and the class from its default export, so a live file never names its
+ * element (rule 6). That one line per element is all of Sitez that reaches the browser.
  */
 export function liveEntry(lives: Live[]): string {
   return [
-    `import { define } from ${JSON.stringify(join(runtime, "define" + extname(import.meta.filename)))};`,
     ...lives.map(({ file }, i) => `import live${i} from ${JSON.stringify(file)};`),
-    ...lives.map(({ tag }, i) => `define(${JSON.stringify(tag)}, live${i});`),
+    ...lives.map(({ tag }, i) => `customElements.define(${JSON.stringify(tag)}, live${i});`),
   ].join("\n");
 }
 
@@ -125,10 +124,13 @@ export function liveEntry(lives: Live[]): string {
  * nothing.
  *
  * One script means one live file for each tag. A tag whose behavior differs by folder would
- * define the tag twice, so two used live files for one tag fail. A library a live element loads
- * by URL comes in with `await import()` inside its function, or every page with a live element
- * would fetch it (`urlImports`). Those imports are left as they are, and the report names their
- * hosts.
+ * define the tag twice, so two used live files for one tag fail.
+ *
+ * A package a live file imports at the top goes into the script. One it imports with
+ * `await import()` becomes a chunk of its own, fetched only where its element connects, so a large
+ * library costs only the pages that use it. A library by URL must come in that way too, or every
+ * page with a live element would fetch it (`urlImports`). Those imports are left as they are, and
+ * the report names their hosts.
  *
  * The build is in production mode whatever the process says, since a dev server earlier in the
  * same process leaves `NODE_ENV` at `development`.
@@ -158,8 +160,8 @@ export async function script(root: string, real: string, lives: Live[]): Promise
       { script: liveEntry(sorted) },
       {
         entryFileNames: "[name].[hash].js",
+        chunkFileNames: "[name].[hash].js",
         assetFileNames: "assets/[name].[hash][extname]",
-        codeSplitting: false,
       },
       [urlImports(root, real)],
     ));
@@ -239,7 +241,8 @@ async function bundle(
     build: {
       write: false,
       assetsInlineLimit: 0,
-      // The site's script is one file, so there's nothing to preload.
+      // The site's script has one entry, and a chunk loads only where its element connects, so
+      // there's nothing to preload.
       modulePreload: false,
       rolldownOptions: {
         input: Object.fromEntries(Object.keys(entries).map((name) => [name, ENTRY + name])),
