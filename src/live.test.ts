@@ -2,13 +2,14 @@
  * # Finding a page's live elements
  *
  * Which `.live` files a page's HTML loads. A tag counts only when it's a real start tag with a
- * `.live` file up the tree from the page's URL. A live file's exports are its element alone.
+ * `.live` file up the tree from the page's URL. A live file's exports are its element alone, and
+ * it imports a library inside its function.
  */
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { expect, test } from "vite-plus/test";
-import { checkExports, findLive } from "./live.ts";
+import { checkLive, findLive } from "./live.ts";
 
 const root = mkdtempSync(join(tmpdir(), "sitez-"));
 for (const path of [
@@ -58,10 +59,14 @@ test.each([
   ["a named function, in TypeScript", "export default function setup(el: HTMLElement): void {}"],
   [
     "imports and code beside it",
-    'import { format } from "https://cdn.example.com/f.js";\nconst n = 1;\nexport default (el) => {};',
+    'import { slug } from "./slug.js";\nconst n = 1;\nexport default (el) => {};',
+  ],
+  [
+    "a library it imports inside",
+    'export default async (el) => { await import("https://cdn.example.com/f.js"); };',
   ],
 ])("a live file may default-export %s", (_, code) => {
-  expect(() => checkExports(live(code))).not.toThrow();
+  expect(() => checkLive(live(code))).not.toThrow();
 });
 
 test.each([
@@ -87,12 +92,17 @@ test.each([
     "this exports label.",
   ],
   [
+    "a library imported at the top",
+    'import f from "https://cdn.example.com/f.js";\nexport default () => {};',
+    'await import("https://cdn.example.com/f.js")',
+  ],
+  [
     "a re-export",
     "export * from './x.js';\nexport default () => {};",
     "this exports everything from ./x.js.",
   ],
 ])("a live file with %s fails", (_, code, message) => {
-  expect(() => checkExports(live(code))).toThrow(message);
+  expect(() => checkLive(live(code))).toThrow(message);
 });
 
 function live(code: string): string {

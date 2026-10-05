@@ -1,0 +1,1 @@
+code/blog/@tag-box.live.js: this and code/@tag-box.live.js are both <tag-box>'s behavior, on different pages. A site has one script, so a tag has one live file. Remove one, or give the elements different names.

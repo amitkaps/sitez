@@ -17,8 +17,7 @@ const blogOutDir = await built("blog");
 const elementsOutDir = await built("elements");
 
 test("the blog index's tag-filter filters on a click", async () => {
-  // One page has a live element, so there is nothing common to split out.
-  expect(readdirSync(blogOutDir).some((file) => file.startsWith("common."))).toBe(false);
+  expect(readdirSync(blogOutDir).filter((file) => file.endsWith(".js"))).toHaveLength(1);
   await inBrowser(blogOutDir, "blog/index.html", async (document) => {
     const element = document.querySelector("tag-filter")!;
     const visible = () =>
@@ -36,8 +35,12 @@ test("the blog index's tag-filter filters on a click", async () => {
 });
 
 test("a fold-out shows its text as the build wrote it", async () => {
-  // Two pages use fold-out, so its file and the runtime it loads are common to both.
-  expect(readdirSync(elementsOutDir).some((file) => file.startsWith("common."))).toBe(true);
+  // Two pages use fold-out, and both load the site's one script.
+  const src = (page: string) =>
+    /<script type="module" src="([^"]+)">/.exec(
+      readFileSync(join(elementsOutDir, page), "utf8"),
+    )?.[1];
+  expect(src("docs/index.html")).toBe(src("index.html"));
   await inBrowser(elementsOutDir, "index.html", async (document) => {
     const element = document.querySelector("fold-out")!;
     const button = element.querySelector("button")!;

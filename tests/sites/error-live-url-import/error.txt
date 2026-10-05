@@ -1,0 +1,1 @@
+code/chart.js: this imports https://cdn.example.com/d3-format@3/+esm at the top, so every page with a live element would fetch it. Import it inside the element's function: const lib = await import("https://cdn.example.com/d3-format@3/+esm").

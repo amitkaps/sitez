@@ -190,9 +190,13 @@ hyphen, which no element could use.
      Code two files share goes in a module.
    - **The two sides stay apart.** Build-time code that imports a `.live` file fails the build,
      naming the import. So does a `.live` file that imports a component, a layout or `sitez`.
-   - **A live element is small.** It adds a little interactivity, which needs no library. A
-     `.live` file imports the site's own `code/` or a full URL. So a library such as D3 loads in
-     the browser as an ES module from its URL, never from `node_modules`.
+   - **A live element is small.** It adds a little interactivity, which needs no library. Every
+     live element a site's pages use goes in one script, which a page with a live element loads.
+     So a tag has one `.live` file across the site, and two fail the build.
+   - **A library loads inside the element.** A `.live` file imports the site's own `code/`. A
+     library such as D3 loads in the browser as an ES module from its URL, never from
+     `node_modules`. It comes in with `await import(url)` inside the element's function, so only
+     a page where the element is fetches it. A library imported at the top fails the build.
 
 7. **HTML before JavaScript.** Pages link with `<a>`, and Sitez's reset turns on cross-document
    View Transitions. `<details>`, `popover` and `<dialog>` open, close and toggle without
@@ -294,17 +298,18 @@ sitez check    # fix what's safe (format, lint fixes), then report the rest
 costs to send, gzipped, and to build.
 
 ```text
-page          html      js   time
-/           4.0 KB       —  12 ms
-/teaching/  5.5 KB  2.0 KB  20 ms
-/quality/    90 KB   14 KB  1.2 s  raw <script>
-common      3.0 KB css, 1.5 KB js
+page          html   time
+/           4.0 KB  12 ms
+/teaching/  5.5 KB  20 ms  filter-grid
+/quality/    90 KB  1.2 s  raw <script>
+common      3.0 KB css, 1.2 KB js, loads cdn.jsdelivr.net
 42 pages in 1.8 s → dist · live: filter-grid, theme-toggle · sitez 0.2.0
 ```
 
-A page's `js` is what only it loads. `common` is the stylesheet and what pages share, which the
-browser downloads once. A page that grows heavy or slow is visible where the cost is. A note says
-what the numbers can't, such as a raw `<script>` that loads whatever it loads.
+`common` is the site's one stylesheet and one script, which the browser downloads once. A page
+that names a live element loads the script, and any other page loads no JavaScript. A page that
+grows heavy or slow is visible where the cost is. A note says what the numbers can't, such as a
+raw `<script>` that loads whatever it loads.
 
 **A site names its version of Sitez.** Its `package.json` holds one line that matters, and the
 lockfile beside it pins the rest.

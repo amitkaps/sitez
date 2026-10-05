@@ -2,18 +2,18 @@
  * # Bundling
  *
  * What the browser downloads besides the HTML, built by Rolldown once every page has rendered,
- * since only then is it known which pages use live elements. A site has one stylesheet: Sitez's
- * reset, then `code/+style.css`. CSS is small and needed before anything paints, so one file, cached by the first page and reused by every other, is
- * cheaper than a split that saves a few bytes per page. Everything it references (a font, an
- * image) is bundled beside it. JavaScript is only the live elements', only on the pages that have
- * them.
- * Every file's name carries a content hash, so a new deploy is never served from a stale cache.
+ * since only then is it known which live elements the pages use. A site has one stylesheet and at
+ * most one script. Each is small, so one file, cached by the first page and reused by every
+ * other, costs less than a split that saves a few bytes per page. The stylesheet is Sitez's reset,
+ * then `code/+style.css`, with everything it references (a font, an image) bundled beside it. The
+ * script is the live elements', loaded only by pages that have one. Every file's name carries a
+ * content hash, so a new deploy is never served from a stale cache.
  */
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, extname, join } from "node:path";
+import { dirname, extname, join, relative } from "node:path";
 import { build, type InlineConfig, type Logger, type Plugin, type Rolldown } from "vite";
 import { SiteError } from "./errors.ts";
-import type { Live } from "./live.ts";
+import { urlImportError, type Live } from "./live.ts";
 import {
   asGiven,
   cacheDir,
@@ -106,8 +106,9 @@ export function styleImports(real: string, style: string): string[] {
 }
 
 /** @prose
- * A page's script: each live file it uses, defined as its tag. The tag comes from the file's name
- * and the element from its default export, so a live file never names its element (rule 6).
+ * A script that defines live elements: each live file, defined as its tag. The tag comes from the
+ * file's name and the element from its default export, so a live file never names its element
+ * (rule 6).
  */
 export function liveEntry(lives: Live[]): string {
   return [
@@ -118,88 +119,90 @@ export function liveEntry(lives: Live[]): string {
 }
 
 /** @prose
- * The live elements' JavaScript, for the pages that have any: each gets an entry that imports its
- * `.live` files, named for the page (`blog/index.[hash].js` beside `blog/index.html`). What more
- * than one page uses, `define` first, goes in `common.[hash].js`. The build is in
- * production mode whatever the process says, since a dev server earlier in the same process
- * leaves `NODE_ENV` at `development`.
+ * The site's one script, `script.[hash].js`, which defines every live element a page uses. Like
+ * the stylesheet, it is small, and one file cached by the first page costs less than a split by
+ * page. Only a page with a live element loads it. Defining a tag that isn't on the page costs
+ * nothing.
+ *
+ * One script means one live file for each tag. A tag whose behavior differs by folder would
+ * define the tag twice, so two used live files for one tag fail. A library a live element loads
+ * by URL comes in with `await import()` inside its function, or every page with a live element
+ * would fetch it (`urlImports`). Those imports are left as they are, and the report names their
+ * hosts.
+ *
+ * The build is in production mode whatever the process says, since a dev server earlier in the
+ * same process leaves `NODE_ENV` at `development`.
  */
-export async function scripts(
-  root: string,
-  real: string,
-  pages: Map<string, Live[]>,
-): Promise<Scripts> {
-  if (pages.size === 0) return { files: new Map(), pages: new Map(), common: undefined };
-  const entries = Object.fromEntries([...pages].map(([name, lives]) => [name, liveEntry(lives)]));
+export async function script(root: string, real: string, lives: Live[]): Promise<Script> {
+  const byTag = new Map<string, Live>();
+  for (const live of lives) {
+    const other = byTag.get(live.tag);
+    if (other && other.file !== live.file) {
+      const [first, second] = [other.file, live.file].sort();
+      throw new SiteError(
+        asGiven(root, real, second!),
+        `this and ${relative(real, first!)} are both <${live.tag}>'s behavior, on different pages. A site has one script, so a tag has one live file. Remove one, or give the elements different names.`,
+      );
+    }
+    byTag.set(live.tag, live);
+  }
+  if (byTag.size === 0) return { files: new Map(), src: undefined, hosts: [] };
+  const sorted = [...byTag.values()].sort((a, b) => (a.tag < b.tag ? -1 : 1));
   const mode = process.env.NODE_ENV;
   process.env.NODE_ENV = "production";
   let output: Rolldown.RolldownOutput["output"];
   try {
-    ({ output } = await bundle(root, real, entries, {
-      entryFileNames: "[name].[hash].js",
-      chunkFileNames: (chunk) =>
-        chunk.name === "common" ? "common.[hash].js" : "assets/[name].[hash].js",
-      assetFileNames: "assets/[name].[hash][extname]",
-      codeSplitting: { groups: [{ name: "common", minShareCount: 2 }] },
-    }));
+    ({ output } = await bundle(
+      root,
+      real,
+      { script: liveEntry(sorted) },
+      {
+        entryFileNames: "[name].[hash].js",
+        assetFileNames: "assets/[name].[hash][extname]",
+        codeSplitting: false,
+      },
+      [urlImports(root, real)],
+    ));
   } finally {
     if (mode === undefined) delete process.env.NODE_ENV;
     else process.env.NODE_ENV = mode;
   }
-  const common = output.find(
-    (item) => item.type === "chunk" && item.name === "common" && !item.isEntry,
-  )?.fileName;
   const files: Files = new Map();
-  const scripts: Scripts["pages"] = new Map();
-  const chunks = new Map(
-    output.flatMap((item) => (item.type === "chunk" ? [[item.fileName, item]] : [])),
-  );
+  let src: string | undefined;
+  const hosts = new Set<string>();
   for (const item of output) {
     if (item.type === "asset") {
       files.set(item.fileName, item.source);
       continue;
     }
     files.set(item.fileName, item.code);
-    if (!item.isEntry) continue;
-    const imports = item.imports.filter((file) => chunks.has(file));
-    const preload = imports.map((file) => `<link rel="modulepreload" href="/${file}">`);
-    scripts.set(item.name, {
-      tags: [`<script type="module" src="/${item.fileName}"></script>`, ...preload].join("\n"),
-      own: [item.fileName, ...imports.filter((file) => file !== common)],
-      hosts: hosts(item, chunks),
-    });
+    if (item.isEntry) src = `/${item.fileName}`;
+    for (const url of item.dynamicImports) if (URL.canParse(url)) hosts.add(new URL(url).host);
   }
-  return { files, pages: scripts, common };
+  return { files, src, hosts: [...hosts].sort() };
+}
+
+/** What `script` built: its files, the URL pages load it from, and the hosts it loads libraries
+ * from. */
+export interface Script {
+  files: Files;
+  src: string | undefined;
+  hosts: string[];
 }
 
 /** @prose
- * The hosts a page's script loads a library from, through its own chunk or one it shares. A
- * `.live` file imports a library by its full URL (rule 6), which Rolldown leaves as it is. The
- * browser fetches it from that host, so the build can't count it, and the report names the host
- * instead.
+ * Fails a library imported by URL at the top of a module the site's script takes in. Every page
+ * with a live element would fetch it before anything ran, whether or not its element is there.
+ * Inside the element's function, `await import()` fetches it only where the element is.
  */
-function hosts(entry: Rolldown.OutputChunk, chunks: Map<string, Rolldown.OutputChunk>): string[] {
-  const found = new Set<string>();
-  const seen = new Set<string>();
-  const visit = (chunk: Rolldown.OutputChunk) => {
-    if (seen.has(chunk.fileName)) return;
-    seen.add(chunk.fileName);
-    for (const file of chunk.imports) {
-      const next = chunks.get(file);
-      if (next) visit(next);
-      else if (URL.canParse(file)) found.add(new URL(file).host);
-    }
+function urlImports(root: string, real: string): Plugin {
+  return {
+    name: "sitez:url-imports",
+    moduleParsed(info) {
+      const url = info.importedIds.find((id) => URL.canParse(id));
+      if (url) throw urlImportError(asGiven(root, real, info.id), url);
+    },
   };
-  visit(entry);
-  return [...found].sort();
-}
-
-/** What `scripts` built: by page, the tags that load its script, the files only it loads, and the
- * hosts it loads libraries from. */
-export interface Scripts {
-  files: Files;
-  pages: Map<string, { tags: string; own: string[]; hosts: string[] }>;
-  common: string | undefined;
 }
 
 /** @prose
@@ -213,6 +216,7 @@ async function bundle(
   real: string,
   entries: Record<string, string>,
   output: Rolldown.OutputOptions,
+  plugins: Plugin[] = [],
 ): Promise<{ output: Rolldown.RolldownOutput["output"]; unresolved: string[] }> {
   const unresolved: string[] = [];
   const logger = quietLogger((message) => {
@@ -225,11 +229,18 @@ async function bundle(
     cacheDir: cacheDir(real),
     logLevel: "silent",
     customLogger: logger,
-    plugins: [liveBoundary(root, real), fromSitez(), entryModules(entries), noOptimizer()],
+    plugins: [
+      liveBoundary(root, real),
+      fromSitez(),
+      entryModules(entries),
+      noOptimizer(),
+      ...plugins,
+    ],
     build: {
       write: false,
       assetsInlineLimit: 0,
-      modulePreload: { polyfill: false },
+      // The site's script is one file, so there's nothing to preload.
+      modulePreload: false,
       rolldownOptions: {
         input: Object.fromEntries(Object.keys(entries).map((name) => [name, ENTRY + name])),
         // Vite drops an app entry's exports, and with them the modules only exported.

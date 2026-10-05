@@ -355,15 +355,32 @@ The site's own CSS stays unlayered, so `@layer` and `!important` in it mean what
 mean. A `url()` in it is bundled as `assets/[name].[hash][ext]`. Vite would ship one it can't
 resolve as written, with only a warning, so Sitez fails the build instead.
 
-JavaScript splits by one rule. What more than one page uses goes in `common.js`. What only this page
-uses goes in the page's own `index.js`, next to its `index.html`. `define` and a live element
-in the layout are common, and `tag-filter` on `/blog/` is the page's.
+A site has at most one script, `script.[hash].js`, for the same reason. It defines every live
+element a built page uses, each under the tag its file's name gives, with `define` first. Only a
+page with a live element loads it, so a page with none loads no JavaScript. Defining a tag the
+page doesn't have registers a class that never runs, which costs nothing worth counting. The
+report shows the script once, on the `common` row, and each page's notes name its live elements.
 
-File names carry a content hash (`common.3f9a1c.js`), so a new deploy is never served from a stale
-cache. A page with no live element loads no JavaScript, common or its own. A `.live` file used on a
-few pages still lands in `common.js`, and the `common` row in the build report shows if that grows.
-A page with a live element loads `define`, under 0.2 KB, and its elements' own code. Nothing else
-of Sitez's reaches the browser. The build sets production mode itself.
+One script has two consequences, and each fails the build rather than doing something unseen.
+
+- **A tag has one `.live` file.** Two used live files for one tag, in different folders, would
+  define the tag twice. Behavior that differs by section is two elements.
+- **A library loads inside its element.** A static import is fetched before the script runs, so
+  a URL imported at the top of any module in the script would be fetched by every page with a
+  live element. `await import(url)` inside the element's function fetches it only where the
+  element connects. Rolldown leaves those imports as they are, and the report names their hosts.
+
+Two other ways were ruled out.
+
+- **A script for each page**, with what pages share split into `common.js`. It saved each page a
+  few hundred bytes, and cost per-page entries, chunk splitting, `modulepreload` links and a
+  report column. It paid off while signals and htl were the shared part, and both are gone.
+- **Inlining the script** in each page. It saves a request, and repeats the bytes on every page.
+  A site with a Content-Security-Policy would also have to allow inline scripts.
+
+File names carry a content hash (`script.3f9a1c.js`), so a new deploy is never served from a
+stale cache. `dev` still loads each page's own live files, since it serves modules as they are
+and has no file to cache. The build sets production mode itself.
 
 ## Check
 

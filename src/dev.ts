@@ -117,7 +117,7 @@ export async function dev(
   /** @prose
    * A page's two scripts in dev. `styles.js` imports the stylesheet as modules, so Vite replaces
    * them as they change, then shows the page, which stays hidden until then so it never flashes
-   * unstyled. `page.js` loads the page's live files, as in `build`. It is a script of its own, so
+   * unstyled. `page.js` loads the page's own live files, where `build` writes one script for the site. It is a script of its own, so
    * a broken one can't keep the styles from loading.
    */
   const script = (name: string, url: string): string | undefined => {

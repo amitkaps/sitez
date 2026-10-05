@@ -54,7 +54,7 @@ describe("sitez", () => {
     expect(error).toBe("index.md:3:6: `*emphasis*`, write `_emphasis_` instead (star-emphasis)");
     // A second or more, on a busy machine, reads as seconds.
     expect(log).toMatch(
-      /^page +html +js +time\n\/ +[\d.]+ KB +— +[\d.]+ m?s\ncommon +[\d.]+ KB css\n1 page in [\d.]+ m?s → \.\.\/dist · sitez [\d.]+$/,
+      /^page +html +time\n\/ +[\d.]+ KB +[\d.]+ m?s\ncommon +[\d.]+ KB css\n1 page in [\d.]+ m?s → \.\.\/dist · sitez [\d.]+$/,
     );
   });
 
@@ -66,7 +66,7 @@ describe("sitez", () => {
     writeFileSync(join(root, "text/index.md"), "# Home\n\n{@chart-box /}\n");
     writeFileSync(
       join(root, "code/@chart-box.live.js"),
-      'import { format } from "https://cdn.example.com/d3-format@3/+esm";\nexport default (el) => { el.textContent = format(".2f")(1); };\n',
+      'export default async (el) => {\n  const { format } = await import("https://cdn.example.com/d3-format@3/+esm");\n  el.textContent = format(".2f")(1);\n};\n',
     );
     writeFileSync(
       join(root, "package.json"),
@@ -75,7 +75,8 @@ describe("sitez", () => {
     const { code, log, error } = await sitez(["build"], root);
     expect(error).toBe("");
     expect(code).toBe(0);
-    expect(log).toMatch(/^\/ .* loads cdn\.example\.com$/m);
+    expect(log).toMatch(/^\/ .* chart-box$/m);
+    expect(log).toMatch(/^common .* KB js, loads cdn\.example\.com$/m);
   });
 
   test("fails in a site whose package.json doesn't name sitez, showing the line to add", async () => {

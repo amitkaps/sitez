@@ -37,7 +37,7 @@ export function findLive(root: string, url: string, html: string): Live[] {
   return [...tags].sort().flatMap((tag) => {
     const file = nearest(root, url, `@${tag}.live`);
     if (!file) return [];
-    checkExports(file);
+    checkLive(file);
     return [{ tag, file }];
   });
 }
@@ -45,7 +45,11 @@ export function findLive(root: string, url: string, html: string): Live[] {
 const FUNCTION = new Set(["ArrowFunctionExpression", "FunctionExpression", "FunctionDeclaration"]);
 
 /** @prose
- * Fails a live file whose exports aren't one function, its element (rule 6). Sitez can't run the
+ * Fails a live file whose exports aren't one function, its element (rule 6), or that imports a
+ * library by URL at the top. The bundler fails such an import anywhere in the site's script
+ * (`bundle.ts`), and this catches it in the live file in `dev` too.
+ *
+ * Exports first. Sitez can't run the
  * file in Node, so it reads the syntax. A default export counts only when the function is written
  * in the export. `export default setup` fails even when `setup` is a function, since telling would
  * mean following the name. Any other export fails too. Nothing imports a live file, so what else
@@ -53,7 +57,7 @@ const FUNCTION = new Set(["ArrowFunctionExpression", "FunctionExpression", "Func
  *
  * A file that doesn't parse is left to the bundler, whose message shows the line.
  */
-export function checkExports(file: string): void {
+export function checkLive(file: string): void {
   let body;
   try {
     body = parseAst(readFileSync(file, "utf8"), { lang: file.endsWith(".ts") ? "ts" : "js" }).body;
@@ -64,6 +68,9 @@ export function checkExports(file: string): void {
   const notWritten = `its default export isn't a function written in the export. ${element}`;
   let found = false;
   for (const statement of body) {
+    if (statement.type === "ImportDeclaration" && URL.canParse(statement.source.value)) {
+      throw urlImportError(file, statement.source.value);
+    }
     if (statement.type === "ExportDefaultDeclaration") {
       if (!FUNCTION.has(statement.declaration.type)) throw new SiteError(file, notWritten);
       found = true;
@@ -95,4 +102,12 @@ function declared(declaration: { id?: unknown; declarations?: unknown }): string
     ? declaration.declarations.map((d: { id: unknown }) => d.id)
     : [declaration.id];
   return ids.map((id) => (id as { name?: string } | null)?.name ?? "a declaration");
+}
+
+/** The failure for a library imported by URL at the top of a file. */
+export function urlImportError(file: string, url: string): SiteError {
+  return new SiteError(
+    file,
+    `this imports ${url} at the top, so every page with a live element would fetch it. Import it inside the element's function: const lib = await import("${url}").`,
+  );
 }

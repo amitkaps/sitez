@@ -106,6 +106,9 @@ at the end, from the 0.2.0 baseline below.
 - [x] Live elements with no runtime. A `.live` file default-exports its element and imports
       nothing from Sitez. `define`, `html` in the browser, htl and the signals core went, so a
       page's script is its elements and `define`, under 0.2 KB.
+- [x] One script for the site. Every live element a page uses goes in `script.[hash].js`, which
+      only a page with a live element loads. `common.js`, page scripts and `modulepreload` went.
+      A library loads with `await import()` inside its element, and two live files for one tag fail.
   - amitkaps.github.io's two `.live` files move to `export default` when it installs the release
     after 0.2.0, and `@talk-grid.live.js` makes its player with `document.createElement`.
 - [ ] Fewer and smaller dependencies, judged by what a site installs and what a page loads. A

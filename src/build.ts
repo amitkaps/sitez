@@ -3,15 +3,14 @@
  *
  * `sitez build`: every page rendered to complete HTML in `dist/`, with the sitemap, the feed and
  * a page at each redirect, and `public/` copied beside them. The site is read once (`site.ts`), then pages render
- * concurrently, each awaiting its own data, and the stylesheet and the live elements' scripts are
- * built
- * from what they rendered. Nothing is written until everything has built. Markz's warnings are
+ * concurrently, each awaiting its own data, and the stylesheet and the live elements' script are
+ * built from what they rendered. Nothing is written until everything has built. Markz's warnings are
  * returned for the command to print, with what each page costs for the report.
  */
 import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, sep } from "node:path";
 import { gzipSync } from "node:zlib";
-import { scripts, stylesheet, type Files } from "./bundle.ts";
+import { script, stylesheet, type Files } from "./bundle.ts";
 import { outputFile } from "./discover.ts";
 import { SiteError } from "./errors.ts";
 import { document } from "./render.ts";
@@ -23,8 +22,8 @@ import type { MarkzWarning } from "./warnings.ts";
 
 /** @prose
  * What a page costs, for the build report: bytes gzipped, as a browser receives them, and time to
- * render. `js` is only what this page loads and no other does; `notes` is what the numbers can't
- * show.
+ * render. `notes` is what the numbers can't show, such as the live elements that make the page
+ * load the site's script.
  */
 export interface Built {
   url: string;
@@ -32,7 +31,6 @@ export interface Built {
   /** Time to render the page, layout included, in milliseconds. */
   ms: number;
   html: number;
-  js: number;
   notes: string[];
 }
 
@@ -40,8 +38,9 @@ export interface BuildResult {
   outDir: string;
   /** In URL order. */
   pages: Built[];
-  /** What every page shares, downloaded once: the stylesheet and `common.js`, gzipped. */
-  common: { css: number; js: number };
+  /** What pages share, downloaded once: the stylesheet and the script, gzipped, and the hosts
+   * the script loads libraries from. */
+  common: { css: number; js: number; hosts: string[] };
   /** Every live element a built page uses, by tag. */
   live: string[];
   /** Markz's, from `site.md` and every page built, in URL order. */
@@ -66,25 +65,22 @@ export async function build(
   }
   const { site, warnings } = run;
 
-  // A page's script imports exactly the live files it uses; then every page gets the
-  // stylesheet and, if it has any, its script.
-  const used = new Map(
-    rendered
-      .filter((page) => page.live.length > 0)
-      .map((page) => [
-        entryName(page.url),
-        page.live.map((live) => ({ ...live, file: inReal(root, server.real, live.file) })),
-      ]),
-  );
+  // The site's script holds every live element a page uses; then every page gets the
+  // stylesheet and, if it has a live element, the script.
   const css = await stylesheet(root, server.real);
-  const js = await scripts(root, server.real, used);
+  const js = await script(
+    root,
+    server.real,
+    rendered.flatMap((page) =>
+      page.live.map((live) => ({ ...live, file: inReal(root, server.real, live.file) })),
+    ),
+  );
   const files: Files = new Map([...css.files, ...js.files]);
   const pagesBuilt: Built[] = [];
   for (const page of rendered) {
     const { tags, head, body } = page.parts;
     const assets = [`<link rel="stylesheet" href="${css.href}">`];
-    const script = js.pages.get(entryName(page.url));
-    if (script) assets.push(script.tags);
+    if (page.live.length > 0) assets.push(`<script type="module" src="${js.src}"></script>`);
     const html = document(site, [tags, ...assets].join("\n"), head, body);
     files.set(outputFile(page.url), html);
     pagesBuilt.push({
@@ -92,8 +88,7 @@ export async function build(
       file: page.file,
       ms: page.ms,
       html: gzipped(html),
-      js: (script?.own ?? []).reduce((sum, file) => sum + gzipped(files.get(file)!), 0),
-      notes: [...notes(head + body), ...(script?.hosts ?? []).map((host) => `loads ${host}`)],
+      notes: [...page.live.map((live) => live.tag), ...notes(head + body)],
     });
   }
   const all = rendered.map((page) => page.data);
@@ -109,7 +104,8 @@ export async function build(
     pages: pagesBuilt.toSorted((a, b) => (a.url < b.url ? -1 : 1)),
     common: {
       css: gzipped(files.get(css.href.slice(1))!),
-      js: js.common ? gzipped(files.get(js.common)!) : 0,
+      js: js.src ? gzipped(files.get(js.src.slice(1))!) : 0,
+      hosts: js.hosts,
     },
     live: [...new Set(rendered.flatMap((page) => page.live.map((live) => live.tag)))].sort(),
     warnings,
@@ -123,8 +119,7 @@ function gzipped(content: string | Uint8Array): number {
 
 /** @prose
  * What a page's numbers leave out. A `<script>` Sitez didn't write, in a raw block or in
- * code's markup, runs whatever it loads, which the build can't count. A library a live element
- * loads by URL is noted by its host, where the page's script is built.
+ * code's markup, runs whatever it loads, which the build can't count.
  */
 function notes(html: string): string[] {
   return /<script\b/i.test(html) ? ["raw <script>"] : [];
@@ -154,14 +149,6 @@ function write(root: string, outDir: string, files: Files): void {
     mkdirSync(dirname(file), { recursive: true });
     writeFileSync(file, content);
   }
-}
-
-/** A page's script is named for its HTML file: `blog/index` for `blog/index.html`. */
-function entryName(url: string): string {
-  return outputFile(url)
-    .split(sep)
-    .join("/")
-    .replace(/\.html$/, "");
 }
 
 function source(path: string): string {
