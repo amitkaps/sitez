@@ -1,26 +1,39 @@
 /** @prose
  * # The dev server
  *
- * `sitez dev` on a copy of the blog: how it serves pages, and what the browser is told when a
- * file changes.
+ * `vite` on a copy of the blog, with Sitez in its config: how it serves pages, and what the
+ * browser is told when a file changes.
  */
 import { cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vite-plus/test";
-import { dev, type Dev } from "./dev.ts";
+import { createServer, type ViteDevServer } from "vite";
 
-// A copy of the blog, since the tests change its files as an author would.
+// A copy of the blog, since the tests change its files as an author would. Its config reaches the
+// plugin in `src/`, from where the copy sits.
 const site = join(mkdtempSync(join(tmpdir(), "sitez-dev-")), "blog");
 cpSync(join(import.meta.dirname, "../tests/sites/blog"), site, { recursive: true });
+writeFileSync(
+  join(site, "vite.config.js"),
+  `import sitez from ${JSON.stringify(join(import.meta.dirname, "../tests/sitez.ts"))};\n\nexport default { plugins: [sitez()] };\n`,
+);
 
-let server: Dev;
+let vite: ViteDevServer;
+let url: string;
 beforeAll(async () => {
-  server = await dev(site, { port: 0, cwd: site });
+  vite = await createServer({
+    root: site,
+    configLoader: "native",
+    logLevel: "silent",
+    server: { port: 0, host: "localhost" },
+  });
+  await vite.listen();
+  url = vite.resolvedUrls!.local[0]!;
 });
-afterAll(() => server.close());
+afterAll(() => vite.close());
 
-const get = (path: string) => fetch(new URL(path, server.url), { redirect: "manual" });
+const get = (path: string) => fetch(new URL(path, url), { redirect: "manual" });
 
 describe("pages", () => {
   test("a page is rendered with Vite and its own scripts, hidden until styled", async () => {
@@ -95,7 +108,7 @@ describe("changes", () => {
    * page's `@vite/client` would read it.
    */
   async function afterChange(change: () => void): Promise<{ type: string; kinds: string[] }> {
-    const socket = new WebSocket(server.url.replace(/^http/, "ws"), "vite-hmr");
+    const socket = new WebSocket(url.replace(/^http/, "ws"), "vite-hmr");
     const messages: { type: string; updates?: { type: string }[] }[] = [];
     await new Promise<void>((resolve) => {
       socket.addEventListener("message", (event) => {

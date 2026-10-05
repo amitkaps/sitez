@@ -1,11 +1,13 @@
 /** @prose
  * # Dev
  *
- * `sitez dev`: every page, drafts included, rendered when it's asked for, by the same code as
- * `build` (`site.ts`), so a page can't look one way here and another in `dist/`. The site is read
- * again for every page, so a new or deleted file is a new or missing URL at once, with nothing to
- * restart. A change reloads the page, except to CSS, which Vite replaces in place. A mistake shows in the browser as the message `build` would print, and the
- * page reloads when it's fixed.
+ * `vite`, for a site: every page, drafts included, rendered when it's asked for, by the same code
+ * as `build` (`site.ts`), so a page can't look one way here and another in `dist/`. The site is
+ * read again for every page, so a new or deleted file is a new or missing URL at once, with nothing
+ * to restart. A change reloads the page, except to CSS, which Vite replaces in place. A mistake
+ * shows in the browser as the message `build` would print, and the page reloads when it's fixed.
+ *
+ * The plugin hooks into Vite's own dev server, which is also the renderer's module runner.
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { join } from "node:path";
@@ -16,49 +18,31 @@ import { SiteError, shownFrom, siteErrorText } from "./errors.ts";
 import { escape } from "./head.ts";
 import type { Live } from "./live.ts";
 import { document } from "./render.ts";
-import { pathOf } from "./preview.ts";
 import { redirectUrl } from "./redirects.ts";
 import { readRun, renderPage, type Run } from "./site.ts";
 import { feed, sitemap } from "./sitemap.ts";
 import { asGiven, inReal, siteServer, type SiteServer } from "./vite.ts";
 import { formatWarning, type MarkzWarning } from "./warnings.ts";
 
-export interface Dev {
-  /** Where the site is served, such as `http://localhost:5173/`. */
-  url: string;
-  close(): Promise<void>;
-}
-
-export interface DevOptions {
-  port?: number;
-  /** Where `sitez` runs, which messages name files from. */
-  cwd?: string;
-  /** Prints a Markz warning, once per warning. */
-  warn?: (line: string) => void;
-  /** Prints a page's failure, as the browser shows it. */
-  error?: (line: string) => void;
-}
-
-export async function dev(
-  root: string,
-  { port = 5173, cwd = root, warn = () => {}, error: report = () => {} }: DevOptions = {},
-): Promise<Dev> {
+/** The dev server's half of the plugin. It does nothing in the server `build` renders with. */
+export function devPlugin(): Plugin {
   // What each page's script loads: its live files, from its last render.
   const rendered = new Map<string, Live[]>();
   const warned = new Set<string>();
   // A request that isn't a page after all reaches `notFound` with the site already read.
   const runs = new WeakMap<IncomingMessage, Run>();
   let server: SiteServer;
+  let root = "";
+  let logger: ViteDevServer["config"]["logger"];
   // Whether the last page asked for failed: then any change reloads, CSS too, to show the fix.
   let failing = false;
 
-  const shown = shownFrom(cwd);
   const newWarnings = (warnings: MarkzWarning[]) => {
     for (const warning of warnings) {
-      const line = formatWarning(warning, shown);
+      const line = formatWarning(warning, shownFrom(root));
       if (warned.has(line)) continue;
       warned.add(line);
-      warn(line);
+      logger.warn(line);
     }
   };
 
@@ -79,8 +63,8 @@ export async function dev(
       failing = false;
     } catch (error) {
       failing = true;
-      const text = errorText(error, cwd);
-      report(text);
+      const text = errorText(error, root);
+      logger.error(text);
       send(response, 500, "text/html", errorPage(text));
     }
   };
@@ -185,7 +169,7 @@ export async function dev(
     vite.ws.send({ type: "full-reload" });
   };
 
-  const plugin: Plugin = {
+  return {
     name: "sitez:dev",
     resolveId: (id) => (id.startsWith(SCRIPTS) ? `\0${id}` : null),
     load(id) {
@@ -194,6 +178,10 @@ export async function dev(
       return script(name, new URLSearchParams(query).get("url") ?? "/");
     },
     configureServer(vite) {
+      if (vite.config.plugins.some((plugin) => plugin.name === RENDER_ONLY)) return;
+      server = siteServer(vite);
+      root = server.root;
+      logger = vite.config.logger;
       vite.middlewares.use((request, response, next) => void serve(request, response, next));
       vite.watcher.on("add", () => reload(vite));
       vite.watcher.on("unlink", () => reload(vite));
@@ -210,12 +198,10 @@ export async function dev(
       return [];
     },
   };
-
-  server = await siteServer(root, { port, plugin });
-  await server.vite.listen();
-  const address = server.vite.resolvedUrls?.local[0] ?? `http://localhost:${port}/`;
-  return { url: address, close: () => server.close() };
 }
+
+/** Marks the server `build` renders with, where the dev server's middleware has no place. */
+export const RENDER_ONLY = "sitez:render-only";
 
 // Where a page's scripts are served, by the plugin above.
 const SCRIPTS = "/@sitez/";
@@ -251,8 +237,8 @@ function send(response: ServerResponse, status: number, type: string, body: stri
  * A mistake in the site is shown as `build` prints it, `file: message`; anything else is a bug in
  * Sitez, shown with its stack. Vite's client is on the page, so it reloads once the file is fixed.
  */
-function errorText(error: unknown, cwd: string): string {
-  if (error instanceof SiteError) return siteErrorText(error, cwd);
+function errorText(error: unknown, root: string): string {
+  if (error instanceof SiteError) return siteErrorText(error, root);
   return error instanceof Error ? (error.stack ?? error.message) : String(error);
 }
 
@@ -270,4 +256,13 @@ function errorPage(text: string): string {
 </body>
 </html>
 `;
+}
+
+/** A request's path as the files are named, or as sent when it isn't valid percent-encoding. */
+function pathOf(url: URL): string {
+  try {
+    return decodeURIComponent(url.pathname);
+  } catch {
+    return url.pathname;
+  }
 }

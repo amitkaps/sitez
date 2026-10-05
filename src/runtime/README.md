@@ -18,5 +18,3 @@ The other files are copied into the package as they are.
 
 - `reset.css` is the quiet, readable look every site's stylesheet begins with, for the site to
   override.
-- `oxfmtrc.json` is the style `sitez check` formats a site's files in, which is oxfmt's defaults.
-  Naming it keeps a config further up the tree from applying.

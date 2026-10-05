@@ -13,8 +13,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse, textContent, type Document, type MetadataValue } from "@amitkaps/markz";
+import { SITE_FILE } from "./discover.ts";
 import { SiteError } from "./errors.ts";
-import { SITE_FILE } from "./root.ts";
 
 export type Metadata = Record<string, MetadataValue | undefined>;
 

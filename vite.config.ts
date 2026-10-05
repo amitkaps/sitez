@@ -3,7 +3,7 @@
  *
  * The repo's own toolchain, not the one Sitez gives a site: one
  * [`vite-plus`](https://vite-plus.dev) config drives format, lint, test and the package build.
- * `pack` bundles the CLI with tsdown. Reading the repo as prose is a separate tool,
+ * `pack` bundles the plugin with tsdown. Reading the repo as prose is a separate tool,
  * [`@amitkaps/prose`](https://github.com/amitkaps/prose): run `pnpm prose`.
  */
 import { defineConfig } from "vite-plus";
@@ -13,15 +13,16 @@ import { defineConfig } from "vite-plus";
 const ignored = ["dist/**", "tests/sites/**", "tests/snapshots/**", "pnpm-lock.yaml"];
 
 export default defineConfig({
-  // tsdown — `vp pack`. Two ESM entries: the CLI, run by Node, and the `sitez` import with its
-  // types. The other files a site's own build loads through Vite are copied as they are.
+  // tsdown — `vp pack`. Two ESM entries: the plugin a site's `vite.config.js` imports, and the
+  // `sitez` import with its types. The other files a site's own build loads through Vite are
+  // copied as they are.
   pack: {
     entry: {
-      cli: "src/cli.ts",
+      plugin: "src/plugin.ts",
       "runtime/index": "src/runtime/index.ts",
     },
     dts: true,
-    copy: [{ from: "src/runtime/*.{css,json}", to: "dist/runtime" }],
+    copy: [{ from: "src/runtime/*.css", to: "dist/runtime" }],
     format: ["esm"],
     platform: "node",
     clean: true,

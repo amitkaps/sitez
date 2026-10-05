@@ -14,15 +14,7 @@ import { dirname, join, relative } from "node:path";
 import { build, type InlineConfig, type Logger, type Plugin, type Rolldown } from "vite";
 import { SiteError } from "./errors.ts";
 import { urlImportError, type Live } from "./live.ts";
-import {
-  asGiven,
-  cacheDir,
-  fromSitez,
-  liveBoundary,
-  noOptimizer,
-  runtime,
-  siteError,
-} from "./vite.ts";
+import { asGiven, runtime, siteError, type SiteServer } from "./vite.ts";
 
 /** Files to write into `dist/`, by path. */
 export type Files = Map<string, string | Uint8Array>;
@@ -33,14 +25,11 @@ export type Files = Map<string, string | Uint8Array>;
  * rather than shipping as written, as a broken link would. The build has no code splitting, so its
  * CSS is one file even when the site's CSS imports others.
  */
-export async function stylesheet(
-  root: string,
-  real: string,
-): Promise<{ href: string; files: Files }> {
+export async function stylesheet(site: SiteServer): Promise<{ href: string; files: Files }> {
+  const { root, real } = site;
   const imports = styleImports(real, `/code/+style.css`);
   const { output, unresolved } = await bundle(
-    root,
-    real,
+    site,
     { style: imports.join("\n") },
     {
       codeSplitting: false,
@@ -135,7 +124,8 @@ export function liveEntry(lives: Live[]): string {
  * The build is in production mode whatever the process says, since a dev server earlier in the
  * same process leaves `NODE_ENV` at `development`.
  */
-export async function script(root: string, real: string, lives: Live[]): Promise<Script> {
+export async function script(site: SiteServer, lives: Live[]): Promise<Script> {
+  const { root, real } = site;
   const byTag = new Map<string, Live>();
   for (const live of lives) {
     const other = byTag.get(live.tag);
@@ -155,8 +145,7 @@ export async function script(root: string, real: string, lives: Live[]): Promise
   let output: Rolldown.RolldownOutput["output"];
   try {
     ({ output } = await bundle(
-      root,
-      real,
+      site,
       { script: liveEntry(sorted) },
       {
         entryFileNames: "[name].[hash].js",
@@ -212,32 +201,29 @@ function urlImports(root: string, real: string): Plugin {
  * every page has built. Vite reports a `url()` it can't find only as a warning, and leaves it in
  * the CSS, so warnings are read here instead of printed. A file that doesn't
  * compile fails naming it, as it would while rendering.
+ *
+ * The build reads the site's own config file, so its other Vite plugins apply to the CSS and the
+ * script, and so does Sitez's `liveBoundary`, which comes with `sitez()`.
  */
 async function bundle(
-  root: string,
-  real: string,
+  site: SiteServer,
   entries: Record<string, string>,
   output: Rolldown.OutputOptions,
   plugins: Plugin[] = [],
 ): Promise<{ output: Rolldown.RolldownOutput["output"]; unresolved: string[] }> {
+  const { root, real } = site;
   const unresolved: string[] = [];
   const logger = quietLogger((message) => {
     const found = /^\s*(\S+) referenced in .* didn't resolve at build time/.exec(message);
     if (found) unresolved.push(found[1]!);
   });
   const config: InlineConfig = {
-    configFile: false,
+    configFile: site.vite.config.configFile,
+    configLoader: site.vite.config.inlineConfig.configLoader,
     root: real,
-    cacheDir: cacheDir(real),
     logLevel: "silent",
     customLogger: logger,
-    plugins: [
-      liveBoundary(root, real),
-      fromSitez(),
-      entryModules(entries),
-      noOptimizer(),
-      ...plugins,
-    ],
+    plugins: [entryModules(entries), ...plugins],
     build: {
       write: false,
       assetsInlineLimit: 0,

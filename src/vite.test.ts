@@ -1,42 +1,49 @@
 /** @prose
- * # Resolving `sitez`
+ * # The site's modules in Vite
  *
- * A site's `import "@amitkaps/sitez"` gets the running Sitez's runtime, even when the site installs
- * its own copy. Only build code gets it, and the browser can't.
+ * A site's `import "@amitkaps/sitez"` gets the build-time runtime, which renders the templates it
+ * makes. Only build code gets it, and a live file's import of it fails. Vite resolves every other
+ * import as Node does, from the site's own `node_modules`.
  */
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { createServer } from "vite";
 import { afterAll, expect, test } from "vite-plus/test";
 import { render } from "./runtime/render.ts";
-import { runtime, siteServer } from "./vite.ts";
+import { siteServer } from "./vite.ts";
 
 const root = mkdtempSync(join(tmpdir(), "sitez-"));
 for (const [file, content] of Object.entries({
   "site.md": "---\nurl: https://example.com\n---\n",
+  "vite.config.js": `import sitez from ${JSON.stringify(join(import.meta.dirname, "../tests/sitez.ts"))};\n\nexport default { plugins: [sitez()] };\n`,
   "code/card.js":
-    'import { html } from "@amitkaps/sitez";\nexport default (title) => html`<li>${title}</li>`;\n',
-  "node_modules/@amitkaps/sitez/package.json":
-    '{ "name": "@amitkaps/sitez", "type": "module", "main": "index.js" }',
-  "node_modules/@amitkaps/sitez/index.js": "export const html = () => 'the site’s own copy';\n",
+    'import { html } from "@amitkaps/sitez";\nimport { label } from "labels";\nexport default (title) => html`<li>${label}${title}</li>`;\n',
+  "node_modules/labels/package.json": '{ "name": "labels", "type": "module", "main": "index.js" }',
+  "node_modules/labels/index.js": "export const label = 'New: ';\n",
 })) {
   mkdirSync(dirname(join(root, file)), { recursive: true });
   writeFileSync(join(root, file), content);
 }
-const site = await siteServer(root);
+const site = siteServer(
+  await createServer({
+    root,
+    configLoader: "native",
+    logLevel: "silent",
+    appType: "custom",
+    server: { middlewareMode: true, hmr: false, watch: null },
+  }),
+);
 afterAll(() => site.close());
 
-test("build code gets the build-time runtime, whose templates the build renders", async () => {
+test("build code gets the runtime, and the site's own packages", async () => {
   const card = (await site.load(join(root, "code/card.js"))).default as (t: string) => unknown;
-  expect(await render(card("Fish & Chips"))).toBe("<li>Fish &amp; Chips</li>");
+  expect(await render(card("Fish & Chips"))).toBe("<li>New: Fish &amp; Chips</li>");
 });
 
 test("only build code gets the runtime, and a live file's import fails", async () => {
-  const { client, ssr } = site.vite.environments;
+  const { client } = site.vite.environments;
   const importer = join(site.real, "code/@tag-filter.live.js");
-  expect((await ssr!.pluginContainer.resolveId("@amitkaps/sitez", importer))?.id).toBe(
-    join(runtime, "index.ts"),
-  );
   await expect(client!.pluginContainer.resolveId("@amitkaps/sitez", importer)).rejects.toThrow(
     "whose html renders at build time",
   );

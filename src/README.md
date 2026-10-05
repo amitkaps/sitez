@@ -1,12 +1,10 @@
 # src
 
-Sitez itself: the `sitez` command and the stages a site goes through on its way to `dist/`. Each
+Sitez itself: a Vite plugin, and the stages a site goes through on its way to `dist/`. Each
 stage gets a file here, or a folder once it needs more than one, as its step in
 [plan.md](../docs/plan.md) starts.
 
-- `cli.ts` is the command: it finds the site and runs one of `dev`, `build`, `preview`, `check`
-  and `deploy`.
-- `root.ts` finds the site from wherever `sitez` runs.
+- `plugin.ts` is `sitez()`, the plugin a site adds to its `vite.config.js`, which has no options.
 - `discover.ts` decides which files are pages, at which URLs, which names in `code/` Sitez reads,
   and which file of a name, such as a layout, is nearest to each.
 - `metadata.ts` is what a page knows about itself, the site and every page.
@@ -16,7 +14,8 @@ stage gets a file here, or a folder once it needs more than one, as its step in
   write instead.
 - `links.ts` is where a link in text goes, and whether it's there.
 - `live.ts` finds the live elements a page uses, from its HTML, and the `.live` file of each.
-- `vite.ts` is the Vite server Sitez runs for a site, with the config nobody writes.
+- `vite.ts` is what the plugin's parts share: the site's modules in Vite's module runner, and the
+  import rule between build code and browser code.
 - `render.ts` renders a layout or component module, a layout's `head`, and the document around
   them.
 - `site.ts` is what `build` and `dev` share: reading the site, and rendering one page.
@@ -24,11 +23,9 @@ stage gets a file here, or a folder once it needs more than one, as its step in
 - `sitemap.ts` writes `sitemap.xml` and `feed.xml`.
 - `bundle.ts` builds what the browser downloads besides the HTML: the site's one stylesheet, and
   the live elements' JavaScript.
-- `build.ts` renders every page and writes `dist/`.
+- `build.ts` is the plugin's build half: it renders every page, writes `dist/`, and makes
+  `vite preview` serve it as a static host would.
 - `report.ts` is what `build` prints: what each page costs to send and to build.
-- `dev.ts` serves the site while it's written, rendering each page as it's asked for.
-- `preview.ts` serves `dist/` as a static host would.
-- `check.ts` formats, lints and type-checks the site's files, and reports Markz's warnings.
-- `deploy.ts` builds and publishes `dist/` to GitHub Pages.
+- `dev.ts` is the plugin's dev server half, rendering each page as it's asked for.
 - `runtime/` is what a site's own code loads: the `sitez` import and its renderer, and the reset.
 - `errors.ts` is how a mistake in a site becomes a message naming the file and what to change.

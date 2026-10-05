@@ -4,15 +4,15 @@
  * Every site in `tests/sites/` is built. A site builds to the files in `tests/snapshots/<site>/`
  * (`files.txt` lists them, `built/` holds the text ones, and `warnings.txt` has Markz's warnings,
  * when it has any), which are reviewed as they change. An `error-…` site fails with exactly its
- * `error.txt`. Files are named relative to the site, as the CLI prints them from there.
+ * `error.txt`. Files are named relative to the site, as `vite build` prints them from there.
+ * Each site is built the way `vite build` builds it, through its own `vite.config.js`.
  */
 import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { describe, expect, test } from "vite-plus/test";
-import { build } from "../src/build.ts";
-import { SiteError } from "../src/errors.ts";
-import { formatWarning } from "../src/warnings.ts";
+import type { SiteError } from "../src/errors.ts";
+import { buildSite } from "./build.ts";
 
 const sites = join(import.meta.dirname, "sites");
 const names = readdirSync(sites, { withFileTypes: true })
@@ -27,7 +27,7 @@ describe.each(names.filter((name) => !name.startsWith("error-")))("%s", (name) =
   test("builds to its snapshot", async () => {
     const outDir = join(mkdtempSync(join(tmpdir(), "sitez-")), "dist");
     const root = join(sites, name);
-    const { warnings } = await build(root, { outDir });
+    const { warnings } = await buildSite(root, outDir);
     const files = readdirSync(outDir, { recursive: true, withFileTypes: true })
       .filter((entry) => entry.isFile())
       .map((entry) => relative(outDir, join(entry.parentPath, entry.name)))
@@ -48,10 +48,7 @@ describe.each(names.filter((name) => !name.startsWith("error-")))("%s", (name) =
     }
     const snapshot = `snapshots/${name}/warnings.txt`;
     if (warnings.length > 0 || existsSync(join(import.meta.dirname, snapshot))) {
-      const lines = warnings.map((warning) =>
-        formatWarning(warning, (file) => relative(root, file)),
-      );
-      await expect(lines.map((line) => `${line}\n`).join("")).toMatchFileSnapshot(snapshot);
+      await expect(warnings.map((line) => `${line}\n`).join("")).toMatchFileSnapshot(snapshot);
     }
   });
 });
@@ -60,11 +57,12 @@ describe.each(names.filter((name) => name.startsWith("error-")))("%s", (name) =>
   test("fails with its error.txt", async () => {
     const root = join(sites, name);
     const outDir = join(mkdtempSync(join(tmpdir(), "sitez-")), "dist");
-    const error = await build(root, { outDir }).then(
+    const error = await buildSite(root, outDir).then(
       () => undefined,
       (error: unknown) => error,
     );
-    expect(error).toBeInstanceOf(SiteError);
+    // By name: the plugin that threw is Node's copy of `src/`, not the one this test imports.
+    expect((error as Error).name).toBe("SiteError");
     const { file, message } = error as SiteError;
     const expected = readFileSync(join(root, "error.txt"), "utf8").trim();
     expect(`${relative(root, file)}: ${message}`).toBe(expected);

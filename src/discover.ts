@@ -13,7 +13,16 @@
 import { readdirSync, statSync } from "node:fs";
 import { basename, extname, join, relative, sep } from "node:path";
 import { SiteError } from "./errors.ts";
-import { reserved, SITE_FILE } from "./root.ts";
+
+export const SITE_FILE = "site.md";
+
+/** `text/site.md`, found by page discovery. */
+export function reserved(file: string): SiteError {
+  return new SiteError(
+    file,
+    `${SITE_FILE} is reserved for the site's metadata, next to text/, so it can't be a page. Rename it, or move its metadata into ../${SITE_FILE}.`,
+  );
+}
 
 export interface Page {
   url: string;

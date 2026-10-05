@@ -1,24 +1,45 @@
 /** @prose
  * # Build
  *
- * `sitez build`: every page rendered to complete HTML in `dist/`, with the sitemap, the feed and
- * a page at each redirect, and `public/` copied beside them. The site is read once (`site.ts`), then pages render
- * concurrently, each awaiting its own data, and the stylesheet and the live elements' script are
- * built from what they rendered. Nothing is written until everything has built. Markz's warnings are
- * returned for the command to print, with what each page costs for the report.
+ * `vite build`, for a site: every page rendered to complete HTML in `dist/`, with the sitemap, the
+ * feed and a page at each redirect, and `public/` copied beside them. The site is read once
+ * (`site.ts`), then pages render concurrently, each awaiting its own data, and the stylesheet and
+ * the live elements' script are built from what they rendered. Nothing is written until everything
+ * has built. Markz's warnings and the report print through Vite's logger.
+ *
+ * The plugin takes over in Vite's `buildApp` hook, since a site has no `index.html` for Vite to
+ * build from. Pages render in a Vite server of its own, made from the site's config file and with
+ * no listener or watcher, and the CSS and script are two more Vite builds from the same file. So a
+ * plugin of the site's applies to all three. Vite's environments could not run the site's modules
+ * where they are, since a build bundles modules where a server runs them, and the plugin would
+ * have to name every layout and component up front (`docs/design.md#toolchain`).
  */
-import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join, sep } from "node:path";
+import type { IncomingMessage, ServerResponse } from "node:http";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import { dirname, join, resolve, sep } from "node:path";
+import { relative } from "node:path";
 import { gzipSync } from "node:zlib";
+import { createServer, type Plugin, type ResolvedConfig } from "vite";
 import { script, stylesheet, type Files } from "./bundle.ts";
 import { outputFile } from "./discover.ts";
-import { SiteError } from "./errors.ts";
+import { SiteError, shownFrom, siteErrorText } from "./errors.ts";
+import { RENDER_ONLY } from "./dev.ts";
 import { document } from "./render.ts";
 import { redirectFile, redirectPage } from "./redirects.ts";
 import { readRun, renderPage, type Rendered, type Run } from "./site.ts";
 import { feed, sitemap } from "./sitemap.ts";
+import { report } from "./report.ts";
 import { inReal, siteServer } from "./vite.ts";
-import type { MarkzWarning } from "./warnings.ts";
+import { formatWarning, type MarkzWarning } from "./warnings.ts";
+import pkg from "../package.json" with { type: "json" };
 
 /** @prose
  * What a page costs, for the build report: bytes gzipped, as a browser receives them, and time to
@@ -48,13 +69,92 @@ export interface BuildResult {
   ms: number;
 }
 
-/** `outDir` is for tests; a site always builds to its own `dist/`. */
-export async function build(
-  root: string,
-  { outDir = join(root, "dist") } = {},
-): Promise<BuildResult> {
+/** @prose
+ * The plugin's half of `vite build`. It writes `dist/`, or whatever `build.outDir` says, and marks
+ * Vite's own environments built, so Vite doesn't go looking for an `index.html`. A mistake in the
+ * site stops the build with its message, `file: message`, as Vite prints an error's stack.
+ */
+export function buildPlugin(): Plugin {
+  return {
+    name: "sitez:build",
+    async buildApp(builder) {
+      const { config } = builder;
+      try {
+        const result = await build(config);
+        for (const warning of result.warnings) {
+          config.logger.warn(formatWarning(warning, shownFrom(config.root)));
+        }
+        config.logger.info(
+          report(result, relative(config.root, result.outDir) || ".", pkg.version),
+        );
+      } catch (error) {
+        if (error instanceof SiteError) error.stack = siteErrorText(error, config.root);
+        throw error;
+      }
+      for (const environment of Object.values(builder.environments)) environment.isBuilt = true;
+    },
+    configurePreviewServer(preview) {
+      const outDir = resolve(preview.config.root, preview.config.build.outDir);
+      return () =>
+        preview.middlewares.use((request, response, next) =>
+          asAHost(outDir, request, response, next),
+        );
+    },
+  };
+}
+
+/** @prose
+ * What `vite preview` leaves to a static host's rules, after Vite has served the files that are
+ * there and mapped `/about/` to its `index.html`. A folder asked for without its slash redirects
+ * to it, and anything else that isn't there gets `404.html` with a 404 status, as GitHub Pages
+ * and Cloudflare do. Nothing is rendered: it's the files `build` wrote, and only them.
+ */
+function asAHost(
+  outDir: string,
+  request: IncomingMessage,
+  response: ServerResponse,
+  next: () => void,
+): void {
+  const url = new URL(request.url ?? "/", "http://localhost");
+  let path: string;
+  try {
+    path = decodeURIComponent(url.pathname);
+  } catch {
+    path = url.pathname;
+  }
+  const file = join(outDir, path);
+  // A path that climbs out of dist/ is nothing a host would serve.
+  const inside = file === outDir || file.startsWith(outDir + sep);
+  const stat = inside ? statSync(file, { throwIfNoEntry: false }) : undefined;
+  if (stat?.isFile()) return next();
+  if (stat?.isDirectory() && !path.endsWith("/")) {
+    response.writeHead(301, { location: `${url.pathname}/${url.search}` });
+    return void response.end();
+  }
+  const missing = join(outDir, "404.html");
+  if (!existsSync(missing)) return next();
+  response.writeHead(404, { "content-type": "text/html; charset=utf-8" });
+  response.end(request.method === "HEAD" ? undefined : readFileSync(missing));
+}
+
+/** The site's build, from the config Vite resolved. */
+export async function build(config: ResolvedConfig): Promise<BuildResult> {
   const start = performance.now();
-  const server = await siteServer(root);
+  const outDir = resolve(config.root, config.build.outDir);
+  const root = config.root;
+  const server = siteServer(
+    await createServer({
+      configFile: config.configFile,
+      configLoader: config.inlineConfig.configLoader,
+      root,
+      logLevel: "silent",
+      appType: "custom",
+      // Only the server render runs here, and nothing in it needs pre-bundling.
+      optimizeDeps: { noDiscovery: true, include: [] },
+      server: { middlewareMode: true, hmr: false, watch: null },
+      plugins: [{ name: RENDER_ONLY }],
+    }),
+  );
   let run: Run;
   let rendered: Rendered[];
   try {
@@ -67,10 +167,9 @@ export async function build(
 
   // The site's script holds every live element a page uses; then every page gets the
   // stylesheet and, if it has a live element, the script.
-  const css = await stylesheet(root, server.real);
+  const css = await stylesheet(server);
   const js = await script(
-    root,
-    server.real,
+    server,
     rendered.flatMap((page) =>
       page.live.map((live) => ({ ...live, file: inReal(root, server.real, live.file) })),
     ),

@@ -1,7 +1,7 @@
 /** @prose
  * # A run over the site
  *
- * What `build` and `dev` share, so they can't render a page differently. A run reads the site,
+ * What `vite build` and `vite` share, so they can't render a page differently. A run reads the site,
  * then renders one page into the parts of its document. Reading the site means its metadata, its
  * pages and every page's metadata, which each page gets as `pages` and every link is checked
  * against.
@@ -14,7 +14,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "@amitkaps/markz";
 import { readData } from "./data.ts";
-import { checkCode, discover, nearest, NOT_FOUND, type Page } from "./discover.ts";
+import { checkCode, discover, nearest, NOT_FOUND, SITE_FILE, type Page } from "./discover.ts";
 import { SiteError } from "./errors.ts";
 import { headTags } from "./head.ts";
 import { raw } from "./runtime/html.ts";
@@ -23,7 +23,6 @@ import { isDraft, textMetadata, siteMetadata, type Metadata, type PageData } fro
 import { document, renderHead, renderLayout, renderModule, type Props } from "./render.ts";
 import { findLive, type Live } from "./live.ts";
 import { readRedirects } from "./redirects.ts";
-import { SITE_FILE } from "./root.ts";
 import { textHtml } from "./text.ts";
 import { asGiven, type SiteServer } from "./vite.ts";
 import { markzWarnings, type MarkzWarning } from "./warnings.ts";

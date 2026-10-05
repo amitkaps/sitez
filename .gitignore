@@ -6,7 +6,7 @@ dist/
 # Tools' leftovers: `vp test --coverage`, Vite's config bundling, `prose build`, logs
 coverage/
 .prose/
-vite.config.ts.timestamp-*
+vite.config.*.timestamp-*
 *.log
 
 # Local environment

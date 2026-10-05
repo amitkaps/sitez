@@ -11,7 +11,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { Window } from "happy-dom";
 import { expect, test } from "vite-plus/test";
-import { build } from "../src/build.ts";
+import { buildSite } from "./build.ts";
 
 const blogOutDir = await built("blog");
 const elementsOutDir = await built("elements");
@@ -63,7 +63,7 @@ test("a page with no live element loads no script", () => {
 
 async function built(site: string): Promise<string> {
   const outDir = join(mkdtempSync(join(tmpdir(), "sitez-")), "dist");
-  await build(join(import.meta.dirname, "sites", site), { outDir });
+  await buildSite(join(import.meta.dirname, "sites", site), outDir);
   return outDir;
 }
 

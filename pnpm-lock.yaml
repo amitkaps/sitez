@@ -175,9 +175,6 @@ importers:
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@1.0.0
         version: '@voidzero-dev/vite-plus-core@1.0.0(@types/node@24.19.0)(typescript@6.0.3)'
-      vite-plus:
-        specifier: 1.0.0
-        version: 1.0.0(@types/node@24.19.0)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(svelte@5.57.1)(typescript@6.0.3)
     devDependencies:
       '@amitkaps/prose':
         specifier: ^0.3.0
@@ -191,6 +188,9 @@ importers:
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
+      vite-plus:
+        specifier: 1.0.0
+        version: 1.0.0(@types/node@24.19.0)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(svelte@5.57.1)(typescript@6.0.3)
 
 packages:
 
