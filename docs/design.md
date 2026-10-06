@@ -106,9 +106,16 @@ Other marks were weighed and ruled out.
   `TagFilter.browser`). One file would then run in Node and in the browser, and its imports would
   cross the boundary unseen. Keeping them apart would take a compiler that splits a module, and
   the browser half would be a function that Sitez wraps, which is a runtime again.
-- **One `.html` file with a `<script>`** (WebC, a Vue or Svelte file). The `<script>` is a clear
-  boundary. But loops and data need a template language, and build-time JavaScript has nowhere to
-  go.
+- **One `.html` file with a `<script>`** (WebC, a Vue or Svelte file). It was ruled out because
+  loops and data need a template language. That reason didn't survive a second look. A
+  `<script render>` holding what `.html.js` holds today, a `<style>` and a `<script browser>`
+  holding the class is each its own module, so the import checks still hold. Rewriting
+  amitkaps.github.io's `code/notes` this way showed what's left. The gain is mostly the CSS,
+  which per-element CSS gives with no new shape (see [Open questions](#open-questions)). The costs are
+  an extractor and virtual modules in the plugin, `.html` meaning two things, prose that reads
+  `.html` only for HTML comments, and `d3` a few lines from browser code that must not import it.
+  So it is deferred, not ruled out. It comes back if three files per element feel scattered once
+  per-element CSS is in use.
 - **One class, run at both times.** The build would run the element in a DOM in Node and save the
   HTML, and the browser would run it again. Its code would have to work twice, check whether it
   had already rendered, and couldn't read `data/` in the browser.
@@ -667,9 +674,21 @@ and static output.
 - **Misspelled elements.** An element with no files is a plain HTML element, which is legitimate.
   So a misspelled name silently does nothing. A warning could catch it, for an element with no
   files and no selector in the site's CSS. That's worth it if it isn't too fragile.
-- **Per-element CSS.** An `@call-out.css` beside `@call-out.html` would keep an element's styles
-  with it. It would join the site's CSS, so its order against what `index.html` links needs
-  deciding.
+- **Per-element CSS.** An `@notes-treemap.css` beside the element's other files would keep its
+  styles with it. amitkaps.github.io's treemap has about 70 lines in `style.css`, far from the
+  markup that writes `.frame` and `.controls`. The likely convention has three parts.
+  - Each rule nests under the element's tag (`notes-treemap { & .frame { … } }`), so the name is
+    written once. A top-level rule that doesn't start with the tag fails, naming the rule.
+  - Sitez puts the file in `@layer elements`. Unlayered CSS beats every layer, so element CSS
+    outside a layer would beat a layered site's own CSS. In a layer, an unlayered site has the
+    last word. A layered site lists `elements` in its order, as in
+    `@layer reset, base, elements, site;`.
+  - It ships only to pages that use the element, as a `.browser.js` file does.
+
+  Nesting isn't scoping. `notes-treemap .frame` also reaches a `.frame` in an element nested
+  inside it. `@scope` would stop that, but it changes the cascade, and no page on the one site
+  needs it. Step 25 of the [plan](plan.md) tries the convention first.
+
 - **Re-rendering behavior.** Behavior changes the nodes the build wrote. That covers hiding,
   toggling and text. An element that re-renders a list would lose focus and input state, and would
   import a diffing renderer, such as uhtml, from npm.

@@ -202,6 +202,23 @@ They are elements now, drawn with d3 at build time, and that port found two gaps
       on every page with behavior. The `common` row showed it, but not which element did it. The
       fix was the one the design gives, `await import()` inside the element.
 
+### 25. CSS for each element
+
+An element's styles live beside its other files, as `@name.css`. The convention is in
+[design.md](design.md#open-questions), under per-element CSS. amitkaps.github.io's `code/notes` is
+the test, since `notes-treemap` and `notes-area` hold most of `style.css`'s element rules.
+
+- [ ] `@name.css` is an element file. Sitez puts it in `@layer elements` and ships it only to
+      pages that use the element. A top-level rule that doesn't start with the tag fails, naming
+      the rule and the file.
+- [ ] Fixtures: an element with CSS on one page and not another, and an error fixture for an
+      unnested rule.
+- [ ] amitkaps.github.io moves the notes, `filter-grid` and `talk-grid` rules out of `style.css`
+      and adds `elements` to its layer order. Its pages match before and after in a headless
+      browser.
+- [ ] Decide whether the one-file shape comes back, with three-file elements in hand
+      ([design.md](design.md#names-in-code)).
+
 ## Parked
 
 - **Writing.** Writing is the real block, more than building. An editor view for Sitez, or a
