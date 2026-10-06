@@ -4,9 +4,9 @@ How Sitez is built: the site layer, with its folders, the frame, links, redirect
 the dev server. What it promises is in [idea.md](idea.md), and everything here can change
 underneath without changing those promises. The element is [elementz.md](elementz.md)'s.
 
-Sitez 0.2 was a CLI with `+layout.js`, `.live` files and a reset. Step 21 of the plan made it a
-Vite plugin, and step 22 moved it to `code/index.html` and explicit metadata. Step 25 makes an
-element one `@name.html` file. This page describes Sitez as it is once that step lands. Until it
+Sitez 0.2 was a CLI with `+layout.js`, `.live` files and a reset. Sitez 0.3 made it a
+Vite plugin, and moved it to `code/index.html` and explicit metadata. Next, an element becomes one
+`@name.html` file ([plan](plan.md)). This page describes Sitez as it is once that lands. Until it
 does, an element is up to three files (`@name.html`, `@name.html.js` and `@name.browser.js`).
 
 ## Where Sitez sits
@@ -56,8 +56,8 @@ Vite strips TypeScript's types with no setup, so `code/` takes `.ts` as well as 
 
 Sitez began as a CLI that ran Vite itself, with the config nobody writes, and then as a plugin was
 ruled out ([Install](#install)). It became one once behavior could import npm packages.
-Those imports need a bundler that resolves `node_modules`, so Vite stays. That ruled out the spike
-without Vite that step 21 of the plan had planned. A plugin then costs the site one small file,
+Those imports need a bundler that resolves `node_modules`, so Vite stays. That ruled out a spike
+without Vite, which the plan had held. A plugin then costs the site one small file,
 and saves Sitez its CLI, its preview server, `check`, `deploy` and finding the site's root.
 
 **How `build` renders.** Vite's `buildApp` hook runs the plugin's build in place of Vite's own,

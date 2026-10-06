@@ -1,72 +1,86 @@
 # Plan
 
-The order of the work, with what's done in one line each and what's next in order. The spec is
-[idea.md](idea.md), and "rule N" means its rule N. How it's built is [sitez.md](sitez.md) and
-[elementz.md](elementz.md).
+Where Sitez is and what comes next, in order. Finished work gets a line or two, newest first.
+The detail lives in [idea.md](idea.md), [sitez.md](sitez.md), [elementz.md](elementz.md), the
+code's `@prose`, the tests and `git log`.
 
-Each step ends in something a fixture site shows, so it's done when its fixture builds and its
-tests pass. Error cases are fixtures too. Work that belongs to one file is a pending `@prose`
-chunk there, not a line here.
+## Where it is
 
-## Done
+Sitez is a Vite plugin that builds amitkaps.github.io, whose `next` branch deploys
+next.amitkaps.com from it. The latest release is 0.3.0, on npm as `@amitkaps/sitez` and as a
+GitHub release tarball. The docs now describe one file per element, which the code doesn't do yet.
 
-- **0.1** ([`v0.1.0`](https://github.com/amitkaps/sitez/tree/v0.1.0)). Sitez on Svelte, with
-  islands hydrated from the server render. Steps 0 to 10.
-- **The spike.** amitkaps.github.io's `/teaching/` without Svelte loaded 2 KB of JavaScript
-  against 206 KB ([spike/](https://github.com/amitkaps/sitez/tree/465e738/spike)).
-- **11–17.** `text/`, `code/` and `data/`, `html` and its renderer, elements named in `code/`,
-  live elements, Svelte gone, and redirects.
-- **18–19, 0.2.0.** amitkaps.github.io ported, and `@amitkaps/sitez` released through staged
-  npm publishing. next.amitkaps.com builds with it on Cloudflare.
-- **20–21, a leaner core.** Sitez became a Vite plugin with no CLI. A site's `node_modules` went
-  from 137 MB to 31 MB, and a page's script to 0.3 KB.
-- **22, 0.3.0.** `code/index.html` frames every page, metadata is explicit, sitemap and feed went,
-  and `_` names are skipped everywhere. amitkaps.github.io's `next` runs 0.3.0.
-- **The docs for step 25.** idea.md, sitez.md and elementz.md describe one file per element.
+### Since 0.3.0
 
-## Next
+- **What Data Portraits showed.** Its nine charts became elements drawn with d3 at build time,
+  and the port found three gaps, listed under Next.
+- **One file per element, designed.** An element is `@name.html`, with a template the build
+  writes, its CSS and its `setup` ([elementz.md](elementz.md)). Sitez is the top of four layers,
+  markz, elementz, pagez and sitez ([sitez.md](sitez.md#where-sitez-sits)).
+- **The docs split by layer.** design.md became sitez.md and elementz.md, idea.md's rules describe
+  one file, and [pagez.md](pagez.md) keeps Pagez's idea in step.
 
-### 25. One file per element
+### 0.3.0
 
-An element is one file, `@name.html` ([elementz.md](elementz.md)). The code goes in
-`src/elementz/`, which imports nothing from the rest of Sitez. amitkaps.github.io's `code/notes`
-is the test.
+- **Pages from `code/index.html`.** The frame is a complete HTML page with one `<slot>`, and Sitez
+  writes only the head tags that follow from metadata ([sitez.md](sitez.md#the-frame)).
+- **Explicit metadata.** A page gives its own `title` and `description`, and nothing is filled in
+  from its text. The sitemap, the feed and the reset went.
+- **Names for when code runs.** `.html`, `.html.js` and `.browser.js`, with elements global and
+  `_` names skipped in every folder.
+- **A Vite plugin.** The CLI, `check`, `preview` and `deploy` went. A site's `node_modules` went
+  from 137 MB to 31 MB, and a page's script to 0.3 KB, one class per element with behavior.
 
-- [ ] Fix the slot's fallback first, in today's `elements.ts`. `<slot>No note</slot>` ships the
-      fallback and a stray `</slot>` after the content.
-- [ ] `src/elementz/`: `html`, an element file read into its parts, the template evaluated with
-      `attrs`, the host's context and its script's exports, the slot, and nesting. `elements.ts`,
-      `markup.ts` and `runtime/` move into it.
-- [ ] The runtime: a fresh `AbortController` per connection, and the cleanup on disconnect, in
-      the site's one script.
-- [ ] The plugin cuts each script into a module, with errors on the file's own lines.
-- [ ] Element CSS in `@layer elements`, with the selector check.
-- [ ] The failures in [elementz.md](elementz.md#what-the-build-checks), and the old names failing.
-- [ ] Every fixture moves to one file, with an error fixture for each new failure.
-- [ ] `@amitkaps/prose` reads an `.html` file part by part, as it reads `.svelte`.
-- [ ] amitkaps.github.io moves its ten element files, their CSS and its classes to `setup`, and
-      adds `elements` to its layer order. Its pages match before and after in a headless browser.
+### 0.2.0
 
-### 24. What Data Portraits showed
+- **Svelte goes.** A spike of amitkaps.github.io's `/teaching/` loaded 2 KB of JavaScript against
+  206 KB ([spike/](https://github.com/amitkaps/sitez/tree/465e738/spike)). Sitez was rewritten
+  around it: `text/`, `code/` and `data/`, `html` with its own renderer, elements named in
+  `code/`, and live elements in one script.
+- **Redirects.** A page lists its old URLs, and the build writes a page at each.
+- **The real site.** amitkaps.github.io was ported, and a release on npm is staged for approval.
 
-- [ ] An element that throws names the page and the tag that called it, not only its file.
-- [ ] `url()` in a `style` attribute an element writes is checked, as a stylesheet's is.
-- [ ] The report says what each element adds to the script, such as `notes-treemap 2.1 KB`.
+### 0.1.0
 
-### 23. Docs for users
+- **Sitez on Svelte** ([`v0.1.0`](https://github.com/amitkaps/sitez/tree/v0.1.0)). Islands
+  hydrated from the server render. Its discovery, links, head, report and error fixtures carried
+  over.
 
-- [ ] A guide for users: install, the folders, a page, an element, deploying, and every error with
-      its fix. It's written once step 25 settles the element, and rendered by prose or by Sitez.
+## Next, in order
 
-## Parked
+- [ ] **One file per element.** The code goes in `src/elementz/`, which imports nothing from the
+      rest of Sitez. amitkaps.github.io's `code/notes` is the test.
+  - Fix the slot's fallback first, in today's `elements.ts`. `<slot>No note</slot>` ships the
+    fallback and a stray `</slot>` after the content.
+  - `src/elementz/`: `html`, an element file read into its parts, the template evaluated with
+    `attrs`, the host's context and its script's exports, the slot, and nesting. `elements.ts`,
+    `markup.ts` and `runtime/` move into it.
+  - The runtime: a fresh `AbortController` per connection, and the cleanup on disconnect, in the
+    site's one script.
+  - The plugin cuts each script into a module, with errors on the file's own lines.
+  - Element CSS in `@layer elements`, with the selector check.
+  - The failures in [elementz.md](elementz.md#what-the-build-checks), and the old names failing.
+  - Every fixture moves to one file, with an error fixture for each new failure.
+  - `@amitkaps/prose` reads an `.html` file part by part, as it reads `.svelte`.
+  - amitkaps.github.io moves its ten element files, their CSS and its classes to `setup`, and adds
+    `elements` to its layer order. Its pages match before and after in a headless browser.
+- [ ] **What Data Portraits showed.**
+  - An element that throws names the page and the tag that called it, not only its file.
+  - `url()` in a `style` attribute an element writes is checked, as a stylesheet's is.
+  - The report says what each element adds to the script, such as `notes-treemap 2.1 KB`.
+- [ ] **Docs for users.** A guide: install, the folders, a page, an element, deploying, and every
+      error with its fix. It's written once the element settles, and rendered by prose or by
+      Sitez.
 
-- **Writing.** Writing is the real block, more than building. An editor view, or a separate
-  package (`editz`), would make a page easy to write.
-- **A feed for short ideas.** A feed fits short, dated notes better than essays. It waits on the
-  editor.
-- **Pagez** ([pagez.md](pagez.md)), once a page needs it, such as amitkaps.com/stories.
-- **Markz fixes** found by the port: a quote closing after a single quote, and `\` as a line
-  break. They go to markz.
+## Later
+
+- [ ] **Pagez** ([pagez.md](pagez.md)), once a page needs it, such as amitkaps.com/stories.
+- [ ] **Writing.** Writing is the real block, more than building. An editor view, or a separate
+      package (`editz`), would make a page easy to write.
+- [ ] **A feed for short ideas.** A feed fits short, dated notes better than essays. It waits on
+      the editor.
+- [ ] **Markz fixes** found by the port: a quote closing after a single quote, and `\` as a line
+      break. They go to markz.
 
 ## Open questions
 
