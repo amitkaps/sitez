@@ -688,8 +688,10 @@ and static output.
   Nesting isn't scoping. `notes-treemap .frame` also reaches a `.frame` in an element nested
   inside it. `@scope (notes-treemap)` doesn't stop that either. Only a lower boundary does
   (`to (…)`), and CSS has no selector for "any other element" to put there. What `@scope` changes
-  is specificity, since its root adds none, and a browser without it drops the whole block. Nesting
-  works in every browser the site supports, so it is the convention. No page on the one site nests
+  is specificity, since its root adds none. Vite's default target is Baseline widely available
+  (Chrome 111, Firefox 114, Safari 16.4 in Vite 8). Lightning CSS flattens nesting for it, and
+  passes `@scope` through as written, so a browser without `@scope` drops the whole block. `@scope`
+  was newly available only in late 2025. So nesting is the convention. No page on the one site nests
   elements that share a class name. Step 25 of the [plan](plan.md) tries the convention first.
 
 - **Re-rendering behavior.** Behavior changes the nodes the build wrote. That covers hiding,
