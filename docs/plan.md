@@ -204,8 +204,8 @@ They are elements now, drawn with d3 at build time, and that port found two gaps
 
 ### 25. One file per element
 
-An element is one file, `@name.html`, holding its markup or a `<script build>`, a `<style>` and a
-`<script browser>`. It replaces `.html.js` and `.browser.js`, so there is one suffix to learn. The
+An element is one file, `@name.html`. Its `<template>` holds the markup or the script that
+writes it at build time, and a top-level `<style>` and `<script>` ship. It replaces `.html.js` and `.browser.js`, so there is one suffix to learn. The
 design is in [design.md](design.md#one-file-per-element). amitkaps.github.io's `code/notes` is the
 test, since it has both scripts and most of `style.css`'s element rules.
 
@@ -214,8 +214,9 @@ test, since it has both scripts and most of `style.css`'s element rules.
       lines. The boundary checks run on each module, as on files now.
 - [ ] Element CSS goes in `@layer elements`. A top-level rule that doesn't nest under the tag
       fails, naming the rule and the file.
-- [ ] Fails: a body with a `<script build>`, two of a script or a `<style>`, `</script>` inside a
-      script, and an `.html.js` or `.browser.js` file, naming the `@name.html` that replaces it.
+- [ ] Fails: anything at the top level but one `<template>`, `<style>` and `<script>`, a
+      template with markup and a script, `</script>` inside a script, and an `.html.js` or
+      `.browser.js` file, naming the `@name.html` that replaces it.
 - [ ] Every fixture moves to one file, with an error fixture for each new failure.
 - [ ] `@amitkaps/prose` reads an `.html` file part by part, as it reads `.svelte`.
 - [ ] amitkaps.github.io moves its ten element files and their rules in `style.css`, and adds

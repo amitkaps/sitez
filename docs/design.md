@@ -126,13 +126,18 @@ An element will be one file, `@name.html`, holding its markup, its CSS and its b
 replaces `.html.js` and `.browser.js`, and it is step 25 of the [plan](plan.md). This section is
 the decision. The rest of these docs describe the files as they are until that step lands.
 
+Where a part sits says when it runs. What is inside `<template>` is what the build writes, and
+what is outside ships, as `<style>` and `<script>` do in any HTML page.
+
 ```html
 <!-- code/notes/@notes-treemap.html -->
-<script build>
-  import { html } from "@amitkaps/sitez";
-  import { layout, place } from "./treemap.js";
-  export default ({ data, year, fill, slider, play }) => html`…`;
-</script>
+<template>
+  <script>
+    import { html } from "@amitkaps/sitez";
+    import { layout, place } from "./treemap.js";
+    export default ({ data, year, fill, slider, play }) => html`…`;
+  </script>
+</template>
 
 <style>
   notes-treemap {
@@ -146,41 +151,65 @@ the decision. The rest of these docs describe the files as they are until that s
   }
 </style>
 
-<script browser>
+<script>
   export default class extends HTMLElement { … }
 </script>
 ```
 
-A static element keeps its markup as the body, with its content in the `<slot>`, as today. It may
-add a `<style>` and a `<script browser>`.
+A static element's template holds its markup, with its content in the `<slot>`, as `@name.html`
+does today. An element whose markup the text writes has no template, only a `<style>` or a
+`<script>`.
+
+```html
+<!-- code/@call-out.html -->
+<template
+  ><aside><strong>Note</strong><slot></slot></aside
+></template>
+<style>
+  call-out {
+    display: block;
+  }
+</style>
+```
 
 Colocation is why. amitkaps.github.io's treemap was three places to read, its two scripts and
 about 70 lines of `style.css`, for one idea. Vue and Svelte keep a component in one file for this
 reason. Sitez can do it without what they bring with it.
 
-- **No template language.** The file is HTML. Loops and data are in `<script build>`, written with
-  `html`, as `.html.js` writes them now.
-- **The markers name the time.** `build` and `browser` say where each script runs, as the
-  suffixes did. `render` and `setup` were weighed and ruled out, since they say what a script does
-  and not whether it ships.
+- **No template language.** The file is HTML. Loops and data are in the template's `<script>`,
+  written with `html`, as `.html.js` writes them now.
+- **HTML already marks the time.** A browser never renders or runs a template's content, so
+  "written at build time, never shipped" is what `<template>` means. A top-level `<script>` runs
+  in the browser, as it would in any page. Markers on each script (`<script build>` and
+  `<script browser>`, or `render` and `setup`) were ruled out once position said the same thing
+  with no attribute to learn.
+- **The tag isn't named in the file.** The file's name gives it, so `<template element="x-plans">`
+  was ruled out for naming the element twice, the flaw `define(name, setup)` had.
 - **Nothing is serialized.** Behavior still reads only the page's HTML, so there are no props and
   nothing to hydrate.
 - **One suffix to learn.** Four kinds of file become one. The concerns are still markup, style
   and behavior, and each has one place in the file.
 
-Each script is its own module, which Sitez cuts from the file at its tags and gives to Vite. So a
-`<script build>` and a `<script browser>` share no variables, and the boundary checks (rule 6)
+Each script is its own module, which Sitez cuts from the file at its tags and gives to Vite. So the
+build script and the browser script share no variables, and the boundary checks (rule 6)
 hold for each as they do for files now. Code both sides need, such as the treemap's
 `treemap.js`, is a module both import.
 
 The rules the build checks:
 
-- A body and a `<script build>` can't both write the markup. One file with both fails.
-- At most one of each script and one `<style>`.
+- The top level holds at most one `<template>`, one `<style>` and one `<script>`. Anything else
+  there fails, naming the line.
+- A template holds markup or one `<script>`, not both.
 - `.html.js` and `.browser.js` fail, naming the `@name.html` that replaces them.
 - Element scripts are JavaScript. `.ts` stays for modules, since no site writes it in an element.
-- `</script>` inside a script's string ends the script, as it does in any HTML. It fails the build,
-  asking for `<\/script>`.
+- A script's text is read as code up to its own `</script>`, so `<template>` or `</template>` in
+  a build script's string is safe. `</script>` inside a string ends the script, as it does in any
+  HTML. It fails the build, asking for `<\/script>`.
+
+`<template>` with a `<slot>` is also how declarative shadow DOM is written
+(`<template shadowrootmode="open">`). Sitez uses no shadow DOM. The template's content is written
+into the element in the light DOM, where the site's CSS reaches it, as `index.html`'s `<slot>`
+takes a page.
 
 **An element's CSS nests under its tag, in `@layer elements`.**
 
@@ -208,7 +237,7 @@ The costs are known and accepted.
 - An editor's IntelliSense is weaker in an inline script than in a `.js` file.
 - `@amitkaps/prose` reads `.html` only for HTML comments. It must read an element file part by
   part, as it reads `.svelte`, or an element's prose goes missing.
-- `d3` imported in `<script build>` sits a few lines from browser code that must not import it.
+- `d3` imported in the build script sits a few lines from browser code that must not import it.
   The report's size per element (step 24) is what catches a copied import.
 
 ## The frame
