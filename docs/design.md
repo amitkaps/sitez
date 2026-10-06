@@ -686,8 +686,11 @@ and static output.
   - It ships only to pages that use the element, as a `.browser.js` file does.
 
   Nesting isn't scoping. `notes-treemap .frame` also reaches a `.frame` in an element nested
-  inside it. `@scope` would stop that, but it changes the cascade, and no page on the one site
-  needs it. Step 25 of the [plan](plan.md) tries the convention first.
+  inside it. `@scope (notes-treemap)` doesn't stop that either. Only a lower boundary does
+  (`to (…)`), and CSS has no selector for "any other element" to put there. What `@scope` changes
+  is specificity, since its root adds none, and a browser without it drops the whole block. Nesting
+  works in every browser the site supports, so it is the convention. No page on the one site nests
+  elements that share a class name. Step 25 of the [plan](plan.md) tries the convention first.
 
 - **Re-rendering behavior.** Behavior changes the nodes the build wrote. That covers hiding,
   toggling and text. An element that re-renders a list would lose focus and input state, and would
