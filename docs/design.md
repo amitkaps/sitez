@@ -120,6 +120,33 @@ Other marks were weighed and ruled out.
 - **`from` or `src` for data.** `data` says what the element gets, and `src` already means a URL
   in HTML.
 
+## Where Sitez sits
+
+Sitez is the top of four layers, and each adds one thing to the one below it. The split is a
+direction, not packages yet. Sitez has one site, and a layer earns its own package when a second
+one uses it.
+
+| Layer    | Adds                                                             | Knows nothing of     |
+| -------- | ---------------------------------------------------------------- | -------------------- |
+| markz    | Markdown's syntax, as an AST with positions. It never evaluates. | elements, pages      |
+| elementz | the element, one `@name.html` file, rendered and run             | Markdown, files      |
+| pagez    | the page, one Markz file and its elements in, one HTML file out  | other pages, folders |
+| sitez    | the site: folders, pages that link, Vite, dev and deploy         |                      |
+
+- **elementz** owns `html`, the element file, rendering nested elements inside-out, element CSS
+  and the browser runtime. Its first form is `src/elementz/` in Sitez, which imports nothing from
+  the rest of Sitez. That boundary is the layer, kept honest without a package to publish.
+- **pagez** owns Markz to HTML, the head from metadata and the frame. Its idea is
+  [pagez.md](pagez.md). It gets built when a page needs it, and amitkaps.com/stories, a page with
+  its own look, may be that page ([Open questions](#open-questions), "A second frame").
+- **sitez** keeps what only a site has, such as discovery, links, redirects, `data/`, bundling and
+  the dev server.
+
+A host gives elementz its context. pagez gives `page`, and sitez adds `pages` and `site`. So an
+element that reads only `page` works in both. Splitting into packages was ruled out for now. It
+would mean three repos to release in step for one person, and an API designed for a consumer
+that doesn't exist yet.
+
 ## One file per element
 
 An element will be one file, `@name.html`, holding its markup, its CSS and its behavior. That
@@ -130,91 +157,162 @@ Where a part sits says when it runs. What is inside `<template>` is what the bui
 what is outside ships, as `<style>` and `<script>` do in any HTML page.
 
 ```html
-<!-- code/notes/@notes-treemap.html -->
+<!-- code/blog/@tag-filter.html -->
 <template>
   <script>
-    import { html } from "@amitkaps/sitez";
-    import { layout, place } from "./treemap.js";
-    export default ({ data, year, fill, slider, play }) => html`…`;
+    export const posts = (pages) => pages.filter((p) => p.url.startsWith("/blog/") && p.date);
+    export const tags = (pages) => [...new Set(posts(pages).flatMap((p) => p.tags ?? []))].sort();
   </script>
+  <p>
+    <button value="" aria-pressed="true">All</button>
+    ${tags(pages).map((t) => html`<button value=${t} aria-pressed="false">${t}</button>`)}
+  </p>
+  <ul>
+    ${posts(pages).map((p) => html`<li data-tags=${(p.tags ?? []).join(" ")}>${p.title}</li>`)}
+  </ul>
 </template>
 
 <style>
-  notes-treemap {
+  tag-filter {
     display: block;
-    & .frame {
-      position: relative;
-    }
-    &:not(:defined) .controls {
+    &:not(:defined) p {
       display: none;
     }
   }
 </style>
 
 <script>
-  export default class extends HTMLElement { … }
+  export default (el, { signal }) => {
+    el.addEventListener("click", (event) => { … }, { signal });
+  };
 </script>
 ```
 
-A static element's template holds its markup, with its content in the `<slot>`, as `@name.html`
-does today. An element whose markup the text writes has no template, only a `<style>` or a
-`<script>`.
+| Part                           | Runs    | Gives                                                          |
+| ------------------------------ | ------- | -------------------------------------------------------------- |
+| `<template>`                   | build   | the element's inner HTML, evaluated as an `html` template      |
+| `<script>` inside `<template>` | build   | named exports in the template's scope, and nothing in the page |
+| top-level `<style>`            | ships   | the element's CSS, in `@layer elements`                        |
+| top-level `<script>`           | browser | `setup(el, { signal })`, which may return a cleanup function   |
 
-```html
-<!-- code/@call-out.html -->
-<template
-  ><aside><strong>Note</strong><slot></slot></aside
-></template>
-<style>
-  call-out {
-    display: block;
-  }
-</style>
-```
+Each part is optional. A template with no `${…}` is static markup, and an element whose markup
+the text writes has no template.
 
 Colocation is why. amitkaps.github.io's treemap was three places to read, its two scripts and
 about 70 lines of `style.css`, for one idea. Vue and Svelte keep a component in one file for this
 reason. Sitez can do it without what they bring with it.
 
-- **No template language.** The file is HTML. Loops and data are in the template's `<script>`,
-  written with `html`, as `.html.js` writes them now.
+- **No template language.** The template is JavaScript's own template literal, tagged with
+  `html`. Loops are `.map`, and conditions are `? :`.
 - **HTML already marks the time.** A browser never renders or runs a template's content, so
   "written at build time, never shipped" is what `<template>` means. A top-level `<script>` runs
-  in the browser, as it would in any page. Markers on each script (`<script build>` and
-  `<script browser>`, or `render` and `setup`) were ruled out once position said the same thing
-  with no attribute to learn.
-- **The tag isn't named in the file.** The file's name gives it, so `<template element="x-plans">`
-  was ruled out for naming the element twice, the flaw `define(name, setup)` had.
-- **Nothing is serialized.** Behavior still reads only the page's HTML, so there are no props and
+  in the browser, as it would in any page.
+- **Nothing is serialized.** Behavior reads only the page's HTML, so there are no props and
   nothing to hydrate.
-- **One suffix to learn.** Four kinds of file become one. The concerns are still markup, style
-  and behavior, and each has one place in the file.
+- **One suffix to learn.** Four kinds of file become one, with one place in it for each of
+  markup, style and behavior.
 
-Each script is its own module, which Sitez cuts from the file at its tags and gives to Vite. So the
-build script and the browser script share no variables, and the boundary checks (rule 6)
-hold for each as they do for files now. Code both sides need, such as the treemap's
-`treemap.js`, is a module both import.
+### The template
 
-The rules the build checks:
+Sitez reads the template as raw text and evaluates it as an `html` literal, so `${…}` in an
+attribute survives. Its scope is the host's context and the element's own.
+
+- `attrs` holds the element's attributes. `data="talks.json"` arrives parsed, as `attrs.data`.
+- `page`, `pages` and `site` are what every element gets, as now.
+- `html` is in scope, since the template is its literal.
+- The template's `<script>` adds its named exports by name. An export named like anything above
+  fails, naming the export.
+
+Attributes live under `attrs`, so they can't collide with `page` or `site`. The rule that fails
+an attribute named `page`, `pages`, `site` or `children` goes with that.
+
+Rendering is synchronous. No site has async build code, and Pagez's single pass can't wait. So
+"the build waits" (rule 5) goes. Data arrives through `data="…"`, which Sitez reads first.
+
+A template literal holds no local variables. An element whose markup needs intermediate values,
+such as the treemap's layout, exports one function and its template is one line.
+
+```html
+<!-- code/notes/@notes-treemap.html -->
+<template>
+  <script>
+    import { html } from "@amitkaps/sitez";
+    import { layout, place } from "./treemap.js";
+    export const chart = ({ data, year, fill, slider, play }) => { …; return html`…`; };
+  </script>
+  ${chart(attrs)}
+</template>
+```
+
+The script imports `html` itself when it writes markup, since only the template has it in
+scope. A literal backtick or `${` in the template's markup is escaped, as in any template literal.
+
+### Content goes in `<slot>`
+
+An element's content goes where its `<slot>` is, as a page goes in `index.html`'s. Content is
+rendered inside-out, so an element only ever has it as finished HTML. It can place it or check
+that it's empty, and `<slot>` does both declaratively.
+
+```html
+<!-- code/@call-out.html -->
+<template>
+  <aside><strong>Note</strong><slot>Nothing noted.</slot></aside>
+</template>
+```
+
+- Sitez fills the slot after the template renders, so a slot in a helper's `html` works too.
+- The slot's own content is its fallback, shown only when the element has none, as in the
+  platform.
+- One unnamed slot. Content with no slot fails, and so do two slots and a named one.
+- The template has no `<template shadowrootmode>`. That's declarative shadow DOM, and it fails.
+
+Sitez uses no shadow DOM. The content is written into the element in the light DOM, where the
+page's CSS reaches it, and `::slotted()` matches nothing. `<slot>` can't drop a wrapper when there
+is no content, which CSS's `:empty` can.
+
+`${children}` was ruled out. Content can only be placed or tested for emptiness, and the slot and
+its fallback do both in markup. It would also be a second way to say what `index.html` says with
+`<slot>`. So `children` isn't in the template's scope.
+
+### Behavior in the browser
+
+The top-level `<script>` default-exports `setup(el, { signal })`. elementz's runtime defines each
+element and calls `setup` once per connection with a fresh `AbortController`'s signal. On
+disconnect it aborts the signal and calls the cleanup `setup` returned, and a reconnect runs
+`setup` again. `setup` works on the DOM the build wrote. It mustn't depend on a child element
+having upgraded first.
+
+That replaces rule 6's class. A function was ruled out before because nothing in its file said
+where its argument came from, or that it was an element at all. In one file the file is the
+element, and the script's place says it runs in the browser. The runtime is elementz's, a few
+lines in the site's one script. Sitez itself still adds nothing in the browser.
+
+### The element attribute
+
+`<template element="x-tag">` is optional, and must match the file's name. Pagez needs it to name
+an element defined in a page, so allowing it makes moving one to a file a cut and paste. A
+mismatch fails, so the two names can't drift.
+
+### What the build checks
 
 - The top level holds at most one `<template>`, one `<style>` and one `<script>`. Anything else
   there fails, naming the line.
-- A template holds markup or one `<script>`, not both.
+- A template holds at most one `<script>`, and it comes first.
 - `.html.js` and `.browser.js` fail, naming the `@name.html` that replaces them.
 - Element scripts are JavaScript. `.ts` stays for modules, since no site writes it in an element.
-- A script's text is read as code up to its own `</script>`, so `<template>` or `</template>` in
-  a build script's string is safe. `</script>` inside a string ends the script, as it does in any
-  HTML. It fails the build, asking for `<\/script>`.
+- A script's text is read as code up to its own `</script>`, so `<template>` in a string is safe.
+  `</script>` inside a string ends the script, as in any HTML. It fails, asking for `<\/script>`.
+- The boundary checks (rule 6) hold for each script, which Sitez cuts from the file and gives to
+  Vite as its own module. The two scripts share no variables. Code both need, such as the
+  treemap's `treemap.js`, is a module both import.
 
-`<template>` with a `<slot>` is also how declarative shadow DOM is written
-(`<template shadowrootmode="open">`). Sitez uses no shadow DOM. The template's content is written
-into the element in the light DOM, where the site's CSS reaches it, as `index.html`'s `<slot>`
-takes a page.
+### CSS
 
-**An element's CSS nests under its tag, in `@layer elements`.**
+An element's CSS is its own, and the page's has the last word.
 
-- Each rule in the `<style>` nests under the tag (`notes-treemap { & .frame { … } }`), so the
-  name is written once. A top-level rule that doesn't start with the tag fails, naming the rule.
+- Every top-level selector in the `<style>` starts with the tag. Nesting
+  (`notes-treemap { & .frame { … } }`) writes the name once, and `x-tag li` passes too. A rule
+  that doesn't start with the tag fails, naming the rule.
 - Sitez puts element CSS in `@layer elements`. Unlayered CSS beats every layer, so element CSS
   outside a layer would beat a layered site's own CSS. In a layer, an unlayered site has the last
   word. A layered site lists `elements` in its order, as in `@layer reset, base, elements, site;`.
@@ -226,15 +324,21 @@ it. `@scope (notes-treemap)` doesn't stop that either. Only a lower boundary doe
 CSS has no selector for "any other element" to put there. What `@scope` changes is specificity,
 since its root adds none. Vite's default target is Baseline widely available (Chrome 111, Firefox
 114, Safari 16.4 in Vite 8). Lightning CSS flattens nesting for it, and passes `@scope` through as
-written, so a browser without `@scope` drops the whole block. So nesting is the convention.
+written, so a browser without `@scope` drops the whole block.
 
-`@name.css` beside the scripts was ruled out. It kept CSS beside the element but added a fourth
-suffix, and one file gives the same colocation with one.
+### Ruled out
 
-The costs are known and accepted.
+- **Markers on each script** (`<script build>` and `<script browser>`, or `render` and `setup`).
+  Position says the same thing with no attribute to learn.
+- **`@name.css` beside the scripts.** It kept CSS beside the element but added a fourth suffix.
+- **A template holding markup or a script, never both.** The literal form covers both, so a
+  static element and a computed one are the same shape.
+
+### Costs
 
 - The plugin cuts files into virtual modules, with source lines mapped back for errors.
-- An editor's IntelliSense is weaker in an inline script than in a `.js` file.
+- An editor's IntelliSense is weaker in an inline script than in a `.js` file, and `${…}` in the
+  template's HTML isn't highlighted.
 - `@amitkaps/prose` reads `.html` only for HTML comments. It must read an element file part by
   part, as it reads `.svelte`, or an element's prose goes missing.
 - `d3` imported in the build script sits a few lines from browser code that must not import it.
@@ -358,7 +462,8 @@ Writing one by hand repeats a few lines, and running setup twice when an element
 get wrong. That boilerplate will go in elementz, a separate library for light-DOM elements, which
 doesn't exist yet. Until then a site writes the class. Its `element(setup)` returns a class that
 runs `setup` once per element and calls the cleanup `setup` returns on disconnect. elementz knows
-nothing of Sitez, and a site uses it like any other npm package.
+nothing of Sitez, and a site uses it like any other npm package. Step 25 replaces this with
+elementz's `setup` ([Behavior in the browser](#behavior-in-the-browser)).
 
 Earlier ways went or were ruled out.
 

@@ -204,23 +204,36 @@ They are elements now, drawn with d3 at build time, and that port found two gaps
 
 ### 25. One file per element
 
-An element is one file, `@name.html`. Its `<template>` holds the markup or the script that
-writes it at build time, and a top-level `<style>` and `<script>` ship. It replaces `.html.js` and `.browser.js`, so there is one suffix to learn. The
-design is in [design.md](design.md#one-file-per-element). amitkaps.github.io's `code/notes` is the
-test, since it has both scripts and most of `style.css`'s element rules.
+An element is one file, `@name.html`. Its `<template>` is an `html` literal written at build
+time, with an optional `<script>` whose exports it uses. A top-level `<style>` and `<script>`
+ship, and the script exports `setup(el, { signal })`. It replaces `.html.js` and `.browser.js`.
+The design is in [design.md](design.md#one-file-per-element), and the code goes in
+`src/elementz/`, which imports nothing from the rest of Sitez
+([Where Sitez sits](design.md#where-sitez-sits)). amitkaps.github.io's `code/notes` is the test.
 
-- [ ] idea.md: the names table, rules 5 and 6 and their examples, written for one file.
-- [ ] The plugin cuts `@name.html` into a module for each script, with errors on the file's own
-      lines. The boundary checks run on each module, as on files now.
-- [ ] Element CSS goes in `@layer elements`. A top-level rule that doesn't nest under the tag
+- [ ] Fix the slot's fallback first, in today's `elements.ts`. `<slot>No note</slot>` ships the
+      fallback and a stray `</slot>` after the content. The fallback should show only when there
+      is no content.
+- [ ] idea.md: the names table, rules 5 and 6 and their examples, written for one file. "The
+      build waits" and the reserved attribute names go.
+- [ ] `src/elementz/`: `html`, reading an element file into its parts, the template evaluated
+      with `attrs`, the host's context and the script's exports, slots filled after it renders,
+      and nested elements inside-out. `elements.ts` and `markup.ts` move into it.
+- [ ] The runtime: define each element, a fresh `AbortController` per connection, and the cleanup
+      on disconnect. It goes in the site's one script.
+- [ ] The plugin cuts each script into a module, with errors on the file's own lines. The
+      boundary checks run on each module, as on files now.
+- [ ] Element CSS goes in `@layer elements`. A top-level selector that doesn't start with the tag
       fails, naming the rule and the file.
-- [ ] Fails: anything at the top level but one `<template>`, `<style>` and `<script>`, a
-      template with markup and a script, `</script>` inside a script, and an `.html.js` or
+- [ ] Fails: anything at the top level but one `<template>`, `<style>` and `<script>`, a template
+      script that isn't first, an export that shadows the scope, `</script>` in a script, a named
+      slot, `shadowrootmode`, an `element` attribute that doesn't match, and an `.html.js` or
       `.browser.js` file, naming the `@name.html` that replaces it.
 - [ ] Every fixture moves to one file, with an error fixture for each new failure.
 - [ ] `@amitkaps/prose` reads an `.html` file part by part, as it reads `.svelte`.
-- [ ] amitkaps.github.io moves its ten element files and their rules in `style.css`, and adds
-      `elements` to its layer order. Its pages match before and after in a headless browser.
+- [ ] amitkaps.github.io moves its ten element files, their rules in `style.css`, and its classes
+      to `setup`, and adds `elements` to its layer order. Its pages match before and after in a
+      headless browser.
 
 ## Parked
 
