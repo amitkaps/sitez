@@ -18,7 +18,7 @@ export default defineConfig({
   pack: {
     entry: {
       plugin: "src/plugin.ts",
-      "runtime/index": "src/runtime/index.ts",
+      "elementz/index": "src/elementz/index.ts",
     },
     dts: true,
     format: ["esm"],

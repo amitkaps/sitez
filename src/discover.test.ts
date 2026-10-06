@@ -100,25 +100,18 @@ describe("readElements", () => {
   const read = (root: string) =>
     [...readElements(root)]
       .toSorted(([a], [b]) => (a < b ? -1 : 1))
-      .map(([tag, files]) => [
-        tag,
-        files.markup && `${files.markup.kind} ${relative(root, files.markup.file)}`,
-        files.browser && relative(root, files.browser),
-      ]);
+      .map(([tag, file]) => `${tag} ${relative(root, file)}`);
 
-  test("finds an element's markup and behavior by its name, in any folder", () => {
+  test("finds each element's file by its name, in any folder", () => {
     const root = site(
       "code/@call-out.html",
-      "code/@card-grid.html.ts",
-      "code/@card-grid.browser.js",
-      "code/blog/@tag-filter.html.js",
-      "code/blog/archive/@chart-view-2d.browser.ts",
+      "code/blog/@tag-filter.html",
+      "code/blog/archive/@chart-view-2d.html",
     );
     expect(read(root)).toEqual([
-      ["call-out", "html code/@call-out.html", undefined],
-      ["card-grid", "js code/@card-grid.html.ts", "code/@card-grid.browser.js"],
-      ["chart-view-2d", undefined, "code/blog/archive/@chart-view-2d.browser.ts"],
-      ["tag-filter", "js code/blog/@tag-filter.html.js", undefined],
+      "call-out code/@call-out.html",
+      "chart-view-2d code/blog/archive/@chart-view-2d.html",
+      "tag-filter code/blog/@tag-filter.html",
     ]);
   });
 
@@ -134,10 +127,10 @@ describe("readElements", () => {
       "code/_old/@call-out.html.js",
       "code/@call-out.html",
     );
-    expect(read(root)).toEqual([["call-out", "html code/@call-out.html", undefined]]);
+    expect(read(root)).toEqual(["call-out code/@call-out.html"]);
   });
 
-  test.each(["@callout.html.js", "@Call-Out.html", "@-x.html", "@call-out-.html"])(
+  test.each(["@callout.html", "@Call-Out.html", "@-x.html", "@call-out-.html"])(
     "fails on an @ file that has no tag's name: %s",
     (name) => {
       const root = site(`code/${name}`);
@@ -147,17 +140,22 @@ describe("readElements", () => {
     },
   );
 
+  test("fails on a name HTML keeps", () => {
+    expect(catchError(() => readElements(site("code/@font-face.html"))).message).toBe(
+      "<font-face> is a name HTML keeps for its own elements. Rename the element.",
+    );
+  });
+
   test.each([
-    ["@call-out", "an element's files are @call-out.html"],
-    ["@call-out.js", "a name must say when the file runs. Rename it @call-out.html.js"],
-    ["@call-out.ts", "a name must say when the file runs. Rename it @call-out.html.js"],
-    ["@call-out.live.js", ".live.js is now .browser.js"],
-    [
-      "@call-out.css",
-      "an element's files are @call-out.html, @call-out.html.js and @call-out.browser.js",
-    ],
-    ["@call-out.island.js", "an element's files are"],
-  ])("fails on a name that doesn't say when it runs: %s", (name, message) => {
+    ["@call-out", "An element is one file, @call-out.html. Rename it"],
+    ["@call-out.js", "An element is one file, @call-out.html. Rename it"],
+    ["@call-out.html.js", "so this goes into its <template>"],
+    ["@call-out.html.ts", "so this goes into its <template>"],
+    ["@call-out.browser.js", "so this becomes its top-level <script>"],
+    ["@call-out.live.js", "so this becomes its top-level <script>"],
+    ["@call-out.css", "so this becomes its top-level <style>"],
+    ["@call-out.island.js", "An element is one file, @call-out.html. Rename it"],
+  ])("fails on a name that isn't @name.html: %s", (name, message) => {
     const root = site(`code/blog/${name}`);
     const error = catchError(() => readElements(root));
     expect(relative(root, error.file)).toBe(`code/blog/${name}`);
@@ -184,38 +182,13 @@ describe("readElements", () => {
     expect(read(site("code/+head.js", "code/+style.scss"))).toEqual([]);
   });
 
-  test("fails on one element's markup in two files, wherever they sit, naming the second", () => {
-    for (const other of [
-      "code/blog/@call-out.html.js",
-      "code/@call-out.html",
-      "code/@call-out.html.ts",
-    ]) {
-      const root = site("code/@call-out.html.js", other);
-      const error = catchError(() => readElements(root));
-      expect(error.message).toMatch(/^<call-out>'s markup is also in /);
-      expect(error.message).toContain(
-        "a name has one markup file, @call-out.html or @call-out.html.js",
-      );
-    }
-    const root = site("code/@call-out.html.js", "code/blog/@call-out.html.js");
+  test("fails on one element in two files, wherever they sit, naming the second", () => {
+    const root = site("code/@call-out.html", "code/blog/@call-out.html");
     const error = catchError(() => readElements(root));
-    expect(relative(root, error.file)).toBe("code/blog/@call-out.html.js");
-    expect(error.message).toContain("is also in code/@call-out.html.js.");
-  });
-
-  test("fails on one element's behavior in two files", () => {
-    const root = site("code/@tag-filter.browser.js", "code/blog/@tag-filter.browser.ts");
-    const error = catchError(() => readElements(root));
-    expect(relative(root, error.file)).toBe("code/blog/@tag-filter.browser.ts");
-    expect(error.message).toMatch(
-      /^<tag-filter>'s behavior is also in code\/@tag-filter.browser.js/,
+    expect(relative(root, error.file)).toBe("code/blog/@call-out.html");
+    expect(error.message).toBe(
+      "<call-out> is also in code/@call-out.html. Elements are global, so a name has one file wherever it sits. Remove one, or rename the element.",
     );
-  });
-
-  test("lets an element's markup and behavior sit in different folders", () => {
-    expect(read(site("code/@tag-filter.html.js", "code/blog/@tag-filter.browser.js"))).toEqual([
-      ["tag-filter", "js code/@tag-filter.html.js", "code/blog/@tag-filter.browser.js"],
-    ]);
   });
 });
 

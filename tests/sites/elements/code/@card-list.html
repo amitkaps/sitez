@@ -1,0 +1,7 @@
+<!-- Reads data/cards.json, which its data attribute names. It writes a key-word of its own, which
+renders like any other. -->
+<template>
+  <ul>
+    ${attrs.data.map((card) => html`<li><key-word>${card.name}</key-word>: ${card.about}</li>`)}
+  </ul>
+</template>

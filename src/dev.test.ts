@@ -54,15 +54,27 @@ describe("pages", () => {
     });
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("text/css");
-    expect(await response.text()).toContain("call-out");
+    expect(await response.text()).toContain("Blog Serif");
   });
 
-  test("the page's own script loads the .browser.js files it uses, and a page with none loads none", async () => {
+  test("an element's CSS is linked from its file, and served as CSS in @layer elements", async () => {
+    const html = await (await get("/blog/hello/")).text();
+    const href = "/code/@call-out.html?sitez=style&lang.css";
+    expect(html).toContain(`<link rel="stylesheet" href="${href}" />`);
+    const response = await fetch(new URL(href, url), { headers: { accept: "text/css" } });
+    expect(response.headers.get("content-type")).toContain("text/css");
+    expect(await response.text()).toMatch(/@layer elements\s*\{\s*call-out/);
+  });
+
+  test("the page's own script defines the elements with behavior it uses, and a page with none defines none", async () => {
     const page = await (await get("/@sitez/page.js?url=%2Fblog%2F")).text();
-    expect(page).toContain("code/blog/@tag-filter.browser.js");
-    expect(await (await get("/@sitez/page.js?url=%2Fabout%2F")).text()).not.toContain(
-      ".browser.js",
-    );
+    expect(page).toMatch(/import setup0 from "\/code\/blog\/@tag-filter\.html\?.*sitez=setup/);
+    expect(page).toContain('define("tag-filter", setup0)');
+    expect(await (await get("/@sitez/page.js?url=%2Fabout%2F")).text()).not.toContain("define(");
+    // What the browser loads, by the URL the page's script imports it from.
+    const imported = /import setup0 from "([^"]+)"/.exec(page)![1]!;
+    const setup = await (await get(imported)).text();
+    expect(setup).toContain('addEventListener("click"');
   });
 
   test("a draft is served", async () => {
@@ -146,7 +158,7 @@ describe("changes", () => {
   });
 
   test("code reloads the page, which shows the change", async () => {
-    const message = await afterChange(edit("code/blog/@tag-filter.html.js", ">All<", ">Every<"));
+    const message = await afterChange(edit("code/blog/@tag-filter.html", ">All<", ">Every<"));
     expect(message.type).toBe("full-reload");
     expect(await (await get("/blog/")).text()).toContain(">Every</button>");
   });

@@ -1,1 +1,1 @@
-code/@click-counter.html.js: a template holds a function, which can't run at build time. An event handler belongs in a .browser.js file (code/@name.browser.js).
+code/@click-counter.html: a template holds a function, which can't run at build time. An event handler belongs in the element's <script>, which runs in the browser.

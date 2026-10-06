@@ -1,0 +1,1 @@
+code/@tag-box.html: line 2: shadowrootmode makes a shadow root, and elements have none. Write the markup in the light DOM, with <slot></slot> where the content goes.

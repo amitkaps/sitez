@@ -1,0 +1,39 @@
+<!-- A button per tag, and each post with its tags. A click shows the posts with that tag. -->
+<template>
+  <script>
+    export const posts = (pages) =>
+      pages
+        .filter((p) => p.url.startsWith("/blog/") && p.date)
+        .toSorted((a, b) => (a.date < b.date ? 1 : -1));
+    export const tags = (pages) => [...new Set(posts(pages).flatMap((p) => p.tags ?? []))].sort();
+  </script>
+  <p>
+    <button value="" aria-pressed="true">All</button>
+    ${tags(pages).map((t) => html`<button value=${t} aria-pressed="false">${t}</button>`)}
+  </p>
+  <ul>
+    ${posts(pages).map(
+      (post) =>
+        html`<li data-tags=${(post.tags ?? []).join(" ")}>
+          <a href=${post.url}>${post.title}</a> <time>${post.date}</time>
+        </li>`,
+    )}
+  </ul>
+</template>
+
+<script>
+  export default (el, { signal }) => {
+    const show = (value) => {
+      for (const button of el.querySelectorAll("button")) {
+        button.setAttribute("aria-pressed", String(button.value === value));
+      }
+      for (const post of el.querySelectorAll("[data-tags]")) {
+        const tags = post.dataset.tags.split(" ");
+        post.hidden = value !== "" && !tags.includes(value);
+      }
+    };
+    for (const button of el.querySelectorAll("button")) {
+      button.addEventListener("click", () => show(button.value), { signal });
+    }
+  };
+</script>

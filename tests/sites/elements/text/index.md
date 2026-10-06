@@ -4,10 +4,10 @@ title: Elements
 
 # Elements
 
-A Markz element with a markup file of its name renders it; the rest stay as Markz writes them.
+A Markz element with a file of its name renders it; the rest stay as Markz writes them.
 
 {@call-out type=note title="{a brace}"}
-Rendered by `code/@call-out.html.js`, holding a [term]{@key-word} of its own.
+Rendered by `code/@call-out.html`, holding a [term]{@key-word} of its own.
 {/call-out}
 
 {@chart-view data=sales.csv /}
@@ -20,7 +20,7 @@ The cards in `data/cards.json`, read through a `data` attribute:
 Folded text, an element with behavior, its children, with a [term]{@key-word} rendered at build time.
 {/fold-out}
 
-Every other page, listed by `code/@page-list.html.js` from `pages`:
+Every other page, listed by `code/@page-list.html` from `pages`:
 
 {@page-list /}
 

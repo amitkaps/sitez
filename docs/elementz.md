@@ -5,9 +5,7 @@ build time, its CSS and its behavior. A host renders it into a page. Sitez is th
 and Pagez ([pagez.md](pagez.md)) would be the second.
 
 elementz isn't a package yet. Its first form is `src/elementz/` in Sitez, which imports nothing
-from the rest of Sitez ([sitez.md](sitez.md#where-sitez-sits)). It is next in the
-[plan](plan.md). Until then Sitez reads an element from up to three files (`@name.html`,
-`@name.html.js` and `@name.browser.js`), and its `.browser.js` file default-exports a class.
+from the rest of Sitez ([sitez.md](sitez.md#where-sitez-sits)).
 
 ## The file
 
@@ -316,7 +314,8 @@ Element scripts are JavaScript. `.ts` stays for modules, since no site writes it
 
 ## Costs
 
-- The host cuts files into virtual modules, with source lines mapped back for errors.
+- The host serves each part as a module of its own, `@name.html?sitez=template`, `setup` or
+  `style`. Each is the whole file with the other parts blanked, so an error's line is the file's.
 - An editor's IntelliSense is weaker in an inline script than in a `.js` file, and `${…}` in the
   template's HTML isn't highlighted.
 - `@amitkaps/prose` reads `.html` only for HTML comments. It must read an element file part by

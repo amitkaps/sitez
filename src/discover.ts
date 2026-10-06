@@ -6,8 +6,8 @@
  * URL, and `index` is its folder's own. A file or folder whose name starts with `.` or `_` is
  * skipped in every folder, since a site's tools leave the first and the author marks the second.
  *
- * An element's files start with `@` and are found by their names
- * ([sitez.md](../docs/sitez.md#names-in-code)). Sitez looks them up by name, so a misspelling
+ * An element's file is `@name.html`, found by its name
+ * ([sitez.md](../docs/sitez.md#names-in-code)). Sitez looks it up by name, so a misspelling
  * would silently do nothing, and `readElements` fails on one instead.
  */
 import { readdirSync, statSync } from "node:fs";
@@ -67,28 +67,31 @@ export function discover(root: string): Page[] {
   return pages.toSorted((a, b) => (a.url < b.url ? -1 : 1));
 }
 
-export interface ElementFiles {
-  /** The file that writes the element's markup at build time, `@name.html` or `@name.html.js`. */
-  markup?: { file: string; kind: "html" | "js" };
-  /** The file that gives the element behavior in the browser, `@name.browser.js`. */
-  browser?: string;
-}
+/** Every element's file in `code/`, by tag. Elements are global, wherever their files sit. */
+export type Elements = Map<string, string>;
 
-/** Every element in `code/`, by tag. Elements are global, wherever their files sit. */
-export type Elements = Map<string, ElementFiles>;
-
-// An element's tag has a hyphen, as Markz's elements do, and its files are named for it.
+// An element's tag has a hyphen, as Markz's elements do, and its file is named for it.
 const TAG = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$/;
-const SUFFIX = /^(html|html\.[jt]s|browser\.[jt]s)$/;
+// Names HTML keeps for its own elements, which `customElements.define` refuses.
+const RESERVED = new Set([
+  "annotation-xml",
+  "color-profile",
+  "font-face",
+  "font-face-src",
+  "font-face-uri",
+  "font-face-format",
+  "font-face-name",
+  "missing-glyph",
+]);
 
 /** @prose
  * The elements in `code/`, found by their names ([sitez.md](../docs/sitez.md#names-in-code)),
  * and every mistake in a name that would leave a file doing nothing. An `@` file is an element's,
- * so one with no hyphen, a suffix that isn't `.html`, `.html.js` or `.browser.js`, or a name some
- * other file has already is a mistake, and the message says what to rename it to. So are the two
- * names Sitez 0.2 read, `+layout.js` and `+style.css`, which are now `index.html` and a stylesheet
- * it links. Elements are global, since one script holds every behavior and one CSS styles every
- * tag. A name's markup and its behavior are one file each, wherever it sits.
+ * and an element is one file, `@name.html`. So an `@` file with no hyphen, a reserved name, any
+ * other suffix, or a name some other file has already is a mistake, and the message says what to
+ * do. The suffixes of Sitez 0.3 (`.html.js`, `.browser.js`) and 0.2 (`.live.js`, `+layout.js`,
+ * `+style.css`) say where their code goes now. Elements are global, since one script holds every
+ * behavior and one stylesheet styles every tag, so a name has one file wherever it sits.
  */
 export function readElements(root: string): Elements {
   const elements: Elements = new Map();
@@ -118,35 +121,37 @@ export function readElements(root: string): Elements {
         `an @ file is an element's, named for its tag, which has a hyphen and is lowercase, as in @call-out.html. Rename it, or drop the @ if it's a module.`,
       );
     }
-    if (!SUFFIX.test(suffix)) throw new SiteError(file, unnamed(tag, suffix));
-    const kind = suffix.startsWith("browser") ? "browser" : "markup";
-    const found = elements.get(tag) ?? {};
-    elements.set(tag, found);
-    const other = kind === "browser" ? found.browser : found.markup?.file;
+    if (RESERVED.has(tag)) {
+      throw new SiteError(
+        file,
+        `<${tag}> is a name HTML keeps for its own elements. Rename the element.`,
+      );
+    }
+    if (suffix !== "html") throw new SiteError(file, unnamed(tag, suffix));
+    const other = elements.get(tag);
     if (other) {
       const [first, second] = [other, file].sort() as [string, string];
       throw new SiteError(
         second,
-        kind === "browser"
-          ? `<${tag}>'s behavior is also in ${shown(first)}. Elements are global and one script holds them all, so a name has one .browser.js file wherever it sits. Remove one, or rename the element.`
-          : `<${tag}>'s markup is also in ${shown(first)}. Elements are global, so a name has one markup file, @${tag}.html or @${tag}.html.js, wherever it sits. Remove one, or rename the element.`,
+        `<${tag}> is also in ${shown(first)}. Elements are global, so a name has one file wherever it sits. Remove one, or rename the element.`,
       );
     }
-    if (kind === "browser") found.browser = file;
-    else found.markup = { file, kind: suffix === "html" ? "html" : "js" };
+    elements.set(tag, file);
   }
   return elements;
 }
 
-/** What an @ file's suffix should have been, by what Sitez 0.2 or a guess would have written. */
+/** What an @ file should have been, by what Sitez 0.2 or 0.3 or a guess would have written. */
 function unnamed(tag: string, suffix: string): string {
-  if (/^live\.[jt]s$/.test(suffix)) {
-    return `.live.js is now .browser.js, which says where the file runs. Rename it @${tag}.browser.js.`;
+  const one = `An element is one file, @${tag}.html`;
+  if (/^html\.[jt]s$/.test(suffix)) {
+    return `${one}, so this goes into its <template>. Its markup becomes the template, and its code the template's <script>, which exports what the markup uses.`;
   }
-  if (/^[jt]s$/.test(suffix)) {
-    return `a name must say when the file runs. Rename it @${tag}.html.js if it writes HTML when the site is built, or @${tag}.browser.js if it runs in the browser.`;
+  if (/^(browser|live)\.[jt]s$/.test(suffix)) {
+    return `${one}, so this becomes its top-level <script>, which default-exports the setup: export default (el, { signal }) => { … }. Move connectedCallback's code into it.`;
   }
-  return `an element's files are @${tag}.html, @${tag}.html.js and @${tag}.browser.js. Rename it, or drop the @ if it's a module.`;
+  if (suffix === "css") return `${one}, so this becomes its top-level <style>.`;
+  return `${one}. Rename it, or drop the @ if it's a module.`;
 }
 
 /** @prose

@@ -1,1 +1,0 @@
-text/index.md: line 3: {@call-out} has a page attribute, but every element already gets page, pages, site and children. Rename the attribute.

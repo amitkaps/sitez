@@ -1,0 +1,1 @@
+code/@tag-box.html: line 4: the <script> exports a class. It exports the element's setup instead, which the browser runs on each element: export default (el, { signal }) => { … }. Move connectedCallback's code into it, and pass signal to each listener.

@@ -1,0 +1,1 @@
+code/@tag-box.html: line 3: the template's <script> comes after its markup. Move it to the top of the <template>, since it gives the markup its names.

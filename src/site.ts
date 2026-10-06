@@ -13,25 +13,19 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "@amitkaps/markz";
-import { findBrowser, type Browser } from "./browser.ts";
+import { usedElements, type Used } from "./browser.ts";
 import { readData } from "./data.ts";
-import {
-  discover,
-  readElements,
-  NOT_FOUND,
-  SITE_FILE,
-  type Elements,
-  type Page,
-} from "./discover.ts";
-import { renderElement, renderElements, type ElementSite } from "./elements.ts";
+import { discover, readElements, NOT_FOUND, SITE_FILE, type Page } from "./discover.ts";
+import { renderElement, renderElements, type Host } from "./elementz/elements.ts";
+import { readElement, type ElementFile } from "./elementz/file.ts";
 import { SiteError } from "./errors.ts";
 import { escape, pageHead, readFrame, withStyles, type Frame } from "./head.ts";
 import { linkTarget, renderedLinkProblem, type LinkTargets } from "./links.ts";
 import { isDraft, textMetadata, siteMetadata, type Metadata, type PageData } from "./metadata.ts";
-import { inFrame, type Props } from "./render.ts";
+import { inFrame, SCOPE, type Props } from "./render.ts";
 import { readRedirects } from "./redirects.ts";
 import { textHtml } from "./text.ts";
-import { asGiven, type SiteServer } from "./vite.ts";
+import { asGiven, partId, type SiteServer } from "./vite.ts";
 import { markzWarnings, type MarkzWarning } from "./warnings.ts";
 
 export interface Run {
@@ -39,7 +33,8 @@ export interface Run {
   site: Metadata & { url: string };
   server: SiteServer;
   links: LinkTargets;
-  elements: Elements;
+  /** Every element in `code/`, read and checked. */
+  elements: Map<string, ElementFile>;
   /** `code/index.html`, read and checked. */
   frame: Frame;
   /** The pages this run writes or serves, in discovery order. */
@@ -63,8 +58,8 @@ export interface Rendered {
   data: PageData;
   frame: string;
   body: string;
-  /** The elements with behavior the page's HTML uses, sorted by tag. */
-  browser: Browser[];
+  /** The elements the page's HTML uses that ship CSS or behavior, sorted by tag. */
+  elements: Used[];
 }
 
 /** @prose
@@ -91,7 +86,9 @@ export async function readRun(server: SiteServer, { dev = false } = {}): Promise
   const { root } = server;
   const site = readSite(root);
   const siteFile = join(root, SITE_FILE);
-  const elements = readElements(root);
+  const elements = new Map(
+    [...readElements(root)].map(([tag, file]) => [tag, readElement(file, SCOPE)] as const),
+  );
   const frame = readFrame(root);
   const pages = discover(root);
   const draft = (data: PageData) => !dev && isDraft(data);
@@ -150,12 +147,12 @@ export async function renderRedirect(run: Run, from: string, to: string): Promis
   }
 }
 
-function elementSite(run: Run, props: Props): ElementSite {
+function host(run: Run, props: Props): Host {
   return {
     elements: run.elements,
-    load: (file) => run.server.load(file),
+    load: (element) => run.server.load(partId(element.file, "template")),
     data: (path) => readData(run.root, path),
-    props,
+    context: { ...props },
   };
 }
 
@@ -170,7 +167,7 @@ async function framed(
 ): Promise<Rendered> {
   const { root, site, frame } = run;
   const rendered = await renderElements(
-    elementSite(run, { page: data, pages: run.listed, site }),
+    host(run, { page: data, pages: run.listed, site }),
     frame.html,
     frame.file,
     [],
@@ -197,7 +194,7 @@ async function framed(
     data,
     frame: head,
     body: text,
-    browser: findBrowser(run.elements, inFrame(head, text)),
+    elements: usedElements(run.elements, inFrame(head, text)),
     ms: performance.now() - t,
   };
 }
@@ -206,15 +203,15 @@ const relativeTo = (root: string, file: string) => file.slice(root.length + 1);
 
 /** @prose
  * A text page's HTML (`text.ts`). Each element is the one of its name in `code/`, whichever folder
- * its files sit in, and gets the element's attributes, its content as `children`, its `data`, and
- * the page's props.
+ * its file sits in, and its template gets its attributes as `attrs`, with `data` parsed, and the
+ * page's `page`, `pages` and `site`.
  */
 async function textOf(run: Run, page: Page): Promise<string> {
   const { root } = run;
   const doc = parse(readFileSync(page.file, "utf8"));
-  const site = elementSite(run, { page: run.data.get(page)!, pages: run.listed, site: run.site });
+  const site = host(run, { page: run.data.get(page)!, pages: run.listed, site: run.site });
   return textHtml(page.file, doc, {
-    element: (name) => run.elements.get(name)?.markup !== undefined,
+    element: (name) => run.elements.has(name),
     link: (destination, kind) => linkTarget(run.links, page.file, destination, kind),
     data: (path) => readData(root, path),
     render: (name, attributes, children, data) =>
@@ -235,7 +232,7 @@ function notDefined(error: unknown, root: string, real: string): SiteError | und
     cause.stack ?? "",
   )?.[1];
   if (!name || !frame) return undefined;
-  const file = asGiven(root, real, frame);
+  const file = asGiven(root, real, frame.split("?")[0]!);
   const line =
     readFileSync(file, "utf8")
       .split("\n")

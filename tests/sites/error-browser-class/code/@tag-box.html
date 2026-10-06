@@ -1,0 +1,9 @@
+<template><button>Go</button></template>
+
+<script>
+  export default class extends HTMLElement {
+    connectedCallback() {
+      this.dataset.ready = "";
+    }
+  }
+</script>

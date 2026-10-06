@@ -13,20 +13,20 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { join } from "node:path";
 import type { Plugin, ViteDevServer } from "vite";
 import { browserEntry, missingUrl } from "./bundle.ts";
-import type { Browser } from "./browser.ts";
+import type { Used } from "./browser.ts";
 import { NOT_FOUND, posix } from "./discover.ts";
 import { SiteError, shownFrom, siteErrorText } from "./errors.ts";
 import { addToHead, escape, withStyles } from "./head.ts";
 import { inFrame } from "./render.ts";
 import { redirectUrl } from "./redirects.ts";
 import { readRun, renderPage, type Run } from "./site.ts";
-import { inReal, siteServer, type SiteServer } from "./vite.ts";
+import { inReal, partId, siteServer, type SiteServer } from "./vite.ts";
 import { formatWarning, type MarkzWarning } from "./warnings.ts";
 
 /** The dev server's half of the plugin. It does nothing in the server `build` renders with. */
 export function devPlugin(): Plugin {
-  // What each page's script loads: its `.browser.js` files, from its last render.
-  const rendered = new Map<string, Browser[]>();
+  // What each page's script loads: its elements' setups, from its last render.
+  const rendered = new Map<string, Used[]>();
   const warned = new Set<string>();
   // A request that isn't a page after all reaches `notFound` with the site already read.
   const runs = new WeakMap<IncomingMessage, Run>();
@@ -77,28 +77,32 @@ export function devPlugin(): Plugin {
     const found = run.pages.find((page) => page.url === url);
     if (!found) return undefined;
     const out = await renderPage(run, found);
-    const missing = missingUrl(
-      root,
-      run.frame.styles.map((style) => style.file),
-    );
+    const styled = out.elements.filter((u) => u.style);
+    const missing = missingUrl(root, [
+      ...run.frame.styles.map((style) => ({ file: style.file })),
+      ...styled.map((u) => ({ file: u.file, css: run.elements.get(u.tag)!.style!.text })),
+    ]);
     if (missing) throw missing;
     rendered.set(
       url,
-      out.browser.map((browser) => ({ ...browser, file: inReal(root, server.real, browser.file) })),
+      out.elements.map((u) => ({ ...u, file: inReal(root, server.real, u.file) })),
     );
     const linked = withStyles(out.frame, (href) => `/${posix(root, join(root, "code", href))}`);
     const query = `?url=${encodeURIComponent(url)}`;
-    const scripts = [
+    const head = [
+      ...styled.map(
+        (u) => `<link rel="stylesheet" href="/${posix(root, partId(u.file, "style"))}" />`,
+      ),
       '<script type="module" src="/@vite/client"></script>',
       `<script type="module" src="${SCRIPTS}page.js${query}"></script>`,
     ];
-    return inFrame(addToHead(linked, scripts.join("\n")), out.body);
+    return inFrame(addToHead(linked, head.join("\n")), out.body);
   };
 
   /** @prose
-   * A page's own script in dev, which loads the page's `.browser.js` files, where `build` writes
-   * one script for the site. Its stylesheets are plain links, which the browser waits for before
-   * it shows the page.
+   * A page's own script in dev, which defines the page's elements with behavior, where `build`
+   * writes one script for the site. Its stylesheets, its elements' CSS among them, are plain
+   * links, which the browser waits for before it shows the page.
    */
   const script = (name: string, url: string): string | undefined =>
     name === "page.js" ? browserEntry(rendered.get(url) ?? []) : undefined;
@@ -113,6 +117,8 @@ export function devPlugin(): Plugin {
     const url = new URL(request.url ?? "/", "http://localhost");
     const path = pathOf(url);
     if (path.startsWith("/@") || path.startsWith("/__") || !looksLikePage(path)) return next();
+    // An element file's part, which is a module, not a page.
+    if (url.searchParams.has("sitez")) return next();
     return withRun(request, response, async (run) => {
       const target = path.endsWith("/index.html") ? path.slice(0, -"index.html".length) : path;
       const html = target === NOT_FOUND ? undefined : await page(run, target);
@@ -171,7 +177,7 @@ export function devPlugin(): Plugin {
       };
     },
     // CSS is Vite's to replace, unless a page is failing. A custom element can't be defined twice,
-    // so a `.browser.js` file reloads the page.
+    // so an element file reloads the page, its CSS too.
     hotUpdate({ file, server: vite }) {
       if (this.environment.name !== "client") return;
       if (file.endsWith(".css") && !failing) return;

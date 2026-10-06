@@ -1,1 +1,1 @@
-code/@tag-b.html.js: this writes <tag-a>, which ends up inside itself: <tag-a> → <tag-b> → <tag-a>. Remove one of them, or the element would never finish.
+code/@tag-b.html: this writes <tag-a>, which ends up inside itself: <tag-a> → <tag-b> → <tag-a>. Remove one of them, or the element would never finish.

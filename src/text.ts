@@ -1,21 +1,21 @@
 /** @prose
  * # Text as HTML
  *
- * A text page is Markz's own HTML, with the inside of each element that has a markup file replaced
- * by what that file writes (rule 5). Links are written as the URLs the site serves (rule 4).
+ * A text page is Markz's own HTML, with the inside of each element that has a file replaced by
+ * what its template writes (rule 5). Links are written as the URLs the site serves (rule 4).
  * Everything else comes out exactly as Markz writes it, text, attributes and raw HTML included.
  */
 import { html, position, walk, type Document, type NodeData, type NodeId } from "@amitkaps/markz";
 import { SiteError } from "./errors.ts";
-import { openTag } from "./elements.ts";
+import { openTag } from "./elementz/elements.ts";
 import type { LinkKind } from "./links.ts";
 
 /** @prose
- * What a text page needs from its site. `element` is whether an element name has a markup file, and
+ * What a text page needs from its site. `element` is whether an element name has a file, and
  * when it has none the element stays as Markz writes it. `link` is where a link goes, or what is
  * wrong with it (`links.ts`). `data` is the parsed JSON a `data` attribute names, or what is wrong
  * with the path (`data.ts`). `render` writes an element's inside from its attributes, its rendered
- * content and its data (`elements.ts`).
+ * content and its data (`elementz/elements.ts`).
  */
 export interface TextSite {
   element(name: string): boolean;
@@ -24,7 +24,7 @@ export interface TextSite {
   render(
     name: string,
     attributes: Record<string, string>,
-    children?: string,
+    content?: string,
     data?: { value: unknown },
   ): Promise<string>;
 }
@@ -33,12 +33,12 @@ export interface TextSite {
  * The HTML for one text page, in three steps that keep each exact.
  *
  * 1. Markz writes the HTML from a view of the document. In it, each link's destination is the URL
- *    it's served at, and each element with a markup file is a marker element. Each raw `=html`
+ *    it's served at, and each element with a file is a marker element. Each raw `=html`
  *    block is a marker too. So the only tags in the output are tags Markz wrote. Links are
  *    rewritten in the AST, so an example in code stays as written.
  * 2. Each element marker is replaced by the element, written with its own name and attributes
- *    around what its markup file writes. Markers go innermost first, so an element's `children` is its
- *    content already rendered, nested elements included.
+ *    around what its template writes. Markers go innermost first, so an element's content is
+ *    already rendered when it goes in its slot, nested elements included.
  * 3. Each raw marker is replaced by the block's content, as written.
  *
  * An element gets its attributes as strings, as the HTML would have them. Classes
@@ -83,7 +83,6 @@ export async function textHtml(file: string, doc: Document, site: TextSite): Pro
       const { name, kind } = doc.data(node, "element");
       if (!known.has(name)) known.set(name, name.includes("-") && site.element(name));
       if (!known.get(name)) return;
-      reserved(file, doc, node, name);
       const attributes = attributesOf(doc, node);
       let data: { value: unknown } | undefined;
       if ("data" in attributes) {
@@ -136,23 +135,7 @@ function paragraphSafe(file: string, doc: Document, node: NodeId, name: string, 
   const { line } = position(doc.source)(doc.start(node));
   throw new SiteError(
     file,
-    `line ${line}: {@${name}} is used inline, but its markup writes a <${tag.toLowerCase()}>, which ends a paragraph. Return inline HTML, such as a <span>.`,
-  );
-}
-
-const PAGE_PROPS = ["page", "pages", "site", "children"];
-
-/** @prose
- * An element gets `page`, `pages` and `site` as a page does, and its content as `children`. So an
- * attribute of one of those names would be silently replaced. It fails instead, naming the line.
- */
-function reserved(file: string, doc: Document, node: NodeId, name: string): void {
-  const clash = doc.attributes(node)?.items.find((item) => PAGE_PROPS.includes(item.key));
-  if (!clash) return;
-  const { line } = position(doc.source)(clash.start);
-  throw new SiteError(
-    file,
-    `line ${line}: {@${name}} has a ${clash.key} attribute, but every element already gets page, pages, site and children. Rename the attribute.`,
+    `line ${line}: {@${name}} is used inline, but its template writes a <${tag.toLowerCase()}>, which ends a paragraph. Write inline HTML, such as a <span>.`,
   );
 }
 
@@ -166,7 +149,7 @@ function attributesOf(doc: Document, node: NodeId): Record<string, string> {
 
 /** @prose
  * The document as `html()` reads it, through its public accessors, with each swapped node's data
- * overlaid. An element marker also drops its attributes, which the element gets as props.
+ * overlaid. An element marker also drops its attributes, which the element gets as `attrs`.
  * Everything else reads through to the document.
  */
 function view(doc: Document, swapped: Map<NodeId, object>, markers: Set<NodeId>): Document {

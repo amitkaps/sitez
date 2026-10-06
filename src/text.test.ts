@@ -1,7 +1,7 @@
 /** @prose
  * # A text page's HTML
  *
- * Markz's HTML with its links rewritten, its elements written around what their markup files write and
+ * Markz's HTML with its links rewritten, its elements written around what their templates write and
  * its raw blocks written as they are. A fake `render` shows what each element is called with.
  */
 import { parse } from "@amitkaps/markz";
@@ -20,10 +20,10 @@ const text = (source: string) =>
         : { href: hrefs[destination] ?? destination },
     data: (path) =>
       path in data ? { value: data[path] } : { problem: `data="${path}" isn't there.` },
-    render: async (name, attributes, children, data) =>
+    render: async (name, attributes, content, data) =>
       name === "fact-box"
         ? "<div-ider></div-ider><DIV>fact</DIV>"
-        : `[${name} ${JSON.stringify(attributes)}${children === undefined ? "" : `|${children}|`}${data ? JSON.stringify(data.value) : ""}]`,
+        : `[${name} ${JSON.stringify(attributes)}${content === undefined ? "" : `|${content}|`}${data ? JSON.stringify(data.value) : ""}]`,
   });
 
 describe("textHtml", () => {
@@ -31,7 +31,7 @@ describe("textHtml", () => {
     expect(await text("A {brace} and `${x}`.")).toBe("<p>A {brace} and <code>${x}</code>.</p>\n");
   });
 
-  test("writes an element around what its markup file writes, which gets its attributes and content", async () => {
+  test("writes an element around what its template writes, which gets its attributes and content", async () => {
     expect(await text("{@call-out type=note .a .b}\nBody.\n{/call-out}")).toBe(
       '<call-out class="a b" type="note">[call-out {"type":"note","class":"a b"}|<p>Body.</p>\n|]</call-out>\n',
     );
@@ -43,7 +43,7 @@ describe("textHtml", () => {
     );
   });
 
-  test("gives an element with no content no children", async () => {
+  test("gives an element with no content none", async () => {
     expect(await text("{@call-out /}")).toBe("<call-out>[call-out {}]</call-out>\n");
   });
 
@@ -65,21 +65,15 @@ describe("textHtml", () => {
     );
   });
 
-  test("leaves a data attribute on an element with no markup file as written", async () => {
+  test("leaves a data attribute on an element with no file as written", async () => {
     expect(await text("{@chart-view data=rows.json /}")).toBe(
       '<chart-view data="rows.json"></chart-view>\n',
     );
   });
 
-  test("fails on an attribute named like a prop every element gets", async () => {
-    await expect(text("Intro.\n\n{@call-out pages=short /}")).rejects.toThrow(
-      "line 3: {@call-out} has a pages attribute, but every element already gets page, pages, site and children.",
-    );
-  });
-
   test("fails on an inline element whose output would end its paragraph, naming the tag", async () => {
     await expect(text("Intro.\n\nA [fact]{@fact-box}.")).rejects.toThrow(
-      "line 3: {@fact-box} is used inline, but its markup writes a <div>, which ends a paragraph.",
+      "line 3: {@fact-box} is used inline, but its template writes a <div>, which ends a paragraph.",
     );
   });
 
@@ -89,7 +83,7 @@ describe("textHtml", () => {
     );
   });
 
-  test("leaves an element with no markup file, and element syntax in code, as Markz writes them", async () => {
+  test("leaves an element with no file, and element syntax in code, as Markz writes them", async () => {
     expect(await text("{@chart-view data=a.csv /}\n\n`<call-out>`")).toBe(
       '<chart-view data="a.csv"></chart-view>\n<p><code>&lt;call-out&gt;</code></p>\n',
     );

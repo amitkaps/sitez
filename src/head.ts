@@ -18,7 +18,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { NOT_FOUND } from "./discover.ts";
 import { SiteError } from "./errors.ts";
-import { attribute, decode, encode, scan, withValue, type Tag } from "./markup.ts";
+import { attribute, decode, encode, scan, withValue, type Tag } from "./elementz/markup.ts";
 import type { Metadata, PageData } from "./metadata.ts";
 
 /** What stands where the page goes, until the page is put there. */

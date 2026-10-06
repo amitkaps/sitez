@@ -1,0 +1,1 @@
+code/@call-out.browser.js: An element is one file, @call-out.html, so this becomes its top-level <script>, which default-exports the setup: export default (el, { signal }) => { … }. Move connectedCallback's code into it.

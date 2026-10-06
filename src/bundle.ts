@@ -2,8 +2,9 @@
  * # Bundling
  *
  * What the browser downloads besides the HTML, built by Rolldown once every page has rendered,
- * since only then is it known which elements with behavior the pages use. A site's stylesheets are
- * the ones `code/index.html` links, and its script is the behavior of its elements, at most one.
+ * since only then is it known which elements the pages use. A site's stylesheets are the ones
+ * `code/index.html` links, and one more for its elements' CSS. Its script is the behavior of its
+ * elements, at most one.
  * Each is small, so one file, cached by the first page and reused by every other, costs less than
  * a split that saves a few bytes per page. Every file's name carries a content hash, so a new
  * deploy is never served from a stale cache.
@@ -13,8 +14,9 @@ import { basename, dirname, extname, join } from "node:path";
 import { build, type InlineConfig, type Logger, type Plugin, type Rolldown } from "vite";
 import { SiteError } from "./errors.ts";
 import type { Style } from "./head.ts";
-import { urlImportError, type Browser } from "./browser.ts";
-import { asGiven, inReal, siteError, type SiteServer } from "./vite.ts";
+import { urlImportError, type Used } from "./browser.ts";
+import { define } from "./elementz/runtime.ts";
+import { asGiven, inReal, partId, siteError, type SiteServer } from "./vite.ts";
 
 /** Files to write into `dist/`, by path. */
 export type Files = Map<string, string | Uint8Array>;
@@ -62,15 +64,63 @@ export async function stylesheets(
 }
 
 /** @prose
+ * The site's elements' CSS, each element's once, as one stylesheet with a hashed name, and the URL
+ * pages link it from. It's one file for the same reason the script is. Each element's CSS is in
+ * `@layer elements` (`elementz/file.ts`), so the order of elements in it doesn't matter. A
+ * `url()` that doesn't resolve fails naming the element whose CSS holds it.
+ */
+export async function elementStyles(
+  site: SiteServer,
+  used: Used[],
+): Promise<{ href: string | undefined; files: Files }> {
+  const { root, real } = site;
+  const styled = [...new Map(used.filter((u) => u.style).map((u) => [u.tag, u])).values()].sort(
+    (a, b) => (a.tag < b.tag ? -1 : 1),
+  );
+  const files: Files = new Map();
+  if (styled.length === 0) return { href: undefined, files };
+  const imports = styled.map(
+    ({ file }) => `import ${JSON.stringify(partId(inReal(root, real, file), "style"))};`,
+  );
+  const { output, unresolved } = await bundle(
+    site,
+    { elements: imports.join("\n") },
+    {
+      codeSplitting: false,
+      assetFileNames: (asset) =>
+        asset.names.some((name) => name.endsWith(".css"))
+          ? "[name].[hash].css"
+          : "assets/[name].[hash][extname]",
+    },
+  );
+  const [url] = unresolved;
+  if (url) {
+    const holder = styled.find(({ file }) => readFileSync(file, "utf8").includes(url));
+    throw urlError(holder?.file ?? join(root, "code"), url);
+  }
+  let href: string | undefined;
+  for (const item of output) {
+    if (item.type !== "asset") continue;
+    files.set(item.fileName, item.source);
+    if (item.fileName.endsWith(".css")) href = `/${item.fileName}`;
+  }
+  return { href, files };
+}
+
+/** @prose
  * The first `url()` in the site's CSS that points at nothing, resolved as `build` resolves it:
  * relative to its file, or from `public/` and then the site's root when it starts with `/`.
  * `dev` checks with this, since there Vite hands a `url()` to the browser unchecked and a missing
- * font falls back without a word; `build` has Vite's own check. `files` are the stylesheets read.
+ * font falls back without a word; `build` has Vite's own check. `sheets` are the stylesheets read,
+ * and an element's CSS comes with the text of its `<style>`.
  */
-export function missingUrl(root: string, files: string[]): SiteError | undefined {
-  for (const file of files) {
-    if (!existsSync(file)) continue;
-    const css = readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+export function missingUrl(
+  root: string,
+  sheets: { file: string; css?: string }[],
+): SiteError | undefined {
+  for (const { file, css: text } of sheets) {
+    if (text === undefined && !existsSync(file)) continue;
+    const css = (text ?? readFileSync(file, "utf8")).replace(/\/\*[\s\S]*?\*\//g, "");
     for (const [, , url = ""] of css.matchAll(/url\(\s*(['"]?)([^'")]*)\1\s*\)/g)) {
       if (url === "" || /^(?:[a-z]+:|\/\/|#)/i.test(url)) continue;
       const path = decodeURI(url.split(/[?#]/)[0]!);
@@ -91,14 +141,20 @@ function urlError(file: string, url: string): SiteError {
 }
 
 /** @prose
- * A script that defines elements with behavior: each `.browser.js` file's class, defined as its
- * tag. The tag comes from the file's name and the class from its default export, so the file never
- * names its element (rule 6). That one line per element is all of Sitez that reaches the browser.
+ * A script that defines elements with behavior: elementz's `define`, then each element's `setup`,
+ * from its file's top-level `<script>`, defined under its tag. The tag comes from the file's name,
+ * so the file never names its element (rule 6). `define` and one line per element are all of
+ * Sitez that reaches the browser.
  */
-export function browserEntry(browsers: Browser[]): string {
+export function browserEntry(used: Used[]): string {
+  const setups = used.filter((u) => u.setup);
+  if (setups.length === 0) return "";
   return [
-    ...browsers.map(({ file }, i) => `import element${i} from ${JSON.stringify(file)};`),
-    ...browsers.map(({ tag }, i) => `customElements.define(${JSON.stringify(tag)}, element${i});`),
+    `const define = ${String(define)};`,
+    ...setups.map(
+      ({ file }, i) => `import setup${i} from ${JSON.stringify(partId(file, "setup"))};`,
+    ),
+    ...setups.map(({ tag }, i) => `define(${JSON.stringify(tag)}, setup${i});`),
   ].join("\n");
 }
 
@@ -106,10 +162,10 @@ export function browserEntry(browsers: Browser[]): string {
  * The site's one script, `script.[hash].js`, which defines every element with behavior that a
  * page uses. Like the stylesheets, it is small, and one file cached by the first page costs less
  * than a split by page. Only a page with such an element loads it. Defining a tag that isn't on
- * the page costs nothing. One script means one `.browser.js` file for each tag, which
- * `readElements` has already checked.
+ * the page costs nothing. One script means one file for each tag, which `readElements` has
+ * already checked.
  *
- * A package a `.browser.js` file imports at the top goes into the script. One it imports with
+ * A package an element's `<script>` imports at the top goes into the script. One it imports with
  * `await import()` becomes a chunk of its own, fetched only where its element connects, so a large
  * library costs only the pages that use it. A library by URL must come in that way too, or every
  * page with such an element would fetch it (`urlImports`). Those imports are left as they are, and
@@ -118,9 +174,9 @@ export function browserEntry(browsers: Browser[]): string {
  * The build is in production mode whatever the process says, since a dev server earlier in the
  * same process leaves `NODE_ENV` at `development`.
  */
-export async function script(site: SiteServer, browsers: Browser[]): Promise<Script> {
+export async function script(site: SiteServer, used: Used[]): Promise<Script> {
   const { root, real } = site;
-  const byTag = new Map(browsers.map((browser) => [browser.tag, browser]));
+  const byTag = new Map(used.filter((u) => u.setup).map((u) => [u.tag, u]));
   if (byTag.size === 0) return { files: new Map(), src: undefined, hosts: [] };
   const sorted = [...byTag.values()].sort((a, b) => (a.tag < b.tag ? -1 : 1));
   const mode = process.env.NODE_ENV;
@@ -129,7 +185,7 @@ export async function script(site: SiteServer, browsers: Browser[]): Promise<Scr
   try {
     ({ output } = await bundle(
       site,
-      { script: browserEntry(sorted) },
+      { script: browserEntry(sorted.map((u) => ({ ...u, file: inReal(root, real, u.file) }))) },
       {
         entryFileNames: "[name].[hash].js",
         chunkFileNames: "[name].[hash].js",

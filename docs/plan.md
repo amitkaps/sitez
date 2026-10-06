@@ -8,10 +8,16 @@ code's `@prose`, the tests and `git log`.
 
 Sitez is a Vite plugin that builds amitkaps.github.io, whose `next` branch deploys
 next.amitkaps.com from it. The latest release is 0.3.0, on npm as `@amitkaps/sitez` and as a
-GitHub release tarball. The docs now describe one file per element, which the code doesn't do yet.
+GitHub release tarball. Since then an element is one file, which amitkaps.github.io hasn't moved
+to yet.
 
 ### Since 0.3.0
 
+- **One file per element.** An element is `@name.html`, and its code is `src/elementz/`, which
+  imports nothing from the rest of Sitez. Each part is a module on the file's own lines. Element
+  CSS ships once, in `@layer elements`. `setup(el, { signal })` replaces the class, and rendering
+  is synchronous. The slot's fallback shows only when there is no content, and Sitez 0.3's names
+  fail, saying where their code goes.
 - **What Data Portraits showed.** Its nine charts became elements drawn with d3 at build time,
   and the port found three gaps, listed under Next.
 - **One file per element, designed.** An element is `@name.html`, with a template the build
@@ -48,22 +54,11 @@ GitHub release tarball. The docs now describe one file per element, which the co
 
 ## Next, in order
 
-- [ ] **One file per element.** The code goes in `src/elementz/`, which imports nothing from the
-      rest of Sitez. amitkaps.github.io's `code/notes` is the test.
-  - Fix the slot's fallback first, in today's `elements.ts`. `<slot>No note</slot>` ships the
-    fallback and a stray `</slot>` after the content.
-  - `src/elementz/`: `html`, an element file read into its parts, the template evaluated with
-    `attrs`, the host's context and its script's exports, the slot, and nesting. `elements.ts`,
-    `markup.ts` and `runtime/` move into it.
-  - The runtime: a fresh `AbortController` per connection, and the cleanup on disconnect, in the
-    site's one script.
-  - The plugin cuts each script into a module, with errors on the file's own lines.
-  - Element CSS in `@layer elements`, with the selector check.
-  - The failures in [elementz.md](elementz.md#what-the-build-checks), and the old names failing.
-  - Every fixture moves to one file, with an error fixture for each new failure.
-  - `@amitkaps/prose` reads an `.html` file part by part, as it reads `.svelte`.
-  - amitkaps.github.io moves its ten element files, their CSS and its classes to `setup`, and adds
-    `elements` to its layer order. Its pages match before and after in a headless browser.
+- [ ] **amitkaps.github.io on one file per element.** It moves its ten element files, their CSS
+      and its classes to `setup`, and adds `elements` to its layer order. Its pages match before
+      and after in a headless browser. Then Sitez releases 0.4.0.
+- [ ] **`@amitkaps/prose` reads an `.html` file part by part**, as it reads `.svelte`, so an
+      element's prose isn't missed.
 - [ ] **What Data Portraits showed.**
   - An element that throws names the page and the tag that called it, not only its file.
   - `url()` in a `style` attribute an element writes is checked, as a stylesheet's is.

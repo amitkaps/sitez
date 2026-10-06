@@ -1,1 +1,1 @@
-code/chart.js: this imports https://cdn.example.com/d3-format@3/+esm at the top, so every page with an element that has behavior would fetch it. Import it inside the element's function: const lib = await import("https://cdn.example.com/d3-format@3/+esm").
+code/chart.js: this imports https://cdn.example.com/d3-format@3/+esm at the top, so every page with an element that has behavior would fetch it. Import it inside the element's setup: const lib = await import("https://cdn.example.com/d3-format@3/+esm").

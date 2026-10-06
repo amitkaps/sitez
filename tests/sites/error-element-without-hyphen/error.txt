@@ -1,1 +1,1 @@
-code/@callout.html.js: an @ file is an element's, named for its tag, which has a hyphen and is lowercase, as in @call-out.html. Rename it, or drop the @ if it's a module.
+code/@callout.html: an @ file is an element's, named for its tag, which has a hyphen and is lowercase, as in @call-out.html. Rename it, or drop the @ if it's a module.

@@ -1,0 +1,1 @@
+code/@call-out.html.js: An element is one file, @call-out.html, so this goes into its <template>. Its markup becomes the template, and its code the template's <script>, which exports what the markup uses.

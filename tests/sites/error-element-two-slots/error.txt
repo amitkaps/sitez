@@ -1,1 +1,1 @@
-code/@call-out.html: this has 2 slots, and <call-out>'s content goes in one. Keep a single <slot></slot>.
+code/@call-out.html: the template writes 2 slots, and <call-out>'s content goes in one. Keep a single <slot></slot>.

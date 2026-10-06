@@ -1,0 +1,1 @@
+@layer elements{fold-out{display:block}fold-out:not(:defined) button{display:none}}

@@ -1,0 +1,1 @@
+code/@case-count.html: a template holds a promise, and rendering doesn't wait. Read data with a data attribute, or compute the value without await.

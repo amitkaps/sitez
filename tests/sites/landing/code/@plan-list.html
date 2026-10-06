@@ -1,0 +1,12 @@
+<template>
+  <script>
+    import plan from "./plan.js";
+    export { plan };
+  </script>
+  <details>
+    <summary>How much does it cost?</summary>
+    <ul>
+      ${attrs.data.map(plan)}
+    </ul>
+  </details>
+</template>

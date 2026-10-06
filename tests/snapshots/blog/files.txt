@@ -4,9 +4,10 @@ assets/Serif.YGl1U-2z.woff2
 blog/again/index.html
 blog/hello/index.html
 blog/index.html
+elements.Q_QtDEQB.css
 favicon.svg
 hello.html
 hello/index.html
 index.html
-script.CMWRow6y.js
-style.BxXUc59K.css
+script.BCwtXoLn.js
+style.DIJ_Xb0-.css

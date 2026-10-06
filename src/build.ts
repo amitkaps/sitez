@@ -3,8 +3,8 @@
  *
  * `vite build`, for a site: every page rendered to complete HTML in `dist/`, with a page at each
  * redirect, and `public/` copied beside them. The site is read once (`site.ts`), then pages render
- * concurrently, each awaiting its own data, and the stylesheets and the script for elements with
- * behavior are built from what they rendered. Nothing is written until everything has built.
+ * concurrently, and the stylesheets, the elements' CSS and the script for elements with behavior
+ * are built from what they rendered. Nothing is written until everything has built.
  * Markz's warnings and the report print through Vite's logger.
  *
  * The plugin takes over in Vite's `buildApp` hook. The site's `code/index.html` is a frame with a
@@ -29,7 +29,8 @@ import { dirname, join, resolve, sep } from "node:path";
 import { relative } from "node:path";
 import { gzipSync } from "node:zlib";
 import { createServer, type Plugin, type ResolvedConfig } from "vite";
-import { script, stylesheets, type Files } from "./bundle.ts";
+import { elementStyles, script, stylesheets, type Files } from "./bundle.ts";
+import type { Used } from "./browser.ts";
 import { outputFile, skipped } from "./discover.ts";
 import { SiteError, shownFrom, siteErrorText } from "./errors.ts";
 import { RENDER_ONLY } from "./dev.ts";
@@ -38,7 +39,7 @@ import { inFrame } from "./render.ts";
 import { redirectFile } from "./redirects.ts";
 import { readRun, renderPage, renderRedirect, type Rendered, type Run } from "./site.ts";
 import { report } from "./report.ts";
-import { inReal, siteServer } from "./vite.ts";
+import { siteServer } from "./vite.ts";
 import { formatWarning, type MarkzWarning } from "./warnings.ts";
 import pkg from "../package.json" with { type: "json" };
 
@@ -170,27 +171,26 @@ export async function build(config: ResolvedConfig): Promise<BuildResult> {
   }
   const { warnings } = run;
 
-  // The script holds every element with behavior a page uses. Then every page gets the
-  // stylesheets its frame links and, if it has such an element, the script.
+  // The script holds every element with behavior a page uses, and the element stylesheet every
+  // element's CSS. Then every page gets the stylesheets its frame links, and each of the other two
+  // when it uses an element that ships one.
   const css = await stylesheets(server, run.frame.styles);
   const everyPage = [...rendered, ...redirects];
-  const js = await script(
-    server,
-    everyPage.flatMap((page) =>
-      page.browser.map((browser) => ({
-        ...browser,
-        file: inReal(root, server.real, browser.file),
-      })),
-    ),
-  );
-  const files: Files = new Map([...css.files, ...js.files]);
+  const used = everyPage.flatMap((page) => page.elements);
+  const styles = await elementStyles(server, used);
+  const js = await script(server, used);
+  const files: Files = new Map([...css.files, ...styles.files, ...js.files]);
   const pagesBuilt: Built[] = [];
   for (const page of everyPage) {
+    const head = [];
+    if (page.elements.some((u) => u.style)) {
+      head.push(`<link rel="stylesheet" href="${styles.href}" />`);
+    }
+    if (page.elements.some((u) => u.setup)) {
+      head.push(`<script type="module" src="${js.src}"></script>`);
+    }
     const linked = withStyles(page.frame, (href) => css.hrefs.get(href));
-    const frame =
-      page.browser.length > 0
-        ? addToHead(linked, `<script type="module" src="${js.src}"></script>`)
-        : linked;
+    const frame = head.length > 0 ? addToHead(linked, head.join("\n")) : linked;
     const html = inFrame(frame, page.body);
     const isRedirect = redirects.includes(page);
     files.set(isRedirect ? redirectFile(page.url) : outputFile(page.url), html);
@@ -200,7 +200,7 @@ export async function build(config: ResolvedConfig): Promise<BuildResult> {
       file: page.file,
       ms: page.ms,
       html: gzipped(html),
-      notes: [...page.browser.map((browser) => browser.tag), ...notes(page.frame + page.body)],
+      notes: [...behavior(page.elements), ...notes(page.frame + page.body)],
     });
   }
   write(root, outDir, files);
@@ -208,19 +208,20 @@ export async function build(config: ResolvedConfig): Promise<BuildResult> {
     outDir,
     pages: pagesBuilt.toSorted((a, b) => (a.url < b.url ? -1 : 1)),
     common: {
-      css: [...css.hrefs.values()]
+      css: [...css.hrefs.values(), ...(styles.href ? [styles.href] : [])]
         .filter((href, i, all) => all.indexOf(href) === i)
         .reduce((total, href) => total + gzipped(files.get(href.slice(1))!), 0),
       js: js.src ? gzipped(files.get(js.src.slice(1))!) : 0,
       hosts: js.hosts,
     },
-    behavior: [
-      ...new Set(everyPage.flatMap((page) => page.browser.map((browser) => browser.tag))),
-    ].sort(),
+    behavior: [...new Set(behavior(used))].sort(),
     warnings,
     ms: performance.now() - start,
   };
 }
+
+/** The tags of the elements with behavior. */
+const behavior = (used: Used[]) => used.filter((u) => u.setup).map((u) => u.tag);
 
 function gzipped(content: string | Uint8Array): number {
   return gzipSync(content).length;

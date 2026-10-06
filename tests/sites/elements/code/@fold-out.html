@@ -1,0 +1,29 @@
+<!-- A button that shows and hides the text beside it. The text inside it stays HTML. -->
+<template>
+  <button aria-expanded="false" title="${attrs.label ?? "More"} on ${page.title}">${attrs.label ?? "More"}</button>
+  <div hidden><slot></slot></div>
+</template>
+
+<style>
+  fold-out {
+    display: block;
+    &:not(:defined) button {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  export default (el, { signal }) => {
+    const button = el.querySelector("button");
+    const text = el.querySelector("div");
+    button.addEventListener(
+      "click",
+      () => {
+        text.hidden = !text.hidden;
+        button.setAttribute("aria-expanded", String(!text.hidden));
+      },
+      { signal },
+    );
+  };
+</script>

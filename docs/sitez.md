@@ -5,9 +5,8 @@ the dev server. What it promises is in [idea.md](idea.md), and everything here c
 underneath without changing those promises. The element is [elementz.md](elementz.md)'s.
 
 Sitez 0.2 was a CLI with `+layout.js`, `.live` files and a reset. Sitez 0.3 made it a
-Vite plugin, and moved it to `code/index.html` and explicit metadata. Next, an element becomes one
-`@name.html` file ([plan](plan.md)). This page describes Sitez as it is once that lands. Until it
-does, an element is up to three files (`@name.html`, `@name.html.js` and `@name.browser.js`).
+Vite plugin, and moved it to `code/index.html` and explicit metadata. Since then an element is one
+`@name.html` file, and its code is `src/elementz/`.
 
 ## Where Sitez sits
 

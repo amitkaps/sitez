@@ -1,1 +1,1 @@
-code/@call-out.html: <call-out> is given content, and this has no <slot></slot> for it. Write one where the content goes.
+code/@call-out.html: <call-out> is given content, and its template has no <slot></slot> for it. Write one where the content goes.

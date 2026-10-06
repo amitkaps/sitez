@@ -1,1 +1,0 @@
-code/blog/@tag-box.browser.js: <tag-box>'s behavior is also in code/@tag-box.browser.js. Elements are global and one script holds them all, so a name has one .browser.js file wherever it sits. Remove one, or rename the element.
