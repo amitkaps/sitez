@@ -3,11 +3,11 @@
 How to work in Sitez: what to read first, the rules the project holds, and the prose rules it
 follows.
 
-Read **`docs/idea.md`** and **`docs/design.md`** first. They say what Sitez promises and how it
-is built. **`docs/plan.md`** is the order the work happens in.
+Read **`docs/idea.md`**, **`docs/sitez.md`** and **`docs/elementz.md`** first. They say what
+Sitez promises, how it is built, and what an element is. **`docs/plan.md`** is the order the work happens in.
 
-- `idea.md` is the spec. Its promises and rules are what users rely on, and `design.md` can
-  change underneath them. A change that breaks a promise, or builds something listed in "Not in
+- `idea.md` is the spec. Its promises and rules are what users rely on, and `sitez.md` and
+  `elementz.md` can change underneath them. A change that breaks a promise, or builds something listed in "Not in
   v1", is the human's decision. Say so instead of building it.
 - Sitez takes no options. When a feature seems to need one, look for the convention
   that makes it unnecessary, or ask. `site.md` holds metadata, never settings.
@@ -46,7 +46,7 @@ copied as they are. `pnpm prose` reads the result as a document.
 
 For this repository that means:
 
-- `docs/` holds the writing that spans files: [idea](docs/idea.md) (the spec), [design](docs/design.md) (how it's built, and what was ruled out) and [plan](docs/plan.md) (the order of the work). Reference a section by file and heading (`docs/idea.md#the-rules`). Rules are the one exception, cited by number (rule 6), since idea.md numbers them.
+- `docs/` holds the writing that spans files: [idea](docs/idea.md) (the spec), [sitez](docs/sitez.md) and [elementz](docs/elementz.md) (how it's built, and what was ruled out), [pagez](docs/pagez.md) (the single-page layer's idea) and [plan](docs/plan.md) (the order of the work). Reference a section by file and heading (`docs/idea.md#the-rules`). Rules are the one exception, cited by number (rule 6), since idea.md numbers them.
 - Work that belongs to one file goes in as a pending `@prose` chunk there, not as a line in the plan.
 - Tests carry file prose too: what the file covers, in a line or two.
 - Commit and push to `main`. Run `pnpm check` and `pnpm test` first.

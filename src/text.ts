@@ -120,7 +120,7 @@ const marker = (kind: string, i: number) => `<sitez-${kind}-${i}></sitez-${kind}
 
 /** @prose
  * An inline element's output can't hold a start tag that closes a paragraph
- * ([docs/design.md#wrapping](docs/design.md#wrapping)). These are the tags the HTML parser closes an
+ * ([docs/elementz.md#wrapping](docs/elementz.md#wrapping)). These are the tags the HTML parser closes an
  * open `<p>` for, so the build fails exactly where a browser would break the page. The check runs on
  * every inline element, inside a paragraph or not, since a tag means the same wherever it's used.
  */

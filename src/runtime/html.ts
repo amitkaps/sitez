@@ -6,7 +6,7 @@
  *
  * A value is marked with a registered symbol, not a class. The site's code loads `sitez` through
  * Vite's module runner, and the build loads it through Node. That makes two copies of this file,
- * and `instanceof` fails between them ([design.md](../../docs/design.md#the-runtime)).
+ * and `instanceof` fails between them ([elementz.md](../../docs/elementz.md#html)).
  */
 const TEMPLATE = Symbol.for("sitez.template");
 const RAW = Symbol.for("sitez.raw");

@@ -13,7 +13,7 @@
  * Vite builds from the same file. So a plugin of the site's applies to all of them. Vite's
  * environments could not run the site's modules where they are, since a build bundles modules
  * where a server runs them, and the plugin would have to name every element up front
- * (`docs/design.md#toolchain`).
+ * (`docs/sitez.md#toolchain`).
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
 import {

@@ -1,7 +1,7 @@
 # runtime
 
 What a site's own code loads: the `sitez` import. Nothing here imports the rest of Sitez, so the
-folder can become a package of its own if something besides Sitez wants it ([design.md](../../docs/design.md#the-runtime)).
+folder can become a package of its own if something besides Sitez wants it ([elementz.md](../../docs/elementz.md#html)).
 
 The package builds `index.ts` with its types (`dist/runtime/`).
 

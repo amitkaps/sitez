@@ -1,7 +1,7 @@
 # Pagez
 
 Pagez is an idea for a single-page compiler: one Markz file in, one HTML file out. It is the layer
-between elementz and Sitez ([design.md](design.md#where-sitez-sits)), and it doesn't exist yet. It
+between elementz and Sitez ([sitez.md](sitez.md#where-sitez-sits)), and it doesn't exist yet. It
 gets built when a page needs it, and this file keeps its idea in step with Sitez's until then.
 
 > The build produces the page. JavaScript enhances the page.
@@ -15,7 +15,7 @@ turns prose plus elements into HTML, CSS and JS, and elementz's small runtime in
 Elements exist in service of the prose.
 
 **An element is one file of plain HTML,** made of a `<template>`, a `<style>` and a `<script>`.
-That's elementz's element, the same one Sitez uses ([design.md](design.md#one-file-per-element)).
+That's elementz's element, the same one Sitez uses ([elementz.md](elementz.md)).
 It is defined in the page, or in its own `@x-tag.html` file beside it.
 
 In short, it's Web Components in the light DOM, rendered at build time.
@@ -86,23 +86,9 @@ Relative paths resolve from the page file.
 
 ## Elements
 
-The element itself is elementz's, written down in [design.md](design.md#one-file-per-element).
-In brief:
-
-- `<template>` is an `html` literal evaluated at build time, with an optional first `<script>`
-  whose named exports are in its scope. It writes the element's inner HTML, and Pagez writes the
-  tag.
-- Content goes in the template's one `<slot>`, whose own content is the fallback when there is
-  none. There is no shadow DOM.
-- A top-level `<style>` is the element's CSS, in `@layer elements`, with every selector starting
-  with the tag.
-- A top-level `<script>` default-exports `setup(el, { signal })`, which may return a cleanup
-  function.
-- Rendering is synchronous and pure, on strings, with no DOM.
-- Only string attributes reach the browser. Build-time values write HTML, and never become props,
-  serialized state or hydration.
-
-What's Pagez's own is where definitions live, and how elements are used.
+The element itself is elementz's, with its template, slot, CSS and `setup`
+([elementz.md](elementz.md)). Elements nest inside-out, as there. What's Pagez's own is how
+elements are used, and where their definitions live.
 
 ### Use
 
@@ -120,12 +106,6 @@ What's Pagez's own is where definitions live, and how elements are used.
 - Moving an element from the page to a file is a cut and paste. The same file works in Sitez.
 - An element's block isn't emitted. All other `=html` content stays verbatim.
 
-### Nesting
-
-- Elements resolve inside-out. Content is rendered before its element's template is evaluated.
-- So an element can't inspect its content's structure at build time. Structure derived from it,
-  such as a tab list, is built in `setup`, and without JavaScript the content simply shows.
-
 ### Names
 
 These fail, at their source positions:
@@ -138,9 +118,8 @@ These fail, at their source positions:
 
 ## CSS
 
-- Element CSS is in `@layer elements`, so the page's own CSS has the last word, layered or not.
-- Each element's CSS is emitted once, and only for elements the page uses.
-- `:not(:defined)` styles an element before its script runs.
+Element CSS is in `@layer elements`, emitted once and only for elements the page uses
+([elementz.md](elementz.md#css)). So the page's own CSS has the last word, layered or not.
 
 ## JavaScript
 
@@ -175,12 +154,9 @@ These fail, at their source positions:
 
 ## Open questions
 
-- **Child inspection.** Whether an element ever needs its content's structure (tag, attributes
-  and HTML for each child). Deferred until a real element needs it.
 - **Page CSS and JS.** Whether they're the frame's, as in Sitez, or plain `=html` blocks too.
 - **Assets.** Whether relative images are copied, inlined, or left as they are.
 - **Dev loop.** Watching and rebuilding, and what invalidates what.
-- **Moves** with `connectedMoveCallback`, once connect and disconnect are proven.
 - **The Sitez boundary.** Sitez rendering each page through Pagez, with `pages` and `site` added
   to the context, linked output for caching, and a page's element clashing with a site's as an
   error.

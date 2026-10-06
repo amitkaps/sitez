@@ -13,7 +13,7 @@
  * An old `/x.html` can't redirect while a page has `/x/`. Hosts serve `x.html` at `/x` too, so the
  * redirect page would stand in front of that page's `/x`. When the page is the one listing it, the
  * redirect isn't needed on Cloudflare, which sends `/x.html` to `/x/` by itself. GitHub Pages
- * doesn't, and there the old `/x.html` is lost ([docs/design.md#redirects](docs/design.md#redirects)).
+ * doesn't, and there the old `/x.html` is lost ([docs/sitez.md#redirects](docs/sitez.md#redirects)).
  */
 import { join, relative } from "node:path";
 import { outputFile } from "./discover.ts";

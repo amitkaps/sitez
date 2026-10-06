@@ -12,7 +12,7 @@
  * `viewport`, `<title>` or description, a slot count other than one, and a tag Sitez writes. Each
  * message names `code/index.html` and shows the line to add or remove. Sitez checks nothing else,
  * since it isn't an HTML validator. The reasons are in
- * [design.md](../docs/design.md#the-frame).
+ * [sitez.md](../docs/sitez.md#the-frame).
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

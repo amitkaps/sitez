@@ -3,7 +3,7 @@
  *
  * Turns a template value into an HTML string. Each place a value can go means what the HTML
  * tokenizer makes of it there. The rules are in
- * [design.md](../../docs/design.md#the-runtime), and `render.test.ts` holds a case for each.
+ * [elementz.md](../../docs/elementz.md#html), and `render.test.ts` holds a case for each.
  */
 import { isRaw, isTemplate, raw } from "./html.ts";
 
@@ -48,7 +48,7 @@ async function resolve(value: unknown): Promise<unknown> {
   return value;
 }
 
-/** A value in text, where `false` is nothing (design.md says why). */
+/** A value in text, where `false` is nothing (elementz.md says why). */
 function text(value: unknown): string {
   if (value === null || value === undefined || value === false) return "";
   if (isRaw(value)) return value.value;

@@ -7,7 +7,7 @@
  * skipped in every folder, since a site's tools leave the first and the author marks the second.
  *
  * An element's files start with `@` and are found by their names
- * ([design.md](../docs/design.md#names-in-code)). Sitez looks them up by name, so a misspelling
+ * ([sitez.md](../docs/sitez.md#names-in-code)). Sitez looks them up by name, so a misspelling
  * would silently do nothing, and `readElements` fails on one instead.
  */
 import { readdirSync, statSync } from "node:fs";
@@ -82,7 +82,7 @@ const TAG = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$/;
 const SUFFIX = /^(html|html\.[jt]s|browser\.[jt]s)$/;
 
 /** @prose
- * The elements in `code/`, found by their names ([design.md](../docs/design.md#names-in-code)),
+ * The elements in `code/`, found by their names ([sitez.md](../docs/sitez.md#names-in-code)),
  * and every mistake in a name that would leave a file doing nothing. An `@` file is an element's,
  * so one with no hyphen, a suffix that isn't `.html`, `.html.js` or `.browser.js`, or a name some
  * other file has already is a mistake, and the message says what to rename it to. So are the two

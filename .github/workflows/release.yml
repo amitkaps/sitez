@@ -6,7 +6,7 @@
 #
 # npm uses trusted publishing, with OIDC and provenance, so there's no token to store. The
 # publisher may only stage. The new version waits on npmjs.com until a maintainer approves it
-# with 2FA. A version already on the registry is skipped. The steps are in docs/design.md#release.
+# with 2FA. A version already on the registry is skipped. The steps are in docs/sitez.md#release.
 
 name: release
 
