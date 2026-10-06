@@ -106,16 +106,9 @@ Other marks were weighed and ruled out.
   `TagFilter.browser`). One file would then run in Node and in the browser, and its imports would
   cross the boundary unseen. Keeping them apart would take a compiler that splits a module, and
   the browser half would be a function that Sitez wraps, which is a runtime again.
-- **One `.html` file with a `<script>`** (WebC, a Vue or Svelte file). It was ruled out because
-  loops and data need a template language. That reason didn't survive a second look. A
-  `<script render>` holding what `.html.js` holds today, a `<style>` and a `<script browser>`
-  holding the class is each its own module, so the import checks still hold. Rewriting
-  amitkaps.github.io's `code/notes` this way showed what's left. The gain is mostly the CSS,
-  which per-element CSS gives with no new shape (see [Open questions](#open-questions)). The costs are
-  an extractor and virtual modules in the plugin, `.html` meaning two things, prose that reads
-  `.html` only for HTML comments, and `d3` a few lines from browser code that must not import it.
-  So it is deferred, not ruled out. It comes back if three files per element feel scattered once
-  per-element CSS is in use.
+- **One `.html` file with a `<script>`** (WebC, a Vue or Svelte file) was ruled out here, because
+  loops and data need a template language. That reason didn't hold, and the shape is coming back
+  ([One file per element](#one-file-per-element)).
 - **One class, run at both times.** The build would run the element in a DOM in Node and save the
   HTML, and the browser would run it again. Its code would have to work twice, check whether it
   had already rendered, and couldn't read `data/` in the browser.
@@ -126,6 +119,97 @@ Other marks were weighed and ruled out.
   the use. It comes back only if load timing needs a per-use switch.
 - **`from` or `src` for data.** `data` says what the element gets, and `src` already means a URL
   in HTML.
+
+## One file per element
+
+An element will be one file, `@name.html`, holding its markup, its CSS and its behavior. That
+replaces `.html.js` and `.browser.js`, and it is step 25 of the [plan](plan.md). This section is
+the decision. The rest of these docs describe the files as they are until that step lands.
+
+```html
+<!-- code/notes/@notes-treemap.html -->
+<script build>
+  import { html } from "@amitkaps/sitez";
+  import { layout, place } from "./treemap.js";
+  export default ({ data, year, fill, slider, play }) => html`…`;
+</script>
+
+<style>
+  notes-treemap {
+    display: block;
+    & .frame {
+      position: relative;
+    }
+    &:not(:defined) .controls {
+      display: none;
+    }
+  }
+</style>
+
+<script browser>
+  export default class extends HTMLElement { … }
+</script>
+```
+
+A static element keeps its markup as the body, with its content in the `<slot>`, as today. It may
+add a `<style>` and a `<script browser>`.
+
+Colocation is why. amitkaps.github.io's treemap was three places to read, its two scripts and
+about 70 lines of `style.css`, for one idea. Vue and Svelte keep a component in one file for this
+reason. Sitez can do it without what they bring with it.
+
+- **No template language.** The file is HTML. Loops and data are in `<script build>`, written with
+  `html`, as `.html.js` writes them now.
+- **The markers name the time.** `build` and `browser` say where each script runs, as the
+  suffixes did. `render` and `setup` were weighed and ruled out, since they say what a script does
+  and not whether it ships.
+- **Nothing is serialized.** Behavior still reads only the page's HTML, so there are no props and
+  nothing to hydrate.
+- **One suffix to learn.** Four kinds of file become one. The concerns are still markup, style
+  and behavior, and each has one place in the file.
+
+Each script is its own module, which Sitez cuts from the file at its tags and gives to Vite. So a
+`<script build>` and a `<script browser>` share no variables, and the boundary checks (rule 6)
+hold for each as they do for files now. Code both sides need, such as the treemap's
+`treemap.js`, is a module both import.
+
+The rules the build checks:
+
+- A body and a `<script build>` can't both write the markup. One file with both fails.
+- At most one of each script and one `<style>`.
+- `.html.js` and `.browser.js` fail, naming the `@name.html` that replaces them.
+- Element scripts are JavaScript. `.ts` stays for modules, since no site writes it in an element.
+- `</script>` inside a script's string ends the script, as it does in any HTML. It fails the build,
+  asking for `<\/script>`.
+
+**An element's CSS nests under its tag, in `@layer elements`.**
+
+- Each rule in the `<style>` nests under the tag (`notes-treemap { & .frame { … } }`), so the
+  name is written once. A top-level rule that doesn't start with the tag fails, naming the rule.
+- Sitez puts element CSS in `@layer elements`. Unlayered CSS beats every layer, so element CSS
+  outside a layer would beat a layered site's own CSS. In a layer, an unlayered site has the last
+  word. A layered site lists `elements` in its order, as in `@layer reset, base, elements, site;`.
+- An author writing the layer in each `<style>` was ruled out. It is easy to forget, and one
+  forgotten layer beats the whole site.
+
+Nesting isn't scoping. `notes-treemap .frame` also reaches a `.frame` in an element nested inside
+it. `@scope (notes-treemap)` doesn't stop that either. Only a lower boundary does (`to (…)`), and
+CSS has no selector for "any other element" to put there. What `@scope` changes is specificity,
+since its root adds none. Vite's default target is Baseline widely available (Chrome 111, Firefox
+114, Safari 16.4 in Vite 8). Lightning CSS flattens nesting for it, and passes `@scope` through as
+written, so a browser without `@scope` drops the whole block. So nesting is the convention.
+
+`@name.css` beside the scripts was ruled out. It kept CSS beside the element but added a fourth
+suffix, and one file gives the same colocation with one.
+
+The costs are known and accepted.
+
+- The plugin cuts files into virtual modules, with source lines mapped back for errors.
+- An editor's IntelliSense is weaker in an inline script than in a `.js` file.
+- `@amitkaps/prose` reads `.html` only for HTML comments. It must read an element file part by
+  part, as it reads `.svelte`, or an element's prose goes missing.
+- `d3` imported in `<script build>` sits a few lines from browser code that must not import it.
+  The report's size per element (step 24) is what catches a copied import.
 
 ## The frame
 
@@ -674,26 +758,6 @@ and static output.
 - **Misspelled elements.** An element with no files is a plain HTML element, which is legitimate.
   So a misspelled name silently does nothing. A warning could catch it, for an element with no
   files and no selector in the site's CSS. That's worth it if it isn't too fragile.
-- **Per-element CSS.** An `@notes-treemap.css` beside the element's other files would keep its
-  styles with it. amitkaps.github.io's treemap has about 70 lines in `style.css`, far from the
-  markup that writes `.frame` and `.controls`. The likely convention has three parts.
-  - Each rule nests under the element's tag (`notes-treemap { & .frame { … } }`), so the name is
-    written once. A top-level rule that doesn't start with the tag fails, naming the rule.
-  - Sitez puts the file in `@layer elements`. Unlayered CSS beats every layer, so element CSS
-    outside a layer would beat a layered site's own CSS. In a layer, an unlayered site has the
-    last word. A layered site lists `elements` in its order, as in
-    `@layer reset, base, elements, site;`.
-  - It ships only to pages that use the element, as a `.browser.js` file does.
-
-  Nesting isn't scoping. `notes-treemap .frame` also reaches a `.frame` in an element nested
-  inside it. `@scope (notes-treemap)` doesn't stop that either. Only a lower boundary does
-  (`to (…)`), and CSS has no selector for "any other element" to put there. What `@scope` changes
-  is specificity, since its root adds none. Vite's default target is Baseline widely available
-  (Chrome 111, Firefox 114, Safari 16.4 in Vite 8). Lightning CSS flattens nesting for it, and
-  passes `@scope` through as written, so a browser without `@scope` drops the whole block. `@scope`
-  was newly available only in late 2025. So nesting is the convention. No page on the one site nests
-  elements that share a class name. Step 25 of the [plan](plan.md) tries the convention first.
-
 - **Re-rendering behavior.** Behavior changes the nodes the build wrote. That covers hiding,
   toggling and text. An element that re-renders a list would lose focus and input state, and would
   import a diffing renderer, such as uhtml, from npm.

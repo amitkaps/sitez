@@ -202,22 +202,24 @@ They are elements now, drawn with d3 at build time, and that port found two gaps
       on every page with behavior. The `common` row showed it, but not which element did it. The
       fix was the one the design gives, `await import()` inside the element.
 
-### 25. CSS for each element
+### 25. One file per element
 
-An element's styles live beside its other files, as `@name.css`. The convention is in
-[design.md](design.md#open-questions), under per-element CSS. amitkaps.github.io's `code/notes` is
-the test, since `notes-treemap` and `notes-area` hold most of `style.css`'s element rules.
+An element is one file, `@name.html`, holding its markup or a `<script build>`, a `<style>` and a
+`<script browser>`. It replaces `.html.js` and `.browser.js`, so there is one suffix to learn. The
+design is in [design.md](design.md#one-file-per-element). amitkaps.github.io's `code/notes` is the
+test, since it has both scripts and most of `style.css`'s element rules.
 
-- [ ] `@name.css` is an element file. Sitez puts it in `@layer elements` and ships it only to
-      pages that use the element. A top-level rule that doesn't start with the tag fails, naming
-      the rule and the file.
-- [ ] Fixtures: an element with CSS on one page and not another, and an error fixture for an
-      unnested rule.
-- [ ] amitkaps.github.io moves the notes, `filter-grid` and `talk-grid` rules out of `style.css`
-      and adds `elements` to its layer order. Its pages match before and after in a headless
-      browser.
-- [ ] Decide whether the one-file shape comes back, with three-file elements in hand
-      ([design.md](design.md#names-in-code)).
+- [ ] idea.md: the names table, rules 5 and 6 and their examples, written for one file.
+- [ ] The plugin cuts `@name.html` into a module for each script, with errors on the file's own
+      lines. The boundary checks run on each module, as on files now.
+- [ ] Element CSS goes in `@layer elements`. A top-level rule that doesn't nest under the tag
+      fails, naming the rule and the file.
+- [ ] Fails: a body with a `<script build>`, two of a script or a `<style>`, `</script>` inside a
+      script, and an `.html.js` or `.browser.js` file, naming the `@name.html` that replaces it.
+- [ ] Every fixture moves to one file, with an error fixture for each new failure.
+- [ ] `@amitkaps/prose` reads an `.html` file part by part, as it reads `.svelte`.
+- [ ] amitkaps.github.io moves its ten element files and their rules in `style.css`, and adds
+      `elements` to its layer order. Its pages match before and after in a headless browser.
 
 ## Parked
 
