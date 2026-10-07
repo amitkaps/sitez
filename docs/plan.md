@@ -13,6 +13,8 @@ to yet.
 
 ### Since 0.3.0
 
+- **Markz 0.3.0 and prose 0.4.0.** Prose reads an `.html` file part by part, so an element's
+  `@prose` in its `<script>` and `<style>` is found. Markz closes a quote after a single quote.
 - **One file per element.** An element is `@name.html`, and its code is `src/elementz/`, which
   imports nothing from the rest of Sitez. Each part is a module on the file's own lines. Element
   CSS ships once, in `@layer elements`. `setup(el, { signal })` replaces the class, and rendering
@@ -57,8 +59,6 @@ to yet.
 - [ ] **amitkaps.github.io on one file per element.** It moves its ten element files, their CSS
       and its classes to `setup`, and adds `elements` to its layer order. Its pages match before
       and after in a headless browser. Then Sitez releases 0.4.0.
-- [ ] **`@amitkaps/prose` reads an `.html` file part by part**, as it reads `.svelte`, so an
-      element's prose isn't missed.
 - [ ] **What Data Portraits showed.**
   - An element that throws names the page and the tag that called it, not only its file.
   - `url()` in a `style` attribute an element writes is checked, as a stylesheet's is.
@@ -74,8 +74,7 @@ to yet.
       package (`editz`), would make a page easy to write.
 - [ ] **A feed for short ideas.** A feed fits short, dated notes better than essays. It waits on
       the editor.
-- [ ] **Markz fixes** found by the port: a quote closing after a single quote, and `\` as a line
-      break. They go to markz.
+- [ ] **Markz fix** found by the port: `\` as a line break. It goes to markz.
 
 ## Open questions
 
