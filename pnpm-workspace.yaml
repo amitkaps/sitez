@@ -1,6 +1,7 @@
 # pnpm 12 reads project settings from here (moved out of .npmrc).
 minimumReleaseAgeExclude:
-  - "@amitkaps/markz@0.2.0"
+  - "@amitkaps/markz@0.3.0"
+  - "@amitkaps/prose@0.4.0"
 
 # Use Vite+'s bundled Vite implementation for every `vite` consumer.
 # Bump this alongside the `vite-plus` dependency.
