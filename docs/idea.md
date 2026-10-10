@@ -369,7 +369,7 @@ page          html   time
 /teaching/  5.5 KB  20 ms  filter-grid
 /quality/    90 KB  1.2 s  raw <script>
 common      3.0 KB css, 1.2 KB js, loads cdn.jsdelivr.net
-42 pages in 1.8 s → dist · behavior: filter-grid, theme-toggle · sitez 0.3.0
+42 pages in 1.8 s → dist · behavior: filter-grid, theme-toggle · sitez 0.4.0
 ```
 
 `common` is the site's CSS and its one script, which the browser downloads once. A page with an
