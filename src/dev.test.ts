@@ -1,14 +1,14 @@
 /** @prose
  * # The dev server
  *
- * `vite` on a copy of the blog, with Sitez in its config: how it serves pages, and what the
+ * `vp dev` on a copy of the blog, with Sitez in its config: how it serves pages, and what the
  * browser is told when a file changes.
  */
 import { cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vite-plus/test";
-import { createServer, type ViteDevServer } from "vite";
+import { createServer, type ViteDevServer } from "vite-plus";
 
 // A copy of the blog, since the tests change its files as an author would. Its config reaches the
 // plugin in `src/`, from where the copy sits.

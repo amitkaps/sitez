@@ -1,5 +1,5 @@
 {
   "type": "module",
-  "scripts": { "dev": "vite", "build": "vite build", "preview": "vite preview" },
-  "devDependencies": { "@amitkaps/sitez": "0.2.0", "vite": "^8.0.0" }
+  "scripts": { "dev": "vp dev", "build": "vp build", "preview": "vp preview" },
+  "devDependencies": { "@amitkaps/sitez": "0.4.0", "vite-plus": "^1.1.0" }
 }

@@ -9,7 +9,7 @@
  */
 import { existsSync, realpathSync } from "node:fs";
 import { isAbsolute, join, sep } from "node:path";
-import type { Plugin, ViteDevServer } from "vite";
+import type { Plugin, ViteDevServer } from "vite-plus";
 import { SiteError } from "./errors.ts";
 import { posix } from "./discover.ts";
 import { elementStyle, readElement, setupModule, templateModule } from "./elementz/file.ts";

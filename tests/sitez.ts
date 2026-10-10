@@ -15,7 +15,7 @@
  */
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import type { Plugin } from "vite";
+import type { Plugin } from "vite-plus";
 
 const src = (file: string) => pathToFileURL(join(import.meta.dirname, "../src", file)).href;
 const { default: sitez } = (await import(src("plugin.ts"))) as typeof import("../src/plugin.ts");

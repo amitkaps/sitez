@@ -5,7 +5,7 @@
  * Vite's logger kept in memory. A site that fails rejects with the `SiteError` the build threw.
  * What the build reports comes back as lines, with Markz's warnings apart from the rest.
  */
-import { createBuilder } from "vite";
+import { createBuilder } from "vite-plus";
 
 export async function buildSite(
   root: string,

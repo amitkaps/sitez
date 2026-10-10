@@ -1,7 +1,7 @@
 /** @prose
  * # Dev
  *
- * `vite`, for a site: every page, drafts included, rendered when it's asked for, by the same code
+ * `vp dev`, for a site: every page, drafts included, rendered when it's asked for, by the same code
  * as `build` (`site.ts`), so a page can't look one way here and another in `dist/`. The site is
  * read again for every page, so a new or deleted file is a new or missing URL at once, with nothing
  * to restart. A change reloads the page, except to CSS, which Vite replaces in place. A mistake
@@ -11,7 +11,7 @@
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { join } from "node:path";
-import type { Plugin, ViteDevServer } from "vite";
+import type { Plugin, ViteDevServer } from "vite-plus";
 import { browserEntry, missingUrl } from "./bundle.ts";
 import type { Used } from "./browser.ts";
 import { NOT_FOUND, posix } from "./discover.ts";

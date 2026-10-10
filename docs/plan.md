@@ -13,6 +13,10 @@ to yet.
 
 ### Since 0.3.0
 
+- **A Vite+ plugin.** A site runs `vp dev`, `vp build` and `vp preview`, and installs `vite-plus`
+  in place of `vite`, which is Sitez's peer dependency now. Sitez imports Vite's API from it, so a
+  site needs no override. A site's `node_modules` grows from 31 MB to 158 MB, for one toolchain
+  everywhere ([sitez.md](sitez.md#toolchain)).
 - **Markz 0.4.0, and the standard's toolchain.** Text keeps the quotes and dashes as typed, so
   `There's` stays straight. Markz skips a value YAML reads differently, like `draft: yes`, with a
   warning, and Sitez still fails the build on one in a key it reads. Vite+ 1.1.0, TypeScript 7,

@@ -18,7 +18,7 @@ export function shownFrom(cwd: string): (file: string) => string {
 }
 
 /** @prose
- * A site error as `vite build` and the dev server print it, `file: message`. One about the site's
+ * A site error as `vp build` and the dev server print it, `file: message`. One about the site's
  * root itself is `sitez`'s own.
  */
 export function siteErrorText(error: SiteError, cwd: string): string {

@@ -1,7 +1,7 @@
 /** @prose
  * # Build
  *
- * `vite build`, for a site: every page rendered to complete HTML in `dist/`, with a page at each
+ * `vp build`, for a site: every page rendered to complete HTML in `dist/`, with a page at each
  * redirect, and `public/` copied beside them. The site is read once (`site.ts`), then pages render
  * concurrently, and the stylesheets, the elements' CSS and the script for elements with behavior
  * are built from what they rendered. Nothing is written until everything has built.
@@ -28,7 +28,7 @@ import {
 import { dirname, join, resolve, sep } from "node:path";
 import { relative } from "node:path";
 import { gzipSync } from "node:zlib";
-import { createServer, type Plugin, type ResolvedConfig } from "vite";
+import { createServer, type Plugin, type ResolvedConfig } from "vite-plus";
 import { elementStyles, script, stylesheets, type Files } from "./bundle.ts";
 import type { Used } from "./browser.ts";
 import { outputFile, skipped } from "./discover.ts";
@@ -72,7 +72,7 @@ export interface BuildResult {
 }
 
 /** @prose
- * The plugin's half of `vite build`. It writes `dist/`, or whatever `build.outDir` says, and marks
+ * The plugin's half of `vp build`. It writes `dist/`, or whatever `build.outDir` says, and marks
  * Vite's own environments built, so Vite doesn't go looking for an `index.html`. A mistake in the
  * site stops the build with its message, `file: message`, as Vite prints an error's stack.
  */
@@ -106,7 +106,7 @@ export function buildPlugin(): Plugin {
 }
 
 /** @prose
- * What `vite preview` leaves to a static host's rules, after Vite has served the files that are
+ * What `vp preview` leaves to a static host's rules, after Vite has served the files that are
  * there and mapped `/about/` to its `index.html`. A folder asked for without its slash redirects
  * to it, and anything else that isn't there gets `404.html` with a 404 status, as GitHub Pages
  * and Cloudflare do. Nothing is rendered: it's the files `build` wrote, and only them.

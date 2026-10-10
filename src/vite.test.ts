@@ -9,7 +9,7 @@
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { createServer } from "vite";
+import { createServer } from "vite-plus";
 import { afterAll, expect, test } from "vite-plus/test";
 import { html } from "./elementz/html.ts";
 import { render } from "./elementz/render.ts";
