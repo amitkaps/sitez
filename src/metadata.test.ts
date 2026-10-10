@@ -52,6 +52,10 @@ describe("the keys Sitez reads", () => {
   test.each([
     ["draft: yes", 'draft is "yes": write draft: true or draft: false.'],
     ["draft: 1", "draft is 1: write draft: true or draft: false."],
+    [
+      "title: 1.10",
+      'title is "1.10": `1.10` reads as a number in YAML: quote it, or write it as `1.1`.',
+    ],
     ["title: 2026", "title is 2026: write it as text."],
     ["title:", "title is null: leave the line out, or give it a value."],
     ["description: [a, b]", 'description is ["a","b"]: write it as text.'],

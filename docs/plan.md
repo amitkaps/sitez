@@ -13,6 +13,10 @@ to yet.
 
 ### Since 0.3.0
 
+- **Markz 0.4.0, and the standard's toolchain.** Text keeps the quotes and dashes as typed, so
+  `There's` stays straight. Markz skips a value YAML reads differently, like `draft: yes`, with a
+  warning, and Sitez still fails the build on one in a key it reads. Vite+ 1.1.0, TypeScript 7,
+  and the `fix` and `verify` scripts, as [ship](https://ship.amitkaps.com) has them.
 - **Markz 0.3.0 and prose 0.4.0.** Prose reads an `.html` file part by part, so an element's
   `@prose` in its `<script>` and `<style>` is found. Markz closes a quote after a single quote.
 - **One file per element.** An element is `@name.html`, and its code is `src/elementz/`, which
