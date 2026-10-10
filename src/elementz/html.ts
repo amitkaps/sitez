@@ -9,8 +9,8 @@
  * Vite's module runner, and the build loads it through Node. That makes two copies of this file,
  * and `instanceof` fails between them ([elementz.md](../../docs/elementz.md#html)).
  */
-const TEMPLATE = Symbol.for("sitez.template");
-const RAW = Symbol.for("sitez.raw");
+const TEMPLATE: unique symbol = Symbol.for("sitez.template");
+const RAW: unique symbol = Symbol.for("sitez.raw");
 
 /** A template `html` recorded at build time, not yet rendered. */
 export interface Template {
