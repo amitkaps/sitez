@@ -25,7 +25,7 @@ one uses it.
   and the browser runtime ([elementz.md](elementz.md)). Its first form is `src/elementz/` in
   Sitez, which imports nothing from the rest of Sitez. That boundary is the layer, kept honest
   without a package to publish.
-- **pagez** owns Markz to HTML, the head from metadata and the frame ([pagez.md](pagez.md)). It
+- **pagez** owns Markz to HTML, the head from metadata and the frame ([its design](https://github.com/amitkaps/pagez/blob/main/docs/design.md)). It
   gets built when a page needs it, and amitkaps.com/stories, a page with its own look, may be that
   page ([Open questions](#open-questions), "A second frame").
 - **sitez** keeps what only a site has, such as discovery, links, redirects, `data/`, bundling and

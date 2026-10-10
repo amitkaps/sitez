@@ -44,7 +44,7 @@ If the prose you read turns out to be wrong about the code, fixing it is part of
 
 `pnpm prose` reads the result as a document.
 
-- `docs/` holds the writing that spans files, listed in [docs/README.md](docs/README.md): [design](docs/design.md) (the spec), [usage](docs/usage.md), [sitez](docs/sitez.md) and [elementz](docs/elementz.md) (how it's built, and what was ruled out), [plan](docs/plan.md) (the order of the work), [lessons](docs/lessons.md), [development](docs/development.md) and [pagez](docs/pagez.md) (the single-page layer's idea). Reference a section by file and heading (`docs/design.md#the-rules`). Rules are the one exception, cited by number (rule 6), since design.md numbers them.
+- `docs/` holds the writing that spans files, listed in [docs/README.md](docs/README.md): [design](docs/design.md) (the spec), [usage](docs/usage.md), [sitez](docs/sitez.md) and [elementz](docs/elementz.md) (how it's built, and what was ruled out), [plan](docs/plan.md) (the order of the work), [lessons](docs/lessons.md) and [development](docs/development.md). Pagez's design is in [its repository](https://github.com/amitkaps/pagez/blob/main/docs/design.md). Reference a section by file and heading (`docs/design.md#the-rules`). Rules are the one exception, cited by number (rule 6), since design.md numbers them.
 - Work that belongs to one file goes in as a pending `@prose` chunk there, not as a line in the plan.
 - Tests carry file prose too: what the file covers, in a line or two.
 - Run `pnpm check` and `pnpm test` before opening a pull request.

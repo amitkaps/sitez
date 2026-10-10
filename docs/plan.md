@@ -34,7 +34,7 @@ amitkaps.github.io hasn't moved to yet.
   writes, its CSS and its `setup` ([elementz.md](elementz.md)). Sitez is the top of four layers,
   markz, elementz, pagez and sitez ([sitez.md](sitez.md#where-sitez-sits)).
 - **The docs split by layer.** The old design.md became sitez.md and elementz.md, idea.md's rules (now design.md) describe
-  one file, and [pagez.md](pagez.md) keeps Pagez's idea in step.
+  one file, and [pagez.md](https://github.com/amitkaps/pagez/blob/main/docs/design.md) keeps Pagez's idea in step.
 
 ### 0.3.0
 
@@ -77,7 +77,7 @@ amitkaps.github.io hasn't moved to yet.
 
 ## Later
 
-- [ ] **Pagez** ([pagez.md](pagez.md)), once a page needs it, such as amitkaps.com/stories.
+- [ ] **Pagez** ([its design](https://github.com/amitkaps/pagez/blob/main/docs/design.md)), in its own repository now, with [its own plan](https://github.com/amitkaps/pagez/blob/main/docs/plan.md). Sitez renders its pages through Pagez once it's built.
 - [ ] **Writing.** Writing is the real block, more than building. An editor view, or a separate
       package (`editz`), would make a page easy to write.
 - [ ] **A feed for short ideas.** A feed fits short, dated notes better than essays. It waits on
