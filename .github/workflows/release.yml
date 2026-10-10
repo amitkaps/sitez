@@ -1,12 +1,14 @@
 # @prose
 # # Release
 #
-# Pushing a `vX.Y.Z` tag runs the same checks as CI, then packs the tarball. It attaches the
-# tarball to a GitHub Release and stages it on npm. The tag must match `package.json`'s version.
+# Pushing a `vX.Y.Z` tag checks the package, stages it on npm and publishes a GitHub Release with
+# the tarball. The tag must match `package.json`'s version. This file is the same in every
+# package, copied from ship's `package/` folder, so it names no package and reads everything from
+# `package.json`.
 #
 # npm uses trusted publishing, with OIDC and provenance, so there's no token to store. The
 # publisher may only stage. The new version waits on npmjs.com until a maintainer approves it
-# with 2FA. A version already on the registry is skipped. The steps are in docs/sitez.md#release.
+# with 2FA, so a tag push alone can't put a version in front of users.
 
 name: release
 
@@ -17,6 +19,7 @@ on:
 permissions:
   contents: write
   id-token: write
+  pull-requests: read
 
 jobs:
   release:
@@ -28,27 +31,44 @@ jobs:
         with:
           node-version-file: package.json
           cache: pnpm
+
       - run: pnpm install --frozen-lockfile
+
       - name: Tag must match package.json version
         run: |
           v="$(node -p 'require("./package.json").version')"
           test "v$v" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME != package.json v$v"; exit 1; }
-      - run: pnpm run check
-      - run: pnpm test
-      # `pnpm pack` runs `prepack` (the build) first.
+
+      # The same script CI and Cloudflare run. A package's own checks, like a size budget, go in
+      # `verify`, and publint runs inside `vp pack`.
+      - run: pnpm run verify
+
+      # `pnpm pack` runs `prepack` first, so the tarball never ships a stale `dist/`.
       - run: pnpm pack
-      # From a folder outside the repository: npm refuses to run in it, since `devEngines` names pnpm.
+
+      # A version with a pre-release part (`-rc.0`) goes to the `next` dist-tag, so it never
+      # becomes `latest`. A version already on npm is skipped, so a failed run can be rerun. The
+      # tag is a detached checkout, which pnpm's git checks refuse.
       - name: Stage on npm
-        working-directory: ${{ runner.temp }}
         run: |
-          npm install -g npm@latest
-          v="$(node -p 'require(process.env.GITHUB_WORKSPACE + "/package.json").version')"
-          if npm view "@amitkaps/sitez@$v" version >/dev/null 2>&1; then
-            echo "@amitkaps/sitez@$v is already on npm"
+          name="$(node -p 'require("./package.json").name')"
+          v="$(node -p 'require("./package.json").version')"
+          if curl -sf "https://registry.npmjs.org/$name/$v" >/dev/null; then
+            echo "$name@$v is already on npm"
           else
-            npm stage publish "$GITHUB_WORKSPACE"/amitkaps-sitez-*.tgz --provenance --access public
+            tag=latest; case "$v" in *-*) tag=next;; esac
+            pnpm stage publish ./*.tgz --no-git-checks --provenance --access public --tag "$tag"
           fi
+
+      # The notes are generated from the pull requests' labels (`.github/release.yml`). The pull
+      # request that bumped the version is titled `vX.Y.Z`, and its description, down to the
+      # first `---` line, goes above them, like what to change in a breaking release.
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" ./*.tgz --title "$GITHUB_REF_NAME" --generate-notes
+        run: |
+          body="$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" --jq '.[0].body // ""')"
+          notes="$(printf '%s\n' "$body" | sed '/^---[[:space:]]*$/,$d')"
+          pre=""; case "$GITHUB_REF_NAME" in *-*) pre=--prerelease;; esac
+          gh release create "$GITHUB_REF_NAME" ./*.tgz --title "$GITHUB_REF_NAME" --verify-tag \
+            $pre --generate-notes --notes "$notes"

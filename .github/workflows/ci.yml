@@ -27,14 +27,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Check (format, lint, typecheck)
-        run: pnpm run check
-
-      - name: Tests
-        run: pnpm test
-
-      - name: Build
-        run: pnpm build
+      # check, test and build, with publint inside the build. The same script releases run.
+      - name: Verify
+        run: pnpm run verify
 
       # The package as npm would ship it, installed into a copy of the blog example: catches a
       # file missing from `files` or a dependency only the repo has, before a release does.
@@ -49,3 +44,21 @@ jobs:
           printf 'import sitez from "@amitkaps/sitez/vite";\n\nexport default { plugins: [sitez()] };\n' > vite.config.js
           npm install --no-audit --no-fund
           npx vp build
+
+  # The oldest Node `engines` allows, and not a required check. pnpm refuses to run on a Node
+  # older than `devEngines` asks for, so it installs on that one, and the tests run on Node 24
+  # through `vp` directly.
+  node-24:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: package.json
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: node_modules/.bin/vp test --run

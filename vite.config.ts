@@ -13,7 +13,8 @@ const ignored = ["dist/**", "tests/sites/**", "tests/snapshots/**", "pnpm-lock.y
 
 export default defineConfig({
   // tsdown — `vp pack`. Two ESM entries: the plugin a site's `vite.config.js` imports, and the
-  // `sitez` import with its types.
+  // `sitez` import with its types. Markz is a dev dependency, so it's bundled into `dist/`, and
+  // publint checks the package as npm will serve it.
   pack: {
     entry: {
       plugin: "src/plugin.ts",
@@ -24,6 +25,7 @@ export default defineConfig({
     platform: "node",
     clean: true,
     fixedExtension: false,
+    publint: { strict: true },
   },
 
   // Oxfmt — `vp fmt` / `vp check`.

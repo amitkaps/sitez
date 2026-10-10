@@ -428,29 +428,13 @@ Ruled out:
 ## Release
 
 Sitez is published to npm as `@amitkaps/sitez`, the name a site's code and `vite.config.js`
-import. A release tags a version, and the `release` workflow does the rest
-(`.github/workflows/release.yml`). It runs the checks, packs the tarball, stages it on npm, and
-attaches it to a GitHub Release.
+import. It releases the way every package does, as [ship's standard](https://github.com/amitkaps/ship/blob/main/docs/standard.md#releases)
+says: a pull request titled `vX.Y.Z` bumps `version`, its description is the release's summary,
+and pushing the tag runs the `release` workflow. The workflow stages the version on npm for a
+maintainer to approve, and publishes a GitHub Release with notes from the pull requests' labels.
 
-Bump `version` in `package.json` and push to `main`. Then tag the release and push the tag.
-
-```sh
-git tag v0.2.0 && git push origin v0.2.0
-```
-
-The workflow stages each version with npm's trusted publishing, which uses OIDC and adds
-provenance. There's no token, and CI can't release on its own. A maintainer approves each version
-with 2FA, in the **Staged Packages** tab on npmjs.com or with `npm stage approve <id>`.
-
-Set the trusted publisher up once, in the package's settings on npmjs.com. Name the repository
-`amitkaps/sitez` and the workflow `release.yml`. Leave direct publishing and dist-tags unchecked,
-so staging is all it can do. npm may not take the setting before the package exists. Then publish
-the first version by hand, outside the repository, because `npm` refuses to run where
-`devEngines` names pnpm.
-
-```sh
-pnpm pack && cd /tmp && npm login && npm publish ~/code/sitez/amitkaps-sitez-<version>.tgz --access public
-```
+Markz is a dev dependency, bundled into `dist/`, so a site never installs a second Markz, and
+Sitez releases without waiting on one. A new Markz reaches sites in Sitez's next release.
 
 Ruled out:
 

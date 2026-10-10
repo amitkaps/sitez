@@ -22,6 +22,9 @@
     },
     "./package.json": "./package.json"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "vp pack",
     "check": "vp check",
@@ -32,13 +35,12 @@
     "test": "vp test --run",
     "verify": "pnpm check && pnpm test && pnpm build"
   },
-  "dependencies": {
-    "@amitkaps/markz": "^0.4.0"
-  },
   "devDependencies": {
+    "@amitkaps/markz": "^0.4.0",
     "@amitkaps/prose": "^0.4.0",
     "@types/node": "^24.0.0",
     "happy-dom": "20.14.5",
+    "publint": "^0.3.25",
     "typescript": "^7.0.2",
     "vite-plus": "1.1.0"
   },

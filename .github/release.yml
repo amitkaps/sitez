@@ -1,0 +1,25 @@
+# @prose
+# # Release notes
+#
+# The headings of a release's generated notes, by the one label each pull request carries. Tests,
+# tooling, site and lessons are `internal`, and Dependabot's updates are `dependencies`, so both
+# are left out. A pull request with no label falls under Other, so a missed label shows instead
+# of hiding. This file is the same in every package, copied from ship's `package/` folder.
+changelog:
+  exclude:
+    labels:
+      - internal
+      - dependencies
+  categories:
+    - title: Breaking
+      labels: [breaking]
+    - title: Added
+      labels: [added]
+    - title: Fixed
+      labels: [fixed]
+    - title: Faster and smaller
+      labels: [improved]
+    - title: Documentation
+      labels: [docs]
+    - title: Other
+      labels: ["*"]
