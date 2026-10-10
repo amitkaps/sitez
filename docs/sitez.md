@@ -1,7 +1,7 @@
 # Sitez
 
 How Sitez is built: the site layer, with its folders, the frame, links, redirects, bundling and
-the dev server. What it promises is in [idea.md](idea.md), and everything here can change
+the dev server. What it promises is in [design.md](design.md), and everything here can change
 underneath without changing those promises. The element is [elementz.md](elementz.md)'s.
 
 Sitez 0.2 was a CLI with `+layout.js`, `.live` files and a reset. Sitez 0.3 made it a
@@ -39,7 +39,7 @@ that doesn't exist yet.
 ## Toolchain
 
 Sitez is a Vite plugin, run with Vite+. A site adds it in `vite.config.js` and runs `vp`'s commands from its
-`package.json` (`docs/idea.md#commands`). The plugin takes no options. It reads the site, renders
+`package.json` (`docs/design.md#commands`). The plugin takes no options. It reads the site, renders
 every page, and has Vite build the CSS and the script.
 
 ```text
@@ -89,13 +89,13 @@ Ruled out:
   bundles oxlint, oxfmt and a test runner. Vite+ won anyway, since every repository runs one
   toolchain, so a site formats, lints and builds the way Sitez itself does. Sitez 0.3 ran on plain
   `vite`.
-- **Options for the plugin.** Every option is configuration, which idea.md leaves out. When a
+- **Options for the plugin.** Every option is configuration, which design.md leaves out. When a
   feature seems to need one, the convention that makes it unnecessary comes first.
 
 ## Names in `code/`
 
 `code/index.html` is the one name Sitez reads in `code/`. An element's file is `@name.html`. Any
-other name is the site's own module or CSS (`docs/idea.md#folders`).
+other name is the site's own module or CSS (`docs/design.md#folders`).
 
 - **`@` is Markz's own mark.** `{@call-out}` in text is `@call-out.html` in code, so the file for
   an element is found by reading the element.
@@ -499,7 +499,7 @@ templates. The spike that decided it is in the repo's history, at
   report notes a page with a raw `<script>`. Whether to sanitize raw HTML waits until sites use it
   enough to say.
 - **Host files in `public/`.** Cloudflare reads `_headers` and `_redirects` from the folder it
-  serves, and a name starting `_` is skipped in every folder (`docs/idea.md#folders`). So a site
+  serves, and a name starting `_` is skipped in every folder (`docs/design.md#folders`). So a site
   can't ship either. The rule could leave `public/` out, since it copies files as they are and
   `_` there means nothing to Sitez. That's the human's call, since the idea says "every folder".
 - **A second frame.** amitkaps.com/stories/ is one page with its own header, footer, stylesheet

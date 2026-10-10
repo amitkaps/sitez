@@ -1,7 +1,7 @@
 # sitez
 
 A static site generator, and a Vite plugin with no options. Markz goes in `text/`, and every page
-builds to complete HTML. [docs/idea.md](docs/idea.md) says what it promises.
+builds to complete HTML. [The docs](docs/README.md) say what it promises, how to use it and how it's built.
 
 A site adds Sitez to its `vite.config.js` and runs [Vite+](https://viteplus.dev)'s commands.
 
@@ -19,6 +19,6 @@ export default { plugins: [sitez()] };
 }
 ```
 
-Sitez needs Node 26 or newer, the Node it's built and tested on.
+Sitez needs Node 26 or newer, the Node it's built and tested on. [Usage](docs/usage.md) has the rest.
 
 Read [AGENTS.md](AGENTS.md) before changing the code. `pnpm check` and `pnpm test` must pass.

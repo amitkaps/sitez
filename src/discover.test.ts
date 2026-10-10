@@ -40,7 +40,7 @@ describe("discover", () => {
   test("skips anything under a dot or an underscore", () => {
     const root = site(
       "text/index.md",
-      "text/.drafts/idea.md",
+      "text/.drafts/design.md",
       "text/.DS_Store",
       "text/_ideas.md",
       "text/_old/about.md",

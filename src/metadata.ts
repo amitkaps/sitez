@@ -5,7 +5,7 @@
  * block and its `url`, and nothing else. Sitez reads `title`, `description`, `draft` and
  * `redirects` from it, and fills in none of them from the text. `title` and `description` go in
  * the head (`head.ts`), `draft` keeps the page out of the build, and `redirects` write pages
- * ([idea.md](../docs/idea.md#metadata)).
+ * ([design.md](../docs/design.md#metadata)).
  *
  * Sitez checks only the keys it reads itself, and a wrong one fails the build naming the file and
  * the key rather than being read some other way. `draft: yes` would otherwise publish a draft.

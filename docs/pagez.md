@@ -59,7 +59,7 @@ Prose and templates evaluate separately.
 - `page` is the page's metadata, the name Sitez uses, so an element that reads only `page` works
   in both.
 
-Sitez doesn't evaluate `${…}` in prose (its idea.md, "Not in v1"). That difference is a page
+Sitez doesn't evaluate `${…}` in prose (its design.md, "Not in v1"). That difference is a page
 feature, not part of the element, so elements stay shared.
 
 ## Metadata, never settings

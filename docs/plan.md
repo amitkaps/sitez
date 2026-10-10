@@ -1,7 +1,7 @@
 # Plan
 
 Where Sitez is and what comes next, in order. Finished work gets a line or two, newest first.
-The detail lives in [idea.md](idea.md), [sitez.md](sitez.md), [elementz.md](elementz.md), the
+The detail lives in [design.md](design.md), [sitez.md](sitez.md), [elementz.md](elementz.md), the
 code's `@prose`, the tests and `git log`.
 
 ## Where it is
@@ -33,7 +33,7 @@ amitkaps.github.io hasn't moved to yet.
 - **One file per element, designed.** An element is `@name.html`, with a template the build
   writes, its CSS and its `setup` ([elementz.md](elementz.md)). Sitez is the top of four layers,
   markz, elementz, pagez and sitez ([sitez.md](sitez.md#where-sitez-sits)).
-- **The docs split by layer.** design.md became sitez.md and elementz.md, idea.md's rules describe
+- **The docs split by layer.** The old design.md became sitez.md and elementz.md, idea.md's rules (now design.md) describe
   one file, and [pagez.md](pagez.md) keeps Pagez's idea in step.
 
 ### 0.3.0
