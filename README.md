@@ -19,4 +19,6 @@ export default { plugins: [sitez()] };
 }
 ```
 
+Sitez needs Node 26 or newer, the Node it's built and tested on.
+
 Read [AGENTS.md](AGENTS.md) before changing the code. `pnpm check` and `pnpm test` must pass.
