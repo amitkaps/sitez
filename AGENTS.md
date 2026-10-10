@@ -27,7 +27,6 @@ This repository follows the standard at [ship](https://ship.amitkaps.com), which
 
 Explanations go in `@prose` comments, written to the rules in [prose's usage](https://prose.amitkaps.com/docs/usage.md#for-agents). Read them before writing prose. They live there and aren't copied here, so every repository writes to the same rules.
 
-
 ## Reading the codebase
 
 Read the map before the code. The prose is kept current with the code, so its first paragraphs
@@ -44,7 +43,6 @@ If the prose you read turns out to be wrong about the code, fixing it is part of
 ## This repository's prose
 
 `pnpm prose` reads the result as a document.
-
 
 - `docs/` holds the writing that spans files: [idea](docs/idea.md) (the spec), [sitez](docs/sitez.md) and [elementz](docs/elementz.md) (how it's built, and what was ruled out), [pagez](docs/pagez.md) (the single-page layer's idea) and [plan](docs/plan.md) (the order of the work). Reference a section by file and heading (`docs/idea.md#the-rules`). Rules are the one exception, cited by number (rule 6), since idea.md numbers them.
 - Work that belongs to one file goes in as a pending `@prose` chunk there, not as a line in the plan.
