@@ -5,7 +5,7 @@
  * and hands the element what it parses to. The path is checked like a link. A file that isn't
  * there, one outside `data/` and one that isn't JSON each fail naming the line, rather than
  * giving the element nothing. JSON is the only format, and CSV is parked
- * ([idea.md](../docs/idea.md#parked-ideas)).
+ * ([design.md](../docs/design.md#parked-ideas)).
  */
 import { readFileSync, statSync } from "node:fs";
 import { extname, join, relative, resolve, sep } from "node:path";

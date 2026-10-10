@@ -2,7 +2,7 @@
  * # Redirects
  *
  * A page that moved lists the URLs it used to have under `redirects`, and Sitez writes a small page
- * at each one that sends the browser on ([docs/idea.md#metadata](docs/idea.md#metadata)). A page's
+ * at each one that sends the browser on ([docs/design.md#metadata](docs/design.md#metadata)). A page's
  * URL is still its file's path (rule 2). A redirect only points old addresses at it, so a site can
  * move its files without breaking links from elsewhere.
  *
