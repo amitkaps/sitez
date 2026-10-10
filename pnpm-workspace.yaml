@@ -1,7 +1,11 @@
 # pnpm 12 reads project settings from here (moved out of .npmrc).
+
+# pnpm holds back a version for a day after it's published, so a bad release can be caught
+# before it's installed. That default is kept, and our own packages skip the wait, since each
+# reaches npm only after the owner approves it with 2FA. The scope, not a version, is named, so
+# a release needs no change here.
 minimumReleaseAgeExclude:
-  - "@amitkaps/markz@0.4.1"
-  - "@amitkaps/prose@0.4.1"
+  - "@amitkaps/*"
 
 # Use Vite+'s bundled Vite implementation for every `vite` consumer.
 # Bump this alongside the `vite-plus` dependency.
