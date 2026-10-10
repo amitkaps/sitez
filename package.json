@@ -30,7 +30,7 @@
     "check": "vp check",
     "dev": "vp pack --watch",
     "fix": "vp check --fix",
-    "prepack": "vp pack",
+    "prepack": "pnpm run build",
     "prose": "prose",
     "test": "vp test --run",
     "verify": "pnpm check && pnpm test && pnpm build && pnpm prose build",
