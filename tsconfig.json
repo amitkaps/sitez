@@ -6,9 +6,6 @@
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "types": ["node"],
     "strict": true,
-    // Oxc writes the package's types file by file, so each export states its type (ship's standard).
-    "declaration": true,
-    "isolatedDeclarations": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "noImplicitReturns": true,
