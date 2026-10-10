@@ -19,3 +19,7 @@ CI also packs Sitez and installs the tarball into a copy of the blog example, ou
 ## Markz
 
 Sitez bundles Markz rather than depending on it, so a site never installs two versions that disagree. A new Markz reaches a site with Sitez's next release.
+
+## The site
+
+[sitez.amitkaps.com](https://sitez.amitkaps.com) is this repository read with prose, on a Cloudflare Worker with static assets, set up in [wrangler.toml](../wrangler.toml). `verify` ends with `prose build`, and `ship` runs `wrangler deploy` on what it wrote. The Worker `sitez` builds from `main`, with the settings every Worker has in [ship's standard](https://ship.amitkaps.com/docs/standard.md#cloudflare), so every merge deploys it.

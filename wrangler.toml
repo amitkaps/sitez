@@ -1,0 +1,20 @@
+# @prose
+# # How the site is deployed
+#
+# Cloudflare builds this repository's own site from `main`: the repository read with prose. It
+# serves it as a Worker with static assets, which are only the pages `prose build` writes.
+#
+# The Worker's build command is `pnpm run verify`, and its deploy command is `pnpm run ship`,
+# which runs `wrangler deploy` and reads this file, domain included, so a deploy can't drop it.
+# The steps are in [development](docs/development.md#the-site).
+
+name = "sitez"
+compatibility_date = "2026-10-11"
+routes = [{ pattern = "sitez.amitkaps.com", custom_domain = true }]
+
+[assets]
+directory = ".prose"
+# Serve prose's 404.html for any missing address.
+not_found_handling = "404-page"
+# Serve /src/site.ts from src/site.ts.html, with no redirect.
+html_handling = "auto-trailing-slash"

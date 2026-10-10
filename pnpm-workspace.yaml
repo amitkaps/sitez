@@ -7,6 +7,11 @@
 minimumReleaseAgeExclude:
   - "@amitkaps/*"
 
+# Dependencies allowed to run install scripts: wrangler's native binaries.
+allowBuilds:
+  esbuild: true
+  workerd: true
+
 # Use Vite+'s bundled Vite implementation for every `vite` consumer.
 # Bump this alongside the `vite-plus` dependency.
 overrides:

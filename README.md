@@ -1,6 +1,6 @@
 # sitez
 
-A static site generator, and a Vite plugin with no options. Markz goes in `text/`, and every page
+A static site generator, and a Vite plugin with no options, read at [sitez.amitkaps.com](https://sitez.amitkaps.com). Markz goes in `text/`, and every page
 builds to complete HTML. [The docs](docs/README.md) say what it promises, how to use it and how it's built.
 
 A site adds Sitez to its `vite.config.js` and runs [Vite+](https://viteplus.dev)'s commands.
