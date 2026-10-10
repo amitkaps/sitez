@@ -23,7 +23,7 @@ stage gets a file here, or a folder once it needs more than one, as its step in
 - `bundle.ts` builds what the browser downloads besides the HTML: the stylesheets `index.html`
   links, the elements' CSS, and the script of the elements with behavior.
 - `build.ts` is the plugin's build half: it renders every page, writes `dist/`, and makes
-  `vite preview` serve it as a static host would.
+  `vp preview` serve it as a static host would.
 - `report.ts` is what `build` prints: what each page costs to send and to build.
 - `dev.ts` is the plugin's dev server half, rendering each page as it's asked for.
 - `elementz/` is the element layer: the element file, rendering elements, `html` and the

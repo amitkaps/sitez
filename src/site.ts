@@ -1,7 +1,7 @@
 /** @prose
  * # A run over the site
  *
- * What `vite build` and `vite` share, so they can't render a page differently. A run reads the site,
+ * What `vp build` and `vp dev` share, so they can't render a page differently. A run reads the site,
  * then renders one page into the parts of its document. Reading the site means its metadata, its
  * pages and every page's metadata, which each page gets as `pages` and every link is checked
  * against.

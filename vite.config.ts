@@ -1,9 +1,8 @@
 /** @prose
  * # Build config
  *
- * The repo's own toolchain, not the one Sitez gives a site: one
- * [`vite-plus`](https://vite-plus.dev) config drives format, lint, test and the package build.
- * `pack` bundles the plugin with tsdown. Reading the repo as prose is a separate tool,
+ * The same toolchain a site runs Sitez with: one [`vite-plus`](https://viteplus.dev) config
+ * drives format, lint, test and the package build. `pack` bundles the plugin with tsdown. Reading the repo as prose is a separate tool,
  * [`@amitkaps/prose`](https://github.com/amitkaps/prose): run `pnpm prose`.
  */
 import { defineConfig } from "vite-plus";

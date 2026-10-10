@@ -38,19 +38,22 @@ that doesn't exist yet.
 
 ## Toolchain
 
-Sitez is a Vite plugin. A site adds it in `vite.config.js` and runs Vite's own commands from its
+Sitez is a Vite plugin, run with Vite+. A site adds it in `vite.config.js` and runs `vp`'s commands from its
 `package.json` (`docs/idea.md#commands`). The plugin takes no options. It reads the site, renders
 every page, and has Vite build the CSS and the script.
 
 ```text
 site
-├── vite                  dev server, preview, Rolldown
+├── vite-plus             dev server, preview, Rolldown, oxfmt, oxlint
 └── @amitkaps/sitez       the plugin, and html for build code
     └── @amitkaps/markz   parser
 ```
 
-`vite` is a peer dependency, which the site installs and pins beside Sitez. Its imports resolve as
-Node's do, from the site's own `node_modules`, at build time and in element scripts alike.
+`vite-plus` is a peer dependency, which the site installs and pins beside Sitez, and Sitez imports
+Vite's API from it. So a site needs no `vite` of its own. A site that adds a plugin wanting `vite`
+points `vite` at Vite+'s build with an override, as every repository at
+[ship](https://ship.amitkaps.com) does. Imports resolve as Node's do, from the site's own
+`node_modules`, at build time and in element scripts alike.
 Vite strips TypeScript's types with no setup, so `code/` takes `.ts` as well as `.js`.
 
 Sitez began as a CLI that ran Vite itself, with the config nobody writes, and then as a plugin was
@@ -65,7 +68,7 @@ with no listener or watcher, made from the site's own config file, and renders e
 its module runner, as `build` did before the plugin. Then two more Vite builds, from the same
 config file, bundle the CSS and the script. So a plugin the site adds applies to rendering, to its
 CSS and to its script alike. The plugin marks Vite's environments built, so Vite doesn't build
-them again. `vite preview` serves `dist/`, and the plugin adds the two things a static host does
+them again. `vp preview` serves `dist/`, and the plugin adds the two things a static host does
 that Vite doesn't, a redirect from a folder to its slash and `404.html` with a 404 status.
 
 **The site must name Sitez.** The check that the site's `package.json` named Sitez went with the
@@ -82,9 +85,10 @@ Ruled out:
 - **Bundling the CSS and script in the one client build.** It would be fewer builds, but both come
   from what the pages rendered, and the stylesheet has no code splitting where the script has
   chunks. Two builds keep `dist/`'s files and hashes as they were.
-- **Vite+** (`vite-plus`). It bundles oxlint, oxfmt and a test runner with Vite, and makes a
-  site's `node_modules` 137 MB. A site installs plain `vite`, about 31 MB, and the linters only if
-  it wants them. Sitez itself still builds and tests with Vite+.
+- **Plain `vite`.** A site's `node_modules` is about 31 MB on it, against 158 MB on Vite+, which
+  bundles oxlint, oxfmt and a test runner. Vite+ won anyway, since every repository runs one
+  toolchain, so a site formats, lints and builds the way Sitez itself does. Sitez 0.3 ran on plain
+  `vite`.
 - **Options for the plugin.** Every option is configuration, which idea.md leaves out. When a
   feature seems to need one, the convention that makes it unnecessary comes first.
 
@@ -193,7 +197,7 @@ Ruled out:
 
 ## Dev server
 
-`vite` serves the site through Sitez's plugin. It renders a page when it's asked for, with the code
+`vp dev` serves the site through Sitez's plugin. It renders a page when it's asked for, with the code
 `build` uses, so the two can't disagree. Drafts are pages like any other. The site is read again
 for every page, so a new or deleted file is a new or missing URL without a restart.
 
@@ -371,7 +375,7 @@ and has no file to cache. The build sets production mode itself.
 
 ## Check, preview and deploy
 
-Sitez has no commands of its own. `vite preview` serves `dist/`, and Sitez's plugin adds what a
+Sitez has no commands of its own. `vp preview` serves `dist/`, and Sitez's plugin adds what a
 static host does that Vite doesn't, such as serving `404.html` with a 404. Formatting and linting
 are the site's own scripts, with oxfmt and oxlint as its own dependencies. oxfmt formats the HTML
 inside `html` templates, and its Markdown output is Markz's canonical form.
@@ -385,7 +389,7 @@ Ruled out:
 
 ## Install
 
-Sitez is installed in each site, never globally. `package.json` names Sitez and Vite, and
+Sitez is installed in each site, never globally. `package.json` names Sitez and Vite+, and
 `npm install` puts those versions in `node_modules`. So the author's machine and the host build
 with the same Sitez by construction. The report's last line names the version that ran.
 

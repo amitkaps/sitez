@@ -40,11 +40,10 @@
     "@types/node": "^24.0.0",
     "happy-dom": "20.14.5",
     "typescript": "^7.0.2",
-    "vite": "^8.0.0",
     "vite-plus": "1.1.0"
   },
   "peerDependencies": {
-    "vite": "^8.0.0"
+    "vite-plus": "^1.1.0"
   },
   "devEngines": {
     "packageManager": {

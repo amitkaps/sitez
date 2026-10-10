@@ -1,7 +1,7 @@
 # Sitez
 
 **Sitez is a static site generator, a Vite plugin with no options. Markz goes in `text/`, HTML,
-CSS and JavaScript in `code/`, JSON in `data/` and files in `public/`. Run `vite build`, get
+CSS and JavaScript in `code/`, JSON in `data/` and files in `public/`. Run `vp build`, get
 complete HTML.**
 
 ## Promises
@@ -337,8 +337,8 @@ has the last word. A site that writes its own layers names `elements` in its ord
 
 ## Commands
 
-Sitez is a Vite plugin, so a site runs Vite. `vite.config.js` adds Sitez, and `package.json`
-holds the commands.
+Sitez is a Vite plugin, and a site runs it with Vite+ (`vp`), which is Vite with its formatter,
+linter and test runner. `vite.config.js` adds Sitez, and `package.json` holds the commands.
 
 ```js
 // vite.config.js
@@ -349,8 +349,8 @@ export default { plugins: [sitez()] };
 
 ```json
 {
-  "scripts": { "dev": "vite", "build": "vite build", "preview": "vite preview" },
-  "devDependencies": { "@amitkaps/sitez": "0.3.0", "vite": "^8.0.0" }
+  "scripts": { "dev": "vp dev", "build": "vp build", "preview": "vp preview" },
+  "devDependencies": { "@amitkaps/sitez": "0.4.0", "vite-plus": "^1.1.0" }
 }
 ```
 
@@ -377,15 +377,16 @@ element that has behavior loads the script, and any other page loads no JavaScri
 grows heavy or slow is visible where the cost is. A note says what the numbers can't, such as a
 raw `<script>` that loads whatever it loads.
 
-**A site names its version of Sitez.** `package.json` names Sitez and Vite, and the lockfile
+**A site names its version of Sitez.** `package.json` names Sitez and Vite+, and the lockfile
 beside it pins the rest. `npm install` puts those versions in the site, so your machine and the
 host always build with the same Sitez. The report's last line names the version that ran. An npm
 library the site's code imports goes in the same `package.json`, at build time or in an
 element's script.
 
-**Formatting and linting are the site's own.** A site that wants them adds oxfmt and oxlint to
-its `package.json` and a script for each. oxfmt formats `text/` in Markz's canonical form, and
-formats the HTML inside `html` templates. Markz's warnings print with `build`, and never fail it.
+**Formatting and linting come with Vite+.** `vp check` formats and lints, with oxfmt and oxlint,
+and a site that wants it adds a `check` script. oxfmt formats `text/` in Markz's canonical form,
+and formats the HTML inside `html` templates. Markz's warnings print with `build`, and never fail
+it.
 
 **A config file is a door.** A site can add other Vite plugins to `vite.config.js`. Sitez
 promises nothing about how they behave with it, and a site with none builds as this page says.

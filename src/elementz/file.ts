@@ -13,7 +13,7 @@
  */
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
-import { parseAst } from "vite";
+import { parseAst } from "vite-plus";
 import { FileError } from "./errors.ts";
 import { attribute, scan, type Tag } from "./markup.ts";
 import { checkStyle } from "./style.ts";

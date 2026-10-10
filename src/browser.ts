@@ -9,7 +9,7 @@
  * The site's script defines each element with behavior under its tag (`bundle.ts`), so the file
  * never names its element (rule 6).
  */
-import { parseAst } from "vite";
+import { parseAst } from "vite-plus";
 import { SiteError } from "./errors.ts";
 import { lineOf, setupModule, type ElementFile } from "./elementz/file.ts";
 import { scan } from "./elementz/markup.ts";

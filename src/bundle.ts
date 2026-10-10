@@ -11,7 +11,7 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { basename, dirname, extname, join } from "node:path";
-import { build, type InlineConfig, type Logger, type Plugin, type Rolldown } from "vite";
+import { build, type InlineConfig, type Logger, type Plugin, type Rolldown } from "vite-plus";
 import { SiteError } from "./errors.ts";
 import type { Style } from "./head.ts";
 import { urlImportError, type Used } from "./browser.ts";
