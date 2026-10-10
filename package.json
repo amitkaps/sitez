@@ -33,7 +33,8 @@
     "prepack": "vp pack",
     "prose": "prose",
     "test": "vp test --run",
-    "verify": "pnpm check && pnpm test && pnpm build"
+    "verify": "pnpm check && pnpm test && pnpm build && pnpm prose build",
+    "ship": "wrangler deploy"
   },
   "devDependencies": {
     "@amitkaps/markz": "^0.4.1",
@@ -41,7 +42,8 @@
     "@types/node": "^26.6.4",
     "happy-dom": "20.14.5",
     "publint": "^0.3.25",
-    "vite-plus": "1.1.0"
+    "vite-plus": "1.1.0",
+    "wrangler": "^4.149.0"
   },
   "peerDependencies": {
     "vite-plus": "^1.1.0"
