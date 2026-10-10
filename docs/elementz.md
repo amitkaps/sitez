@@ -2,7 +2,7 @@
 
 elementz is the element layer: one `@name.html` file that holds an element's markup, written at
 build time, its CSS and its behavior. A host renders it into a page. Sitez is the first host,
-and Pagez ([pagez.md](pagez.md)) would be the second.
+and Pagez ([its design](https://github.com/amitkaps/pagez/blob/main/docs/design.md)) would be the second.
 
 elementz isn't a package yet. Its first form is `src/elementz/` in Sitez, which imports nothing
 from the rest of Sitez ([sitez.md](sitez.md#where-sitez-sits)).

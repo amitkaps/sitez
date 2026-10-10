@@ -1,5 +1,5 @@
 ---
-nav: [design.md, usage.md, sitez.md, elementz.md, plan.md, lessons.md, development.md, pagez.md]
+nav: [design.md, usage.md, sitez.md, elementz.md, plan.md, lessons.md, development.md]
 ---
 
 # Docs
@@ -13,4 +13,3 @@ The writing that spans Sitez's files, in reading order. Each code file's own rea
 5. [Plan](plan.md): the order of the work, with what's done and what's next.
 6. [Lessons](lessons.md): what building it taught, for the next change.
 7. [Development](development.md): build, test and release Sitez itself.
-8. [Pagez](pagez.md): the idea for Pagez, the single-page layer below Sitez, kept in step with it until Pagez is built.
