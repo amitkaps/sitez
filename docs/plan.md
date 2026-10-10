@@ -7,11 +7,11 @@ code's `@prose`, the tests and `git log`.
 ## Where it is
 
 Sitez is a Vite plugin that builds amitkaps.github.io, whose `next` branch deploys
-next.amitkaps.com from it. The latest release is 0.3.0, on npm as `@amitkaps/sitez` and as a
-GitHub release tarball. Since then an element is one file, which amitkaps.github.io hasn't moved
-to yet.
+next.amitkaps.com from it. The latest release is 0.4.0, on npm as `@amitkaps/sitez` and as a
+GitHub release tarball. In it an element is one file and a site runs Vite+, which
+amitkaps.github.io hasn't moved to yet.
 
-### Since 0.3.0
+### 0.4.0
 
 - **A Vite+ plugin.** A site runs `vp dev`, `vp build` and `vp preview`, and installs `vite-plus`
   in place of `vite`, which is Sitez's peer dependency now. Sitez imports Vite's API from it, so a
