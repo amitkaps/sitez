@@ -429,9 +429,10 @@ Ruled out:
 
 Sitez is published to npm as `@amitkaps/sitez`, the name a site's code and `vite.config.js`
 import. It releases the way every package does, as [ship's standard](https://github.com/amitkaps/ship/blob/main/docs/standard.md#releases)
-says: a pull request titled `vX.Y.Z` bumps `version`, its description is the release's summary,
-and pushing the tag runs the `release` workflow. The workflow stages the version on npm for a
-maintainer to approve, and publishes a GitHub Release with notes from the pull requests' labels.
+says: `pnpm release sitez X.Y.Z`, run from ship, opens a pull request that bumps `version`, and
+its description is the release's summary. Merging it runs the `release` workflow, which stages
+the version on npm for a maintainer to approve, then tags the commit and publishes a GitHub
+Release with notes from the pull requests' labels.
 
 Markz is a dev dependency, bundled into `dist/`, so a site never installs a second Markz, and
 Sitez releases without waiting on one. A new Markz reaches sites in Sitez's next release.
