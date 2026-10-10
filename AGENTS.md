@@ -1,7 +1,7 @@
 # Working on this repo
 
-How to work in Sitez: what to read first, the rules the project holds, and the prose rules it
-follows.
+How to work in Sitez: what to read first, the rules the project holds, the standard and prose
+rules every repository shares, and how this one applies them.
 
 Read **`docs/idea.md`**, **`docs/sitez.md`** and **`docs/elementz.md`** first. They say what
 Sitez promises, how it is built, and what an element is. **`docs/plan.md`** is the order the work happens in.
@@ -13,6 +13,19 @@ Sitez promises, how it is built, and what an element is. **`docs/plan.md`** is t
   that makes it unnecessary, or ask. `site.md` holds metadata, never settings.
 - Every failure a user can cause (a broken link, a function in a build-time template, a reserved
   file name) fails the build. Its message names the file and what to change. Never guess silently.
+
+## Standard
+
+This repository follows the standard at [ship](https://ship.amitkaps.com), which sets how every repository builds, checks and deploys. Read [ship's docs/standard.md](https://github.com/amitkaps/ship/blob/main/docs/standard.md) before changing any of that.
+
+- Change the toolchain, scripts, versions or deploys in ship first, then bring each repository in line. Don't change them in one repository alone.
+- Work on a branch and open a pull request. CI runs `pnpm run verify`, which must pass, and the pull request is squash-merged. Nobody pushes to `main`.
+- Run tools through `pnpm run …` and `pnpm exec`, not global installs.
+- A held check on ship's page is a tool's limit, not a choice. Leave it until its reason goes away.
+
+## Prose
+
+Explanations go in `@prose` comments, written to the rules in [prose's usage](https://prose.amitkaps.com/docs/usage.md#for-agents). Read them before writing prose. They live there and aren't copied here, so every repository writes to the same rules.
 
 ## Reading the codebase
 
@@ -27,26 +40,11 @@ tell you what each part means without loading it.
 
 If the prose you read turns out to be wrong about the code, fixing it is part of the change.
 
-## Prose
+## This repository's prose
 
-The rules from [`@amitkaps/prose`](https://github.com/amitkaps/prose/blob/main/docs/usage.md#for-agents),
-copied as they are. `pnpm prose` reads the result as a document.
-
-- Every source file opens with a `@prose` comment, its summary. Add more wherever the reader needs the why, like a design choice or an edge that's easy to get wrong. Trivial declarations, types, constants and mechanical helpers don't need one. A paragraph written only to satisfy this rule is noise the human has to read. Folders have a `README.md`, except `.github/`, where GitHub would show it in place of the root's.
-- Every prose comment, README and doc begins with a short first paragraph, its summary for the human, in about three lines. It says what the file or section means, not what its code does. Detail goes below it. When a change alters a file's role, rewrite that paragraph in the same change.
-- Write plain sentences. Each one holds one idea, in about 25 words at most, in the active voice with a named subject. If a point doesn't fit, give it its own sentence or cut it. Don't join ideas with semicolons or colons, and keep parentheses for links and examples. Use one term for each concept, the one the docs already use.
-- Prose goes in `@prose` comments, written in [markz's Markdown](https://markz.amitkaps.com/docs/syntax.md). Write `_emphasis_`, never `*emphasis*`, and no raw HTML. Ordinary comments stay for code-level notes.
-- Prose says what the code can't. That's why it exists, what it promises, what was decided and what was ruled out. It doesn't retell what reading the code shows, and it doesn't replace ordinary comments.
-- A library ships the comment above each export in its types, as that export's documentation. So give every export a comment, and a one-line JSDoc is enough. Put a section's prose above the declaration it describes.
-- Keep prose current in the same change as the code. Rewrite it where it has drifted, and don't append. A change that only tunes code, with the same behaviour and the same stated costs, needn't touch prose.
-- State a rule once. If a doc or a tested file owns it, link to it by repo path and keep only how and why this code does it.
-- Decisions made in the chat go into the prose in the same change. One that spans files goes into the doc it changes, and one about a single spot goes into the `@prose` there. Write docs for a reader who wasn't in the chat, since they may be published as they are. When something is ruled out, write down that it's out and why, so it isn't rebuilt.
-- If the project keeps a plan, keep it current, with what's done in one line each and what's next in order.
-- To find your way, `grep -rn -A4 "@prose" src` is the map, and `grep -rL "@prose" src --include="*.ts"` lists files with no prose yet. Add an `--include` for each other language the project writes.
-
-For this repository that means:
+`pnpm prose` reads the result as a document.
 
 - `docs/` holds the writing that spans files: [idea](docs/idea.md) (the spec), [sitez](docs/sitez.md) and [elementz](docs/elementz.md) (how it's built, and what was ruled out), [pagez](docs/pagez.md) (the single-page layer's idea) and [plan](docs/plan.md) (the order of the work). Reference a section by file and heading (`docs/idea.md#the-rules`). Rules are the one exception, cited by number (rule 6), since idea.md numbers them.
 - Work that belongs to one file goes in as a pending `@prose` chunk there, not as a line in the plan.
 - Tests carry file prose too: what the file covers, in a line or two.
-- Commit and push to `main`. Run `pnpm check` and `pnpm test` first.
+- Run `pnpm check` and `pnpm test` before opening a pull request.
