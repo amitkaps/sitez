@@ -9,6 +9,8 @@
  *
  * Sitez checks only the keys it reads itself, and a wrong one fails the build naming the file and
  * the key rather than being read some other way. `draft: yes` would otherwise publish a draft.
+ * Markz skips a value YAML reads differently, like `yes`, with a `metadata-value` warning, so a
+ * key Sitez reads is checked as written on its line, not only as Markz kept it.
  * Every other key passes through unchecked, `date` and `tags` included, so a site can add its own,
  * and the code that reads one is where it's checked.
  */
@@ -36,14 +38,15 @@ export interface PageData extends Metadata {
  */
 export function siteMetadata(root: string): Metadata {
   const file = join(root, SITE_FILE);
-  const block: Metadata = { ...parse(readFileSync(file, "utf8")).metadata };
-  check(file, block, siteKeys);
+  const doc = parse(readFileSync(file, "utf8"));
+  const block: Metadata = { ...doc.metadata };
+  check(file, doc, block, siteKeys);
   return block;
 }
 
 export function textMetadata(file: string, url: string, doc: Document): PageData {
   const block: Metadata = { ...doc.metadata };
-  check(file, block, pageKeys);
+  check(file, doc, block, pageKeys);
   return { ...block, url };
 }
 
@@ -79,7 +82,16 @@ const absoluteUrl: Rule = (value) =>
 
 const siteKeys: Record<string, Rule> = { url: absoluteUrl, repo: absoluteUrl };
 
-function check(file: string, block: Metadata, rules: Record<string, Rule>): void {
+function check(file: string, doc: Document, block: Metadata, rules: Record<string, Rule>): void {
+  for (const { code, start, end, message } of doc.warnings) {
+    if (code !== "metadata-value") continue;
+    const line = /^([^:]+):\s*(.*)$/.exec(doc.source.slice(start, end));
+    const key = line?.[1]?.trim();
+    if (key && key in rules && !(key in block)) {
+      const problem = rules[key]!(line?.[2] ?? "") ?? message;
+      throw new SiteError(file, `${key} is ${JSON.stringify(line?.[2])}: ${problem}.`);
+    }
+  }
   for (const [key, rule] of Object.entries(rules)) {
     if (!(key in block)) continue;
     const value = block[key];

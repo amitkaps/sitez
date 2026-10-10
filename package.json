@@ -26,20 +26,22 @@
     "build": "vp pack",
     "check": "vp check",
     "dev": "vp pack --watch",
+    "fix": "vp check --fix",
     "prepack": "vp pack",
     "prose": "prose",
-    "test": "vp test --run"
+    "test": "vp test --run",
+    "verify": "pnpm check && pnpm test && pnpm build"
   },
   "dependencies": {
-    "@amitkaps/markz": "^0.3.0"
+    "@amitkaps/markz": "^0.4.0"
   },
   "devDependencies": {
     "@amitkaps/prose": "^0.4.0",
     "@types/node": "^24.0.0",
     "happy-dom": "20.14.5",
-    "typescript": "^6.0.3",
-    "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0",
-    "vite-plus": "1.0.0"
+    "typescript": "^7.0.2",
+    "vite": "^8.0.0",
+    "vite-plus": "1.1.0"
   },
   "peerDependencies": {
     "vite": "^8.0.0"
@@ -48,7 +50,7 @@
     "packageManager": {
       "name": "pnpm",
       "version": "12.9.1",
-      "onFail": "error"
+      "onFail": "download"
     },
     "runtime": {
       "name": "node",

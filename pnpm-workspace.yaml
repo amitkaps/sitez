@@ -1,12 +1,12 @@
 # pnpm 12 reads project settings from here (moved out of .npmrc).
 minimumReleaseAgeExclude:
-  - "@amitkaps/markz@0.3.0"
+  - "@amitkaps/markz@0.4.0"
   - "@amitkaps/prose@0.4.0"
 
 # Use Vite+'s bundled Vite implementation for every `vite` consumer.
 # Bump this alongside the `vite-plus` dependency.
 overrides:
-  "vite@*": "npm:@voidzero-dev/vite-plus-core@1.0.0"
+  "vite@*": "npm:@voidzero-dev/vite-plus-core@1.1.0"
 
 # Vite+'s Vite implementation is exposed through an npm alias, so
 # pnpm cannot validate it against normal `vite` peer ranges.
