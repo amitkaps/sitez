@@ -20,7 +20,7 @@ export default defineConfig({
       plugin: "src/plugin.ts",
       "elementz/index": "src/elementz/index.ts",
     },
-    dts: true,
+    dts: { generator: "oxc" },
     format: ["esm"],
     platform: "node",
     clean: true,
