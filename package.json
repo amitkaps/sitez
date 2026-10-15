@@ -39,11 +39,11 @@
   "devDependencies": {
     "@amitkaps/markz": "^0.4.1",
     "@amitkaps/prose": "^0.4.1",
-    "@types/node": "^26.6.4",
-    "happy-dom": "20.14.5",
+    "@types/node": "^26.6.5",
+    "happy-dom": "21.0.1",
     "publint": "^0.3.25",
-    "vite-plus": "1.1.0",
-    "wrangler": "^4.149.0"
+    "vite-plus": "1.2.0",
+    "wrangler": "^4.151.0"
   },
   "peerDependencies": {
     "vite-plus": "^1.1.0"
