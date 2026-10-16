@@ -1,3 +1,9 @@
+/** @prose
+ * # Reading metadata
+ *
+ * A page's metadata is its block and its URL, and the site's is its block alone. Neither is filled
+ * in from the text.
+ */
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";

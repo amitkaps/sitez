@@ -113,7 +113,7 @@ type State =
   | "rawtext";
 
 /** @prose
- * ## Where a value is
+ * # Where a value is
  *
  * The scanner follows the HTML tokenizer through the template's static strings, so it knows
  * where each value lands. It writes the output as it goes, because a value can take back

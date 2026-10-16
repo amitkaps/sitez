@@ -1,3 +1,8 @@
+/** @prose
+ * # The build report
+ *
+ * The table a build prints, with a row for each page, then what's common and the total.
+ */
 import { expect, test } from "vite-plus/test";
 import type { BuildResult } from "./build.ts";
 import { report, size, time } from "./report.ts";

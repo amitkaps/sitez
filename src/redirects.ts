@@ -2,7 +2,7 @@
  * # Redirects
  *
  * A page that moved lists the URLs it used to have under `redirects`, and Sitez writes a small page
- * at each one that sends the browser on ([docs/design.md#metadata](docs/design.md#metadata)). A page's
+ * at each one that sends the browser on ([design](../docs/design.md#metadata)). A page's
  * URL is still its file's path (rule 2). A redirect only points old addresses at it, so a site can
  * move its files without breaking links from elsewhere.
  *
@@ -13,7 +13,7 @@
  * An old `/x.html` can't redirect while a page has `/x/`. Hosts serve `x.html` at `/x` too, so the
  * redirect page would stand in front of that page's `/x`. When the page is the one listing it, the
  * redirect isn't needed on Cloudflare, which sends `/x.html` to `/x/` by itself. GitHub Pages
- * doesn't, and there the old `/x.html` is lost ([docs/sitez.md#redirects](docs/sitez.md#redirects)).
+ * doesn't, and there the old `/x.html` is lost ([sitez](../docs/sitez.md#redirects)).
  */
 import { join, relative } from "node:path";
 import { outputFile } from "./discover.ts";

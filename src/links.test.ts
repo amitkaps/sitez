@@ -1,3 +1,9 @@
+/** @prose
+ * # Checking links
+ *
+ * Where `linkTarget` sends each kind of link, and when it fails. Then which links in built HTML
+ * `renderedLinkProblem` passes and which it names.
+ */
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";

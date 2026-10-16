@@ -1,2 +1,7 @@
-# Sites the tests build, some wrong on purpose, which prose doesn't check.
+# @prose
+# # Attributes
+#
+# The sites the tests build are wrong on purpose, and the snapshots are what the tests write, so
+# prose doesn't check either ([usage](https://prose.amitkaps.com/docs/usage.md#warnings)).
 tests/sites/** linguist-vendored
+tests/snapshots/** linguist-generated

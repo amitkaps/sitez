@@ -1,3 +1,9 @@
+/** @prose
+ * # Finding pages and elements
+ *
+ * What `discover` makes a page and gives a URL, and what it skips or fails on. Then how
+ * `readElements` finds each element's file.
+ */
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";

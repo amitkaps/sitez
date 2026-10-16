@@ -1,3 +1,8 @@
+# @prose
+# # The workspace
+#
+# How pnpm installs, from when a release can be installed to which packages may run scripts.
+
 # pnpm 12 reads project settings from here (moved out of .npmrc).
 
 # pnpm holds back a version for a day after it's published, so a bad release can be caught
