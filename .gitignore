@@ -3,10 +3,10 @@ node_modules/
 dist/
 *.tgz
 
-# Tools' leftovers: `vp test --coverage`, Vite's config bundling, `prose build`, wrangler, logs
+# Tools' leftovers: `vp test --coverage`, Vite's config bundling, `prose build`, Cloudflare's Vite plugin, logs
 coverage/
 .prose/
-.wrangler/
+.cloudflare/
 vite.config.*.timestamp-*
 *.log
 

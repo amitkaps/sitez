@@ -6,12 +6,18 @@
  * [`@amitkaps/prose`](https://github.com/amitkaps/prose): run `pnpm prose`.
  */
 import { defineConfig } from "vite-plus";
+import { cloudflare } from "@cloudflare/vite-plugin";
 
 // The example sites are inputs to the tests, formatted the way a site's author would leave them;
 // the snapshots are Sitez's output, exactly as written.
 const ignored = ["dist/**", "tests/sites/**", "tests/snapshots/**", "pnpm-lock.yaml"];
 
 export default defineConfig({
+  // The site: `vp build` hands the folder `prose build` writes to Cloudflare, assets only, for
+  // `cf deploy --prebuilt`. It's ship's prose site: https://ship.amitkaps.com/docs/standard.md
+  publicDir: ".prose",
+  plugins: [cloudflare({ assetsOnly: true })],
+
   // tsdown — `vp pack`. Two ESM entries: the plugin a site's `vite.config.js` imports, and the
   // `sitez` import with its types. Markz is a dev dependency, so it's bundled into `dist/`, and
   // publint checks the package as npm will serve it.

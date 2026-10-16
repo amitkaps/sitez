@@ -33,17 +33,18 @@
     "prepack": "pnpm run build",
     "prose": "prose",
     "test": "vp test --run",
-    "verify": "pnpm check && pnpm prose check && pnpm test && pnpm build && pnpm prose build",
-    "ship": "wrangler deploy"
+    "verify": "pnpm check && pnpm prose check && pnpm test && pnpm build && pnpm prose build && vp build",
+    "ship": "cf deploy --prebuilt"
   },
   "devDependencies": {
     "@amitkaps/markz": "^0.4.2",
     "@amitkaps/prose": "^0.5.0",
+    "@cloudflare/vite-plugin": "2.0.0-beta.sha-67fa336fd",
     "@types/node": "^26.6.5",
+    "cf": "1.0.0-beta.17",
     "happy-dom": "21.0.1",
     "publint": "^0.3.25",
-    "vite-plus": "1.2.0",
-    "wrangler": "^4.151.0"
+    "vite-plus": "1.2.0"
   },
   "peerDependencies": {
     "vite-plus": "^1.1.0"
