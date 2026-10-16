@@ -1,0 +1,2 @@
+# Sites the tests build, some wrong on purpose, which prose doesn't check.
+tests/sites/** linguist-vendored
