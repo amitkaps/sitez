@@ -1,3 +1,9 @@
+# @prose
+# # Ignored
+#
+# What git leaves out. That is installed packages, what a build writes, the OS's own files and
+# secrets, which never belong in the repository.
+
 # Dependencies, and the package build (`vp pack`)
 node_modules/
 dist/
