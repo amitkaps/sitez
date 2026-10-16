@@ -22,4 +22,4 @@ Sitez bundles Markz rather than depending on it, so a site never installs two ve
 
 ## The site
 
-[sitez.amitkaps.com](https://sitez.amitkaps.com) is this repository read with prose, on a Cloudflare Worker with static assets, set up in [wrangler.toml](../wrangler.toml). `verify` ends with `prose build`, and `ship` runs `wrangler deploy` on what it wrote. The Worker `sitez` builds from `main`, with the settings every Worker has in [ship's standard](https://ship.amitkaps.com/docs/standard.md#cloudflare), so every merge deploys it.
+[sitez.amitkaps.com](https://sitez.amitkaps.com) is this repository read with prose, on a Cloudflare Worker with static assets, set up in [cloudflare.config.ts](../cloudflare.config.ts). `verify` ends with `prose build` and then `vp build`, which hands `.prose` to Cloudflare, and `ship` runs `cf deploy --prebuilt` on it. The Worker `sitez` builds from `main`, with the settings every Worker has in [ship's standard](https://ship.amitkaps.com/docs/standard.md#cloudflare), so every merge deploys it.
