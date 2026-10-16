@@ -12,13 +12,9 @@ import sitez from "@amitkaps/sitez/vite";
 export default { plugins: [sitez()] };
 ```
 
-```json
-{
-  "scripts": { "dev": "vp dev", "build": "vp build", "preview": "vp preview" },
-  "devDependencies": { "@amitkaps/sitez": "0.4.0", "vite-plus": "^1.1.0" }
-}
+```sh
+vp dev       # serves the site while it's written
+vp build     # writes it to dist/
 ```
 
 Sitez needs Node 26 or newer, the Node it's built and tested on. [Usage](docs/usage.md) has the rest.
-
-Read [AGENTS.md](AGENTS.md) before changing the code. `pnpm check` and `pnpm test` must pass.
