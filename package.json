@@ -33,12 +33,12 @@
     "prepack": "pnpm run build",
     "prose": "prose",
     "test": "vp test --run",
-    "verify": "pnpm check && pnpm test && pnpm build && pnpm prose build",
+    "verify": "pnpm check && pnpm prose check && pnpm test && pnpm build && pnpm prose build",
     "ship": "wrangler deploy"
   },
   "devDependencies": {
-    "@amitkaps/markz": "^0.4.1",
-    "@amitkaps/prose": "^0.4.1",
+    "@amitkaps/markz": "^0.4.2",
+    "@amitkaps/prose": "^0.5.0",
     "@types/node": "^26.6.5",
     "happy-dom": "21.0.1",
     "publint": "^0.3.25",
