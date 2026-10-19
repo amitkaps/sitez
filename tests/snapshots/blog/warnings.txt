@@ -1,0 +1,2 @@
+text/blog/hello.md:13:1: an element or attribute line beside text or a table, which a formatter joins to it, write a blank line between them instead (element-blank-lines)
+text/blog/hello.md:15:1: an element or attribute line beside text or a table, which a formatter joins to it, write a blank line between them instead (element-blank-lines)
