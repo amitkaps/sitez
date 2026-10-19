@@ -35,10 +35,8 @@ export default defineConfig({
   },
 
   // Oxfmt — `vp fmt` / `vp check`.
-  // oxfmt's defaults, as for every site.
-  fmt: {
-    ignorePatterns: ignored,
-  },
+  // oxfmt's defaults, with each paragraph on one line, as for every site.
+  fmt: { proseWrap: "never", ignorePatterns: ignored },
 
   // Oxlint — `vp lint` / `vp check`.
   lint: {
