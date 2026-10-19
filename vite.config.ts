@@ -6,6 +6,7 @@
  * [`@amitkaps/prose`](https://github.com/amitkaps/prose): run `pnpm prose`.
  */
 import { defineConfig } from "vite-plus";
+import { craftz } from "@amitkaps/craftz";
 import { cloudflare } from "@cloudflare/vite-plugin";
 
 // The example sites are inputs to the tests, formatted the way a site's author would leave them;
@@ -13,10 +14,9 @@ import { cloudflare } from "@cloudflare/vite-plugin";
 const ignored = ["dist/**", "tests/sites/**", "tests/snapshots/**", "pnpm-lock.yaml"];
 
 export default defineConfig({
-  // The site: `vp build` hands the folder `prose build` writes to Cloudflare, assets only, for
-  // `cf deploy --prebuilt`. It's ship's prose site: https://ship.amitkaps.com/docs/standard.md
-  publicDir: ".prose",
-  plugins: [cloudflare({ assetsOnly: true })],
+  // craftz() sets the format and lint rules, and the site: `vp build` hands the folder
+  // `prose build` writes to Cloudflare, assets only.
+  plugins: [craftz(), cloudflare({ assetsOnly: true })],
 
   // tsdown — `vp pack`. Two ESM entries: the plugin a site's `vite.config.js` imports, and the
   // `sitez` import with its types. Markz is a dev dependency, so it's bundled into `dist/`, and
@@ -34,17 +34,9 @@ export default defineConfig({
     publint: { strict: true },
   },
 
-  // Oxfmt — `vp fmt` / `vp check`.
-  // oxfmt's defaults, with each paragraph on one line, as for every site.
-  fmt: { proseWrap: "never", ignorePatterns: ignored },
-
-  // Oxlint — `vp lint` / `vp check`.
-  lint: {
-    plugins: ["typescript", "unicorn", "import"],
-    categories: { correctness: "error" },
-    options: { typeAware: true, typeCheck: true },
-    ignorePatterns: ignored,
-  },
+  // Oxfmt and Oxlint — `vp check`. What they leave alone, beside the rules craftz() sets.
+  fmt: { ignorePatterns: ignored },
+  lint: { ignorePatterns: ignored },
 
   // Vitest — `vp test`.
   test: {
