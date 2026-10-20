@@ -9,7 +9,7 @@ on:
     types: [opened, synchronize, reopened, labeled, unlabeled]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ contains(github.event.action, 'labeled') }}
   cancel-in-progress: true
 
 permissions:

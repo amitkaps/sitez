@@ -32,7 +32,7 @@ site
     └── @amitkaps/markz   parser
 ```
 
-`vite-plus` is a peer dependency, which the site installs and pins beside Sitez, and Sitez imports Vite's API from it. So a site needs no `vite` of its own. A site that adds a plugin wanting `vite` points `vite` at Vite+'s build with an override, as every repository at [ship](https://ship.amitkaps.com) does. Imports resolve as Node's do, from the site's own `node_modules`, at build time and in element scripts alike. Vite strips TypeScript's types with no setup, so `code/` takes `.ts` as well as `.js`.
+`vite-plus` is a peer dependency, which the site installs and pins beside Sitez, and Sitez imports Vite's API from it. So a site needs no `vite` of its own. A site that adds a plugin wanting `vite` points `vite` at Vite+'s build with an override, as every repository at [craftz](https://craftz.amitkaps.com) does. Imports resolve as Node's do, from the site's own `node_modules`, at build time and in element scripts alike. Vite strips TypeScript's types with no setup, so `code/` takes `.ts` as well as `.js`.
 
 Sitez began as a CLI that ran Vite itself, with the config nobody writes, and then as a plugin was ruled out ([Install](#install)). It became one once behavior could import npm packages. Those imports need a bundler that resolves `node_modules`, so Vite stays. That ruled out a spike without Vite, which the plan had held. A plugin then costs the site one small file, and saves Sitez its CLI, its preview server, `check`, `deploy` and finding the site's root.
 
@@ -220,7 +220,7 @@ Ruled out:
 
 ## Release
 
-Sitez is published to npm as `@amitkaps/sitez`, the name a site's code and `vite.config.js` import. It releases the way every package does, as [ship's standard](https://github.com/amitkaps/ship/blob/main/docs/standard.md#releases) says: `pnpm release sitez X.Y.Z`, run from ship, opens a pull request that bumps `version`, and its description is the release's summary. Merging it runs the `release` workflow, which stages the version on npm for a maintainer to approve, then tags the commit and publishes a GitHub Release with notes from the pull requests' labels.
+Sitez is published to npm as `@amitkaps/sitez`, the name a site's code and `vite.config.js` import. It releases the way every package does, as [craftz's rules](https://craftz.amitkaps.com/docs/rules.md#releases) say: `pnpm release sitez X.Y.Z`, run from craftz, opens a pull request that bumps `version`, and its description is the release's summary. Merging it runs the `release` workflow, which stages the version on npm for a maintainer to approve, then tags the commit and publishes a GitHub Release with notes from the pull requests' labels.
 
 Markz is a dev dependency, bundled into `dist/`, so a site never installs a second Markz, and Sitez releases without waiting on one. A new Markz reaches sites in Sitez's next release.
 

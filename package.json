@@ -40,7 +40,7 @@
     "craftz": "craftz"
   },
   "devDependencies": {
-    "@amitkaps/craftz": "^0.1.1",
+    "@amitkaps/craftz": "^0.1.2",
     "@amitkaps/markz": "^0.6.0",
     "@amitkaps/prose": "^0.8.0",
     "@cloudflare/vite-plugin": "2.0.0-beta.v.1",

@@ -13,6 +13,7 @@ dist/
 coverage/
 .prose/
 .cloudflare/
+.wrangler/
 vite.config.*.timestamp-*
 *.log
 
