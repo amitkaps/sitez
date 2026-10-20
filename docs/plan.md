@@ -1,37 +1,6 @@
 # Plan
 
-Where Sitez is and what comes next, in order. Finished work gets a line or two, newest first. The detail lives in [design.md](design.md), [sitez.md](sitez.md), [elementz.md](elementz.md), the code's `@prose`, the tests and `git log`.
-
-## Where it is
-
-Sitez is a Vite plugin that builds amitkaps.github.io, whose `next` branch deploys next.amitkaps.com from it. The latest release is 0.4.0, on npm as `@amitkaps/sitez` and as a GitHub release tarball. In it an element is one file and a site runs Vite+, which amitkaps.github.io hasn't moved to yet.
-
-### 0.4.0
-
-- **A Vite+ plugin.** A site runs `vp dev`, `vp build` and `vp preview`, and installs `vite-plus` in place of `vite`, which is Sitez's peer dependency now. Sitez imports Vite's API from it, so a site needs no override. A site's `node_modules` grows from 31 MB to 158 MB, for one toolchain everywhere ([sitez.md](sitez.md#toolchain)).
-- **Markz 0.4.0, and the standard's toolchain.** Text keeps the quotes and dashes as typed, so `There's` stays straight. Markz skips a value YAML reads differently, like `draft: yes`, with a warning, and Sitez still fails the build on one in a key it reads. Vite+ 1.1.0, TypeScript 7, and the `fix` and `verify` scripts, as [ship](https://ship.amitkaps.com) has them.
-- **Markz 0.3.0 and prose 0.4.0.** Prose reads an `.html` file part by part, so an element's `@prose` in its `<script>` and `<style>` is found. Markz closes a quote after a single quote.
-- **One file per element.** An element is `@name.html`, and its code is `src/elementz/`, which imports nothing from the rest of Sitez. Each part is a module on the file's own lines. Element CSS ships once, in `@layer elements`. `setup(el, { signal })` replaces the class, and rendering is synchronous. The slot's fallback shows only when there is no content, and Sitez 0.3's names fail, saying where their code goes.
-- **What Data Portraits showed.** Its nine charts became elements drawn with d3 at build time, and the port found three gaps, listed under Next.
-- **One file per element, designed.** An element is `@name.html`, with a template the build writes, its CSS and its `setup` ([elementz.md](elementz.md)). Sitez is the top of four layers, markz, elementz, pagez and sitez ([sitez.md](sitez.md#where-sitez-sits)).
-- **The docs split by layer.** The old design.md became sitez.md and elementz.md, idea.md's rules (now design.md) describe one file, and [pagez.md](https://github.com/amitkaps/pagez/blob/main/docs/design.md) keeps Pagez's idea in step.
-
-### 0.3.0
-
-- **Pages from `code/index.html`.** The frame is a complete HTML page with one `<slot>`, and Sitez writes only the head tags that follow from metadata ([sitez.md](sitez.md#the-frame)).
-- **Explicit metadata.** A page gives its own `title` and `description`, and nothing is filled in from its text. The sitemap, the feed and the reset went.
-- **Names for when code runs.** `.html`, `.html.js` and `.browser.js`, with elements global and `_` names skipped in every folder.
-- **A Vite plugin.** The CLI, `check`, `preview` and `deploy` went. A site's `node_modules` went from 137 MB to 31 MB, and a page's script to 0.3 KB, one class per element with behavior.
-
-### 0.2.0
-
-- **Svelte goes.** A spike of amitkaps.github.io's `/teaching/` loaded 2 KB of JavaScript against 206 KB ([spike/](https://github.com/amitkaps/sitez/tree/465e738/spike)). Sitez was rewritten around it: `text/`, `code/` and `data/`, `html` with its own renderer, elements named in `code/`, and live elements in one script.
-- **Redirects.** A page lists its old URLs, and the build writes a page at each.
-- **The real site.** amitkaps.github.io was ported, and a release on npm is staged for approval.
-
-### 0.1.0
-
-- **Sitez on Svelte** ([`v0.1.0`](https://github.com/amitkaps/sitez/tree/v0.1.0)). Islands hydrated from the server render. Its discovery, links, head, report and error fixtures carried over.
+Sitez is a Vite plugin that builds amitkaps.github.io, whose `next` branch deploys next.amitkaps.com from it. 0.4.0 is on npm as `@amitkaps/sitez`, and what each release changed is in its [notes on GitHub](https://github.com/amitkaps/sitez/releases). This plan says what's next, in order, and what works now. The detail lives in [design.md](design.md), [sitez.md](sitez.md), [elementz.md](elementz.md), the code's `@prose` and the tests.
 
 ## Next, in order
 
@@ -42,12 +11,24 @@ Sitez is a Vite plugin that builds amitkaps.github.io, whose `next` branch deplo
   - The report says what each element adds to the script, such as `notes-treemap 2.1 KB`.
 - [ ] **Docs for users.** A guide: install, the folders, a page, an element, deploying, and every error with its fix. It's written once the element settles, and rendered by prose or by Sitez.
 
+## Where it is
+
+- **A Vite+ plugin.** A site runs `vp dev`, `vp build` and `vp preview`, with `vite-plus` as Sitez's peer, so it needs no override ([sitez.md](sitez.md#toolchain)).
+- **Pages from `code/index.html`.** The frame is a complete HTML page with one `<slot>`, and Sitez writes only the head tags that follow from a page's own `title` and `description` ([sitez.md](sitez.md#the-frame)).
+- **One file per element.** An element is `@name.html`, with its template, its CSS in `@layer elements` and its `setup(el, { signal })`. Its code is `src/elementz/`, which imports nothing from the rest of Sitez ([elementz.md](elementz.md)).
+- **Names for when code runs.** `.html`, `.html.js` and `.browser.js`, with elements global and `_` names skipped in every folder.
+- **Little JavaScript.** Svelte went after a spike of `/teaching/` loaded 2 KB of JavaScript against 206 KB ([spike/](https://github.com/amitkaps/sitez/tree/465e738/spike)). A page loads script only for the elements with behavior.
+- **Redirects.** A page lists its old URLs, and the build writes a page at each.
+- **Markz and prose.** Text keeps quotes and dashes as typed, and the build fails on a metadata value YAML reads differently, in a key Sitez reads. Prose finds an element's `@prose` in its `<script>` and `<style>`.
+- **The docs by layer.** design.md holds the rules for one file, and Sitez is the top of four layers, markz, elementz, pagez and sitez ([sitez.md](sitez.md#where-sitez-sits)).
+- **craftz.** Sitez follows craftz's rules, on Vite+ and TypeScript 7.
+
 ## Later
 
-- [ ] **Pagez** ([its design](https://github.com/amitkaps/pagez/blob/main/docs/design.md)), in its own repository now, with [its own plan](https://github.com/amitkaps/pagez/blob/main/docs/plan.md). Sitez renders its pages through Pagez once it's built.
-- [ ] **Writing.** Writing is the real block, more than building. An editor view, or a separate package (`editz`), would make a page easy to write.
-- [ ] **A feed for short ideas.** A feed fits short, dated notes better than essays. It waits on the editor.
-- [ ] **Markz fix** found by the port: `\` as a line break. It goes to markz.
+- **Pagez** ([its design](https://github.com/amitkaps/pagez/blob/main/docs/design.md)), in its own repository now, with [its own plan](https://github.com/amitkaps/pagez/blob/main/docs/plan.md). Sitez renders its pages through Pagez once it's built.
+- **Writing.** Writing is the real block, more than building. An editor view, or a separate package (`editz`), would make a page easy to write.
+- **A feed for short ideas.** A feed fits short, dated notes better than essays. It waits on the editor.
+- **Markz fix** found by the port: `\` as a line break. It goes to markz.
 
 ## Open questions
 

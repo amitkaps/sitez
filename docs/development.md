@@ -1,6 +1,6 @@
 # Development
 
-How Sitez is built and changed. What every repository shares, like the scripts, CI and releases, is in [ship's standard](https://ship.amitkaps.com/docs/standard.md), and isn't repeated here.
+How Sitez is built and changed. What every repository shares, like the scripts, CI and releases, is in [craftz's rules](https://craftz.amitkaps.com/docs/rules.md), and isn't repeated here.
 
 ## Build and test
 
@@ -22,4 +22,4 @@ Sitez bundles Markz rather than depending on it, so a site never installs two ve
 
 ## The site
 
-[sitez.amitkaps.com](https://sitez.amitkaps.com) is this repository read with prose, on a Cloudflare Worker with static assets, set up in [cloudflare.config.ts](../cloudflare.config.ts). `verify` ends with `prose build` and then `vp build`, which hands `.prose` to Cloudflare, and `ship` runs `cf deploy --prebuilt` on it. The Worker `sitez` builds from `main`, with the settings every Worker has in [ship's standard](https://ship.amitkaps.com/docs/standard.md#cloudflare), so every merge deploys it.
+[sitez.amitkaps.com](https://sitez.amitkaps.com) is this repository read with prose, on a Cloudflare Worker with static assets, set up in [cloudflare.config.ts](../cloudflare.config.ts). `verify` ends with `prose build` and then `vp build`, which hands `.prose` to Cloudflare, and `ship` runs `cf deploy --prebuilt` on it. The Worker `sitez` builds from `main`, with the settings every Worker has in [craftz's rules](https://craftz.amitkaps.com/docs/rules.md#cloudflare), so every merge deploys it.
