@@ -33,14 +33,14 @@
     "prepack": "pnpm run build",
     "prose": "prose",
     "test": "vp test --run",
-    "verify": "pnpm check && pnpm prose check && pnpm test && pnpm build && pnpm prose build && vp build",
+    "verify": "pnpm check && pnpm prose check && pnpm craftz check && pnpm test && pnpm build && pnpm prose build && vp build",
     "ship": "craftz deploy",
     "pr": "craftz pr",
     "gone": "craftz gone",
     "craftz": "craftz"
   },
   "devDependencies": {
-    "@amitkaps/craftz": "^0.1.2",
+    "@amitkaps/craftz": "^0.3.0",
     "@amitkaps/markz": "^0.6.0",
     "@amitkaps/prose": "^0.8.0",
     "@cloudflare/vite-plugin": "2.0.0-beta.v.1",

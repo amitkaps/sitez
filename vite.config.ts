@@ -18,6 +18,9 @@ export default defineConfig({
   // `prose build` writes to Cloudflare, assets only.
   plugins: [craftz(), cloudflare({ assetsOnly: true })],
 
+  // The site is the folder `prose build` writes.
+  publicDir: ".prose",
+
   // tsdown — `vp pack`. Two ESM entries: the plugin a site's `vite.config.js` imports, and the
   // `sitez` import with its types. Markz is a dev dependency, so it's bundled into `dist/`, and
   // publint checks the package as npm will serve it.
