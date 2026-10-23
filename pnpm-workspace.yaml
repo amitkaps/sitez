@@ -1,30 +1,35 @@
 # @prose
-# # The workspace
+# # pnpm's settings
 #
-# How pnpm installs, from when a release can be installed to which packages may run scripts.
+# pnpm 12 reads project settings from here, not from `.npmrc` or `package.json`. It's a
+# settings file, not a workspace. craftz writes it, the same in every repository, so a change
+# here is a change to [the rules](https://craftz.amitkaps.com/docs/rules.md).
 
-# pnpm 12 reads project settings from here (moved out of .npmrc).
-
-# pnpm holds back a version for a day after it's published, so a bad release can be caught
-# before it's installed. That default is kept, and our own packages skip the wait, since each
-# reaches npm only after the owner approves it with 2FA. The scope, not a version, is named, so
-# a release needs no change here.
+# @prose
+# pnpm holds back a version for a day after it's published, so a hijacked release can be
+# pulled before it's installed. The risk is in the hundreds of libraries and nested packages
+# that move without anyone reading them, and a hijack is usually caught within hours. Any wait
+# of hours covers that, so pnpm's default is kept rather than a number of our own. Our own
+# packages skip the wait, since each reaches npm only after the owner approves it with 2FA. The
+# scope, not a version, is named, so a release needs no change here.
 minimumReleaseAgeExclude:
   - "@amitkaps/*"
 
-# Dependencies allowed to run install scripts: esbuild for the build, and workerd for the local
-# Cloudflare runtime.
+# @prose
+# Dependencies allowed to run install scripts. Both are native binaries: esbuild for the
+# build, and workerd for the local Cloudflare runtime, where an app installs wrangler.
 allowBuilds:
   esbuild: true
   workerd: true
 
-# Use Vite+'s bundled Vite implementation for every `vite` consumer.
-# Bump this alongside the `vite-plus` dependency.
+# @prose
+# Vite+ ships its own build of Vite, and every `vite` in the tree is pointed at it, at the
+# version of the `vite-plus` devDependency, so the two move together. Since that build is an
+# npm alias, pnpm can't check it against the usual `vite` peer ranges, so those checks
+# are off for `vite`.
 overrides:
   "vite@*": "npm:@voidzero-dev/vite-plus-core@1.3.0"
 
-# Vite+'s Vite implementation is exposed through an npm alias, so
-# pnpm cannot validate it against normal `vite` peer ranges.
 peerDependencyRules:
   allowAny:
     - vite
