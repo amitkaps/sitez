@@ -7,7 +7,6 @@
  */
 import { defineConfig } from "vite-plus";
 import { craftz } from "@amitkaps/craftz";
-import { cloudflare } from "@cloudflare/vite-plugin";
 
 // The example sites are inputs to the tests, formatted the way a site's author would leave them;
 // the snapshots are Sitez's output, exactly as written.
@@ -16,10 +15,7 @@ const ignored = ["dist/**", "tests/sites/**", "tests/snapshots/**", "pnpm-lock.y
 export default defineConfig({
   // craftz() sets the format and lint rules, and the site: `vp build` hands the folder
   // `prose build` writes to Cloudflare, assets only.
-  plugins: [craftz(), cloudflare({ assetsOnly: true })],
-
-  // The site is the folder `prose build` writes.
-  publicDir: ".prose",
+  plugins: [craftz()],
 
   // tsdown — `vp pack`. Two ESM entries: the plugin a site's `vite.config.js` imports, and the
   // `sitez` import with its types. Markz is a dev dependency, so it's bundled into `dist/`, and
